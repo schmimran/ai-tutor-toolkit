@@ -1,22 +1,20 @@
-import Anthropic from "@anthropic-ai/sdk";
 import express from "express";
 import multer from "multer";
-import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import dotenv from "dotenv";
-
-// Load .env
-dotenv.config();
+import {
+  loadConfig,
+  loadSystemPrompt,
+  Session,
+  createTutorClient,
+} from "@ai-tutor/core";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Config
-const SYSTEM_PROMPT_PATH = process.env.SYSTEM_PROMPT_PATH || "../templates/tutor-prompt.md";
-const MODEL = process.env.MODEL || "claude-sonnet-4-6";
-const EXTENDED_THINKING = process.env.EXTENDED_THINKING !== "false";
-const PORT = process.env.PORT || 3000;
+const config = loadConfig();
+const systemPrompt = loadSystemPrompt(config.systemPromptPath);
+const tutor = createTutorClient(config, systemPrompt);
 
 // File upload config — store in memory, 10MB limit
 const upload = multer({
@@ -35,39 +33,12 @@ const upload = multer({
   },
 });
 
-// Load system prompt
-let systemPrompt;
-try {
-  systemPrompt = readFileSync(SYSTEM_PROMPT_PATH, "utf-8");
-  const beginMarker = "## Begin prompt";
-  const beginIndex = systemPrompt.indexOf(beginMarker);
-  if (beginIndex !== -1) {
-    systemPrompt = systemPrompt.substring(beginIndex + beginMarker.length).trim();
-  }
-} catch (err) {
-  console.error(`Could not read system prompt from ${SYSTEM_PROMPT_PATH}`);
-  console.error("Set SYSTEM_PROMPT_PATH to the path of your tutor prompt file.");
-  process.exit(1);
-}
-
-// Initialize Anthropic client
-const client = new Anthropic();
-
 // In-memory session storage (keyed by session ID)
 const sessions = new Map();
 
-// Express app
-const app = express();
-app.use(express.json());
-app.use(express.static(join(__dirname, "public")));
-
-// Get or create a session
 function getSession(sessionId) {
   if (!sessions.has(sessionId)) {
-    sessions.set(sessionId, {
-      messages: [],     // Full API content blocks (includes thinking)
-      transcript: [],   // Plain text for export
-    });
+    sessions.set(sessionId, new Session());
   }
   return sessions.get(sessionId);
 }
@@ -91,7 +62,6 @@ function buildUserContent(message, files) {
           },
         });
       } else {
-        // Image types
         content.push({
           type: "image",
           source: {
@@ -104,13 +74,17 @@ function buildUserContent(message, files) {
     }
   }
 
-  // Add text message (always present, even if just describing the attachment)
   if (message) {
     content.push({ type: "text", text: message });
   }
 
   return content;
 }
+
+// Express app
+const app = express();
+app.use(express.json());
+app.use(express.static(join(__dirname, "public")));
 
 // POST /api/chat — send a message (with optional file attachments) and get a tutor response
 app.post("/api/chat", upload.array("files", 5), async (req, res) => {
@@ -125,12 +99,7 @@ app.post("/api/chat", upload.array("files", 5), async (req, res) => {
   }
 
   const session = getSession(sessionId);
-
-  // Build content blocks for the API
   const userContent = buildUserContent(message, req.files);
-
-  // Add to conversation history
-  session.messages.push({ role: "user", content: userContent });
 
   // Build transcript text (files referenced by name)
   let transcriptText = message || "";
@@ -140,36 +109,10 @@ app.post("/api/chat", upload.array("files", 5), async (req, res) => {
       ? `${transcriptText} [attached: ${fileNames}]`
       : `[attached: ${fileNames}]`;
   }
-  session.transcript.push({ role: "Student", text: transcriptText });
 
   try {
-    const requestParams = {
-      model: MODEL,
-      max_tokens: 16000,
-      system: systemPrompt,
-      messages: session.messages,
-    };
-
-    if (EXTENDED_THINKING) {
-      requestParams.thinking = {
-        type: "enabled",
-        budget_tokens: 10000,
-      };
-    }
-
-    const response = await client.messages.create(requestParams);
-
-    // Extract text response (skip thinking blocks)
-    const assistantMessage = response.content
-      .filter((block) => block.type === "text")
-      .map((block) => block.text)
-      .join("\n");
-
-    // Store full response for API context continuity
-    session.messages.push({ role: "assistant", content: response.content });
-    session.transcript.push({ role: "Tutor", text: assistantMessage });
-
-    res.json({ response: assistantMessage });
+    const reply = await tutor.sendMessage(session, userContent, transcriptText);
+    res.json({ response: reply });
   } catch (err) {
     console.error("Anthropic API error:", err.message);
     res.status(500).json({ error: "Failed to get tutor response.  Check your API key and try again." });
@@ -196,7 +139,7 @@ app.get("/api/transcript/:sessionId", (req, res) => {
   if (!session) {
     return res.status(404).json({ error: "Session not found" });
   }
-  res.json({ transcript: session.transcript });
+  res.json({ transcript: session.getTranscript() });
 });
 
 // POST /api/reset — clear a session
@@ -211,12 +154,12 @@ app.post("/api/reset", (req, res) => {
 // GET /api/config — expose non-sensitive config to frontend
 app.get("/api/config", (req, res) => {
   res.json({
-    model: MODEL,
-    extendedThinking: EXTENDED_THINKING,
+    model: config.model,
+    extendedThinking: config.extendedThinking,
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`AI Tutor running at http://localhost:${PORT}`);
-  console.log(`Model: ${MODEL}  |  Extended thinking: ${EXTENDED_THINKING ? "on" : "off"}`);
+app.listen(config.port, () => {
+  console.log(`AI Tutor running at http://localhost:${config.port}`);
+  console.log(`Model: ${config.model}  |  Extended thinking: ${config.extendedThinking ? "on" : "off"}`);
 });

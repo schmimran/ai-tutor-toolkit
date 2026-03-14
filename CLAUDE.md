@@ -95,26 +95,67 @@ The prompt uses she/her throughout as written.  The `PRONOUNS` variable reminds 
 - Opus is unnecessary for high school homework.  The reasoning demands don't justify the cost or latency.
 - Extended thinking matters not because the math is hard, but because it gives the model a scratchpad to check its own behavior (one question at a time, tone, whether to probe reasoning) before responding.
 
-### App (`app/`)
+### Monorepo structure (`apps/`)
 
-The app has two interfaces that share the same backend logic:
+The repository uses npm workspaces to manage multiple applications that share a common core.  Run `npm install` from the repository root to install all workspace dependencies.
 
-- **CLI** (`index.js`, run with `npm start`) — terminal-based, student types messages, tutor responds.  `export` command prints the transcript.
-- **Web** (`server.js` + `public/index.html`, run with `npm run serve`) — Express server with a single-page chat interface.  Student messages on the right, tutor on the left.  Transcript modal with copy-to-clipboard.  New session button.  API key stays server-side.
+#### `apps/core/` — Shared library
 
-Both interfaces share these implementation details:
+All tutor interfaces share four modules extracted into `@ai-tutor/core`:
+
+- **`config.js`** — reads environment variables with defaults (`MODEL`, `EXTENDED_THINKING`, `SYSTEM_PROMPT_PATH`, `PORT`).
+- **`prompt-loader.js`** — loads a system prompt file and strips the template variables section above `## Begin prompt`.  Paths resolve relative to the repository root unless absolute.
+- **`session.js`** — the `Session` class that enforces the dual-array invariant.  `messages[]` stores full API content blocks for context continuity.  `transcript[]` stores plain text for export.  Both arrays are always updated together through `addUserMessage()` and `addAssistantResponse()`.
+- **`tutor-client.js`** — wraps the Anthropic SDK.  Builds request parameters, handles extended thinking configuration, extracts text from response content blocks.
+
+#### `apps/cli/` — Terminal tutor
+
+Thin readline wrapper around `@ai-tutor/core`.  Run with `npm run cli` from the repo root.  Supports `export` and `quit` commands.  Does not support file uploads.
+
+#### `apps/web/` — Web tutor
+
+Express server with a single-page chat interface.  Run with `npm run serve` from the repo root.  Features:
+
+- Chat interface with student messages on the right, tutor on the left.
+- File uploads via drag-and-drop or paperclip icon (images and PDFs, up to 5 per message, 10 MB each).
+- Transcript export with copy-to-clipboard.
+- Sessions stored in memory keyed by UUID (generated client-side).  Restarting the server clears all sessions.
+- Exposes `/api/chat`, `/api/transcript/:sessionId`, `/api/reset`, and `/api/config` endpoints.
+- The API key stays server-side.  The frontend never sees it.
+
+#### `apps/web-parent/` — Parent config UI (planned)
+
+Setup page where a parent chooses subject, grade level, tone, and student description, then previews the generated system prompt.  See `apps/web-parent/README.md`.
+
+#### `apps/web-review/` — Session review (planned)
+
+Transcript viewer with automated evaluation checks.  See `apps/web-review/README.md`.
+
+#### `apps/ios/` — iOS app (planned)
+
+Native mobile tutor interface.  Technology TBD.  See `apps/ios/README.md`.
+
+### Shared implementation details
+
+These apply across all current and future interfaces:
 
 - Node.js with the Anthropic SDK.
 - Extended thinking is **on by default** — set `EXTENDED_THINKING=false` in `.env` to disable.
-- Both maintain two parallel data structures: `messages` (full API content blocks including thinking blocks, for context continuity) and `transcript` (plain text strings, for export).  This was a bug fix — the original version stored raw content blocks and the export printed `[object Object]`.
-- The system prompt is loaded from a file.  If the file contains `## Begin prompt`, everything above that marker is stripped (it's the template variables section, not part of the prompt itself).
+- The dual-array invariant (`messages[]` for API context, `transcript[]` for export) is enforced by the `Session` class in `apps/core/session.js`.  Individual apps do not manage these arrays directly.
+- The system prompt is loaded from a file.  `SYSTEM_PROMPT_PATH` resolves relative to the repository root.  If the file contains `## Begin prompt`, everything above that marker is stripped.
 
-The web server additionally:
+### Cross-platform prompt distribution
 
-- Stores sessions in memory keyed by UUID (generated client-side).  Restarting the server clears all sessions.
-- Exposes `/api/chat`, `/api/transcript/:sessionId`, `/api/reset`, and `/api/config` endpoints.
-- Serves static files from `public/`.
-- Never exposes the API key to the frontend.
+The system prompt lives in the repository as a markdown file at `templates/tutor-prompt.md`.  The Node.js apps load it at startup via `apps/core/prompt-loader.js`, which resolves paths relative to the repository root.
+
+For non-Node.js interfaces like the planned iOS app, the prompt needs a different distribution mechanism.  Current thinking on the options:
+
+1. **Bundle at build time.**  Copy the prompt file into the app bundle during the build step.  Simple and reliable, but the prompt is frozen at the build version — updating it requires a new app release.
+2. **Fetch from a backend.**  Add an endpoint to a shared API server that returns the current prompt.  The prompt updates without app releases.  Adds infrastructure and a network dependency.
+3. **Fetch from a CDN or hosted file.**  Publish the prompt to a static URL on each release.  Lighter than a full backend but still requires a deployment step.
+4. **Hybrid: bundle a fallback, fetch updates.**  The app ships with a bundled prompt but checks for a newer version on startup.  Balances offline reliability with update flexibility.
+
+No decision has been made.  The right choice depends on how frequently the prompt changes in practice once a parent has configured it, and whether the iOS app connects to a backend for other reasons.  If a backend proxy is needed anyway for API key management, option 2 adds minimal cost.
 
 ---
 
@@ -208,22 +249,24 @@ The tutor has no memory across sessions.  It can't detect patterns like "she con
 4. Setup should be a single step: "Start a new conversation in your tutor project."  Don't include navigation steps — the user has already set up shortcuts.
 5. The student character must NOT know the correct answer.  If you find yourself writing scratch work to figure out the error, delete it before committing (this happened twice in development and was caught in review).
 
-### When editing the app
+### When editing apps
 
-1. The `messages` array stores full API content blocks (including thinking blocks) for context continuity.
-2. The `transcript` array stores plain text for export.  These must be updated in parallel in both `index.js` and `server.js`.
-3. Extended thinking is on by default.  Any new API call parameters must account for both thinking-on and thinking-off states.
-4. The `.env.example` file must document every environment variable with defaults and descriptions.
-5. The web server (`server.js`) must never expose the API key to the frontend.  All Anthropic API calls happen server-side.
-6. The frontend (`public/index.html`) is a single file — HTML, CSS, and JS together.  No build step, no dependencies, no framework.  Keep it that way unless there's a strong reason to add complexity.
-7. If you add a new API endpoint to `server.js`, document it in `app/README.md`.
+1. The dual-array invariant (`messages[]` + `transcript[]`) is managed by the `Session` class in `apps/core/session.js`.  Do not manage these arrays directly in app code.  Use `session.addUserMessage()` and `session.addAssistantResponse()`.
+2. Extended thinking is on by default.  Any new API call parameters must account for both thinking-on and thinking-off states.
+3. Each app's `.env.example` file must document every environment variable it uses.
+4. The web server (`apps/web/server.js`) must never expose the API key to the frontend.  All Anthropic API calls happen server-side.
+5. The frontend (`apps/web/public/index.html`) is a single file — HTML, CSS, and JS together.  No build step, no dependencies, no framework.  Keep it that way unless there's a strong reason to add complexity.
+6. If you add a new API endpoint to `apps/web/server.js`, document it in `apps/web/README.md`.
+7. When adding a new app, create a directory under `apps/`, add a `package.json` that depends on `@ai-tutor/core`, and add it to the `workspaces` array in the root `package.json`.
+8. Every app README must include: overview, technology, dependencies table, design methodology, setup, and configuration.
 
 ### When editing documentation
 
 1. The README repo structure diagram must match the actual file tree.  Verify after adding or renaming files.
-2. The app README roadmap must label completed phases with ✅.
+2. The root README roadmap must label completed phases with ✅.
 3. Cross-references between files (e.g., "see `templates/evaluation-checklist.md`") must point to actual paths.
 4. The tests README scenario table must include every test file in `tests/`.
+5. Each app README must document its dependencies, technology, and design methodology.
 
 ### General
 
@@ -261,9 +304,10 @@ The v3 → v4 transition (deleting all decision trees) produced the largest sing
 
 | File | Purpose | Edits require syncing with |
 |------|---------|---------------------------|
-| `README.md` | Public-facing overview, quick start, key findings | Repo structure diagram must match actual files |
+| `README.md` | Public-facing overview, quick start, roadmap, key findings | Repo structure diagram must match actual files |
 | `LICENSE` | MIT license | No sync required |
-| `.gitignore` | Standard ignores (node_modules, .env) | No sync required |
+| `.gitignore` | Standard ignores (node_modules, .env, Xcode) | No sync required |
+| `package.json` | npm workspaces root, convenience scripts | `workspaces` array must list active app directories |
 | `CLAUDE.md` | This file — agent context | Update when major decisions are made |
 | `templates/tutor-prompt.md` | Parameterized prompt for customization | `examples/physics-geometry-9th-grade.md` |
 | `templates/evaluation-checklist.md` | Reusable scoring rubric | All test files (they embed similar checklists) |
@@ -273,10 +317,22 @@ The v3 → v4 transition (deleting all decision trees) produced the largest sing
 | `docs/methodology.md` | Process documentation | Should reflect actual process used |
 | `docs/model-selection.md` | Model comparison findings | Update if new models are tested |
 | `docs/lessons-learned.md` | 10 key findings | Update as new findings emerge |
-| `app/README.md` | Setup instructions and roadmap | Must document all `.env` variables and API endpoints |
-| `app/index.js` | CLI tutor | `messages` and `transcript` arrays must stay in sync |
-| `app/server.js` | Web server (Express) | Same dual-array pattern as `index.js`; API key must stay server-side |
-| `app/public/index.html` | Chat interface (single-file, no build step) | Must match API endpoints in `server.js` |
-| `app/package.json` | Node dependencies and scripts | `start` = CLI, `serve` = web |
-| `app/package-lock.json` | Auto-generated npm lockfile | Do not edit manually; regenerated by `npm install` |
-| `app/.env.example` | Environment variable documentation | Must match what both `index.js` and `server.js` read |
+| `apps/core/index.js` | Barrel export for shared library | Must export all public modules |
+| `apps/core/config.js` | Environment variable loading | Each app's `.env.example` must match |
+| `apps/core/prompt-loader.js` | System prompt file loading | No sync required |
+| `apps/core/session.js` | Session class (dual-array invariant) | Single source of truth — apps use this, not their own arrays |
+| `apps/core/tutor-client.js` | Anthropic SDK wrapper | Must handle both thinking-on and thinking-off states |
+| `apps/core/package.json` | Core dependencies (Anthropic SDK, dotenv) | No sync required |
+| `apps/core/README.md` | Core API documentation | Must document all exported functions/classes |
+| `apps/cli/index.js` | CLI tutor | Uses `@ai-tutor/core` for all tutor logic |
+| `apps/cli/package.json` | CLI dependencies | No sync required |
+| `apps/cli/.env.example` | CLI environment variables | Must match what `apps/core/config.js` reads |
+| `apps/cli/README.md` | CLI setup and usage | Must include deps, tech, design methodology |
+| `apps/web/server.js` | Web server (Express) | API key must stay server-side |
+| `apps/web/public/index.html` | Chat interface (single-file, no build step) | Must match API endpoints in `apps/web/server.js` |
+| `apps/web/package.json` | Web dependencies (Express, Multer) | No sync required |
+| `apps/web/.env.example` | Web environment variables | Must match what `apps/core/config.js` reads |
+| `apps/web/README.md` | Web setup, API endpoints, usage | Must include deps, tech, design methodology |
+| `apps/web-parent/README.md` | Planned parent config UI | Update when implementation begins |
+| `apps/web-review/README.md` | Planned session review tool | Update when implementation begins |
+| `apps/ios/README.md` | Planned iOS app | Update when technology decisions are made |

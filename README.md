@@ -12,7 +12,7 @@ This repo contains three things:
 
 2. **A test harness** using Claude's Chrome extension to simulate student interactions and evaluate tutor behavior — without needing an actual student in the loop.
 
-3. **A working tutor app** — both a CLI and a web interface, powered by the Anthropic SDK with extended thinking enabled by default.  Run `npm run serve` and hand your student a browser.
+3. **Working tutor apps** — a CLI and a web interface, powered by the Anthropic SDK with extended thinking enabled by default.  Run `npm run serve` from the repo root and hand your student a browser.
 
 ## The core insight
 
@@ -29,14 +29,22 @@ This repo contains three things:
 ### Option B: Web app (local)
 
 ```bash
-cd app
 npm install
-cp .env.example .env
-# Edit .env and add your Anthropic API key
+cp apps/web/.env.example apps/web/.env
+# Edit apps/web/.env and add your Anthropic API key
 npm run serve
 ```
 
 Open `http://localhost:3000`.  Your student gets a chat interface.  Your API key stays server-side.
+
+### Option C: CLI
+
+```bash
+npm install
+cp apps/cli/.env.example apps/cli/.env
+# Edit apps/cli/.env and add your Anthropic API key
+npm run cli
+```
 
 ### Testing
 
@@ -50,36 +58,100 @@ When something breaks, diagnose the transcript, trace the failure to a specific 
 
 ```
 ai-tutor-toolkit/
-├── README.md                   ← You are here
-├── LICENSE                     ← MIT
-├── CLAUDE.md                   ← Agent context (for AI contributors)
-├── .gitignore                  ← Standard ignores (node_modules, .env)
+├── README.md                         ← You are here
+├── LICENSE                           ← MIT
+├── CLAUDE.md                         ← Agent context (for AI contributors)
+├── .gitignore
+├── package.json                      ← npm workspaces root
 ├── templates/
-│   ├── tutor-prompt.md         ← Parameterized prompt template
-│   └── evaluation-checklist.md ← Reusable scoring rubric
-├── tests/
-│   ├── README.md               ← How to run tests
-│   ├── kinematics.md           ← Wrong equation, basic error
-│   ├── projectile-motion.md    ← Multi-step, buried error
-│   ├── friction.md             ← Frustrated/defeated student
-│   ├── similar-triangles.md    ← Geometry, conceptual error
-│   └── pendulum.md             ← Overconfident student
+│   ├── tutor-prompt.md               ← Parameterized prompt template
+│   └── evaluation-checklist.md       ← Reusable scoring rubric
 ├── examples/
 │   └── physics-geometry-9th-grade.md ← The actual prompt we built
+├── tests/
+│   ├── README.md                     ← How to run tests
+│   ├── kinematics.md                 ← Wrong equation, basic error
+│   ├── projectile-motion.md          ← Multi-step, buried error
+│   ├── friction.md                   ← Frustrated/defeated student
+│   ├── similar-triangles.md          ← Geometry, conceptual error
+│   └── pendulum.md                   ← Overconfident student
 ├── docs/
-│   ├── methodology.md          ← How to build a tutor from scratch
-│   ├── model-selection.md      ← Sonnet vs Opus, extended thinking
-│   └── lessons-learned.md      ← What we learned from Khan, etc.
-└── app/
-    ├── README.md               ← Setup instructions and roadmap
-    ├── package.json            ← Node/Anthropic SDK/Express
-    ├── package-lock.json       ← Auto-generated lockfile
-    ├── server.js               ← Web server (npm run serve)
-    ├── index.js                ← CLI tutor (npm start)
-    ├── .env.example            ← Environment variables
-    └── public/
-        └── index.html          ← Chat interface
+│   ├── methodology.md                ← How to build a tutor from scratch
+│   ├── model-selection.md            ← Sonnet vs Opus, extended thinking
+│   └── lessons-learned.md            ← What we learned from Khan, etc.
+└── apps/
+    ├── core/                         ← Shared tutor logic (SDK, sessions, config)
+    │   ├── README.md
+    │   ├── package.json
+    │   ├── index.js
+    │   ├── config.js
+    │   ├── prompt-loader.js
+    │   ├── tutor-client.js
+    │   └── session.js
+    ├── cli/                          ← Terminal tutor (npm run cli)
+    │   ├── README.md
+    │   ├── package.json
+    │   ├── index.js
+    │   └── .env.example
+    ├── web/                          ← Web tutor (npm run serve)
+    │   ├── README.md
+    │   ├── package.json
+    │   ├── server.js
+    │   ├── .env.example
+    │   └── public/
+    │       └── index.html
+    ├── web-parent/                   ← Parent config UI (planned)
+    │   └── README.md
+    ├── web-review/                   ← Session review tool (planned)
+    │   └── README.md
+    └── ios/                          ← iOS app (planned)
+        └── README.md
 ```
+
+## Development
+
+This is an npm workspaces monorepo.  All commands run from the repository root.
+
+```bash
+npm install          # Install all workspace dependencies
+npm run serve        # Start the web tutor
+npm run cli          # Start the CLI tutor
+```
+
+You can also run from individual app directories:
+
+```bash
+cd apps/web && npm run serve
+cd apps/cli && npm start
+```
+
+Each app has its own `.env.example`.  Copy it to `.env` and set your `ANTHROPIC_API_KEY`.  The `SYSTEM_PROMPT_PATH` defaults to `templates/tutor-prompt.md` and resolves from the repo root.
+
+## Roadmap
+
+### Phase 1: CLI tutor ✅
+
+Command-line interface with extended thinking, transcript export, and configurable system prompt.
+
+### Phase 2: Web UI ✅
+
+Express server with a single-page chat interface, file uploads, transcript export, and session management.
+
+### Phase 3: Parent configuration
+
+A setup page where a parent can choose subject, grade level, tone, and student description — then preview the generated system prompt.  See [`apps/web-parent/`](apps/web-parent/).
+
+### Phase 4: Session review
+
+Transcript review with automated evaluation checks and the ability to flag specific exchanges.  See [`apps/web-review/`](apps/web-review/).
+
+### Phase 5: Multi-student support
+
+Multiple student profiles, each with their own tutor configuration and session history.  This is a feature added to existing apps, not a standalone application.
+
+### Future: iOS app
+
+A native mobile tutor interface.  See [`apps/ios/`](apps/ios/).
 
 ## Key findings
 
