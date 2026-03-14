@@ -1,3 +1,27 @@
+# Dependencies
 node_modules/
+
+# Environment variables (contains API key)
 .env
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Test transcripts and session logs
+transcripts/
+*.transcript.md
+
+# npm debug logs
+npm-debug.log*
+
+# Package lock (optional — remove this line if you want reproducible installs)
+package-lock.json
