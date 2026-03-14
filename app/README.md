@@ -47,12 +47,13 @@ npm run serve
 Open `http://localhost:3000` in your browser.  The student types in the chat, the tutor responds.  Features:
 
 - **Chat interface** — messages appear in a conversation thread, student on the right, tutor on the left.
-- **Transcript export** — click "Transcript" to view the full session, copy it to clipboard.
+- **File uploads** — click the paperclip icon or drag-and-drop to attach images (jpg, png, gif, webp) or PDFs of homework problems.  Up to 5 files per message, 10 MB max each.  Image thumbnails appear in the chat; PDFs show as file badges.  The tutor can read and analyze the uploaded content.
+- **Transcript export** — click "Transcript" to view the full session, copy it to clipboard.  Uploaded files are referenced by name in the transcript.
 - **New session** — click "New session" to clear the conversation and start fresh.
 - **Model indicator** — shows which model and whether extended thinking is active.
-- **Error handling** — if the API key is missing or the server is down, errors appear as a toast notification.
+- **Error handling** — if the API key is missing, file is too large, or the server is down, errors appear as toast notifications.
 
-The API key stays server-side.  The frontend never sees it.  This means your student can use the web interface directly without access to your credentials.
+The API key stays server-side.  The frontend never sees it.  Your student can use the web interface directly without access to your credentials.
 
 ### Using a specific prompt
 
@@ -70,13 +71,14 @@ Or set it in your `.env` file.
 npm start
 ```
 
-Same tutor, terminal-based.  Type messages, get responses.  Type `export` for the transcript, `quit` to exit.
+Same tutor, terminal-based.  Type messages, get responses.  Type `export` for the transcript, `quit` to exit.  Note: the CLI does not support file uploads — use the web interface for that.
 
 ## Notes
 
 - **Extended thinking is on by default.**  Our testing showed it significantly improves tutoring quality.  Set `EXTENDED_THINKING=false` in `.env` to disable if latency or cost is a concern.
 - The system prompt is loaded from a file and stripped of the template variables section (everything above `## Begin prompt`).  If your prompt doesn't have that marker, the entire file is used.
 - The web server stores sessions in memory.  Restarting the server clears all sessions.
+- Uploaded files are held in memory for the duration of the API call, then discarded.  They are not saved to disk.
 
 ---
 
@@ -88,7 +90,7 @@ Command-line interface with extended thinking, transcript export, and configurab
 
 ### Phase 2: Web UI ✅
 
-Express server with a single-page chat interface, transcript export, and session management.
+Express server with a single-page chat interface, file uploads, transcript export, and session management.
 
 ### Phase 3: Parent configuration
 

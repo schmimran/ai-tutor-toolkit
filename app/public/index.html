@@ -148,6 +148,41 @@
     .message p { margin-bottom: 8px; }
     .message p:last-child { margin-bottom: 0; }
 
+    /* Attached images in messages */
+    .message-attachments {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .message-attachments img {
+      max-width: 240px;
+      max-height: 180px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      object-fit: contain;
+      background: white;
+    }
+
+    .file-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .file-badge svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
     /* Typing indicator */
     .typing {
       align-self: flex-start;
@@ -209,11 +244,106 @@
       border-top: 1px solid var(--border);
     }
 
+    /* File preview strip */
+    #file-preview {
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+
+    #file-preview.has-files { display: flex; }
+
+    .preview-item {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 28px 6px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text);
+      animation: fadeIn 0.15s ease;
+    }
+
+    .preview-item img {
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .preview-item .pdf-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0e8e0;
+      border-radius: 4px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .preview-item .remove-file {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 18px;
+      height: 18px;
+      background: var(--text-muted);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 0.65rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease;
+    }
+
+    .preview-item .remove-file:hover {
+      background: var(--error);
+    }
+
     #input-form {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       align-items: flex-end;
     }
+
+    #attach-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #attach-btn:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    #attach-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    #file-input { display: none; }
 
     #message-input {
       flex: 1;
@@ -373,6 +503,7 @@
       header h1 { font-size: 1.15rem; }
       .message { max-width: 94%; font-size: 0.9rem; }
       .header-meta { display: none; }
+      .message-attachments img { max-width: 180px; max-height: 140px; }
     }
   </style>
 </head>
@@ -394,7 +525,7 @@
   <div id="chat">
     <div class="empty-state" id="empty-state">
       <h2>What are you working on?</h2>
-      <p>Share your problem — screenshot or full text — and I'll help you work through it.</p>
+      <p>Share your problem — take a photo, upload a screenshot, or just type it out.</p>
     </div>
   </div>
 
@@ -403,7 +534,14 @@
   </div>
 
   <div id="input-area">
+    <div id="file-preview"></div>
     <form id="input-form">
+      <input type="file" id="file-input" multiple accept="image/jpeg,image/png,image/gif,image/webp,application/pdf">
+      <button type="button" id="attach-btn" title="Attach image or PDF">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+        </svg>
+      </button>
       <textarea id="message-input" placeholder="Type your message..." rows="1"></textarea>
       <button type="submit" id="send-btn">Send</button>
     </form>
@@ -445,10 +583,16 @@
     const modalCloseBtn = document.getElementById("modal-close-btn");
     const copyTranscriptBtn = document.getElementById("copy-transcript-btn");
     const errorToast = document.getElementById("error-toast");
+    const fileInput = document.getElementById("file-input");
+    const attachBtn = document.getElementById("attach-btn");
+    const filePreview = document.getElementById("file-preview");
 
     // Session ID
     let sessionId = crypto.randomUUID();
     let sending = false;
+
+    // Pending file attachments
+    let pendingFiles = [];
 
     // Auto-resize textarea
     input.addEventListener("input", () => {
@@ -463,6 +607,103 @@
         form.dispatchEvent(new Event("submit"));
       }
     });
+
+    // Attach button opens file picker
+    attachBtn.addEventListener("click", () => fileInput.click());
+
+    // Handle file selection
+    fileInput.addEventListener("change", () => {
+      const newFiles = Array.from(fileInput.files);
+      for (const file of newFiles) {
+        if (pendingFiles.length >= 5) {
+          showError("Maximum 5 files per message.");
+          break;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          showError(`${file.name} is too large.  Maximum 10 MB.`);
+          continue;
+        }
+        pendingFiles.push(file);
+      }
+      fileInput.value = "";
+      renderFilePreview();
+    });
+
+    // Drag and drop on the chat area
+    chatEl.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      chatEl.style.outline = "2px dashed var(--accent)";
+      chatEl.style.outlineOffset = "-4px";
+    });
+
+    chatEl.addEventListener("dragleave", () => {
+      chatEl.style.outline = "";
+      chatEl.style.outlineOffset = "";
+    });
+
+    chatEl.addEventListener("drop", (e) => {
+      e.preventDefault();
+      chatEl.style.outline = "";
+      chatEl.style.outlineOffset = "";
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      for (const file of droppedFiles) {
+        const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+        if (!allowed.includes(file.type)) {
+          showError(`${file.name}: unsupported file type.  Use images or PDFs.`);
+          continue;
+        }
+        if (pendingFiles.length >= 5) {
+          showError("Maximum 5 files per message.");
+          break;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          showError(`${file.name} is too large.  Maximum 10 MB.`);
+          continue;
+        }
+        pendingFiles.push(file);
+      }
+      renderFilePreview();
+    });
+
+    function renderFilePreview() {
+      filePreview.innerHTML = "";
+      if (pendingFiles.length === 0) {
+        filePreview.classList.remove("has-files");
+        return;
+      }
+      filePreview.classList.add("has-files");
+
+      pendingFiles.forEach((file, idx) => {
+        const item = document.createElement("div");
+        item.className = "preview-item";
+
+        if (file.type === "application/pdf") {
+          const icon = document.createElement("div");
+          icon.className = "pdf-icon";
+          icon.textContent = "PDF";
+          item.appendChild(icon);
+        } else {
+          const img = document.createElement("img");
+          img.src = URL.createObjectURL(file);
+          item.appendChild(img);
+        }
+
+        const name = document.createElement("span");
+        name.textContent = file.name.length > 20 ? file.name.slice(0, 18) + "..." : file.name;
+        item.appendChild(name);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "remove-file";
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => {
+          pendingFiles.splice(idx, 1);
+          renderFilePreview();
+        });
+        item.appendChild(removeBtn);
+
+        filePreview.appendChild(item);
+      });
+    }
 
     // Load config
     fetch("/api/config")
@@ -479,7 +720,7 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const text = input.value.trim();
-      if (!text || sending) return;
+      if ((!text && pendingFiles.length === 0) || sending) return;
 
       sending = true;
       sendBtn.disabled = true;
@@ -487,20 +728,34 @@
       // Hide empty state
       emptyState.style.display = "none";
 
-      // Add student message
-      addMessage("student", text);
+      // Capture files before clearing
+      const filesToSend = [...pendingFiles];
+
+      // Add student message to chat (with attachment previews)
+      addMessage("student", text, filesToSend);
+
+      // Clear input
       input.value = "";
       input.style.height = "auto";
+      pendingFiles = [];
+      renderFilePreview();
 
       // Show typing
       typingIndicator.classList.add("visible");
       scrollToBottom();
 
       try {
+        // Build FormData
+        const formData = new FormData();
+        formData.append("sessionId", sessionId);
+        if (text) formData.append("message", text);
+        for (const file of filesToSend) {
+          formData.append("files", file);
+        }
+
         const res = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, sessionId }),
+          body: formData,
         });
 
         typingIndicator.classList.remove("visible");
@@ -523,7 +778,7 @@
       }
     });
 
-    function addMessage(role, text) {
+    function addMessage(role, text, files) {
       const div = document.createElement("div");
       div.className = `message ${role}`;
 
@@ -532,12 +787,40 @@
       label.textContent = role === "student" ? "You" : "Tutor";
       div.appendChild(label);
 
-      // Simple paragraph splitting
-      const paragraphs = text.split(/\n\n+/);
-      for (const para of paragraphs) {
-        const p = document.createElement("p");
-        p.textContent = para.trim();
-        if (p.textContent) div.appendChild(p);
+      // Show attachment previews for student messages
+      if (files && files.length > 0) {
+        const attachments = document.createElement("div");
+        attachments.className = "message-attachments";
+
+        for (const file of files) {
+          if (file.type === "application/pdf") {
+            const badge = document.createElement("div");
+            badge.className = "file-badge";
+            badge.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+              </svg>
+              ${file.name}`;
+            attachments.appendChild(badge);
+          } else {
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(file);
+            attachments.appendChild(img);
+          }
+        }
+
+        div.appendChild(attachments);
+      }
+
+      // Text content
+      if (text) {
+        const paragraphs = text.split(/\n\n+/);
+        for (const para of paragraphs) {
+          const p = document.createElement("p");
+          p.textContent = para.trim();
+          if (p.textContent) div.appendChild(p);
+        }
       }
 
       chatEl.appendChild(div);
@@ -596,6 +879,8 @@
       });
 
       sessionId = crypto.randomUUID();
+      pendingFiles = [];
+      renderFilePreview();
       chatEl.innerHTML = "";
       emptyState.style.display = "";
       chatEl.appendChild(emptyState);
