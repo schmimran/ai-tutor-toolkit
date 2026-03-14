@@ -5,6 +5,7 @@ import { createInterface } from "readline";
 // Load the tutor system prompt from a file
 const SYSTEM_PROMPT_PATH = process.env.SYSTEM_PROMPT_PATH || "../templates/tutor-prompt.md";
 const MODEL = process.env.MODEL || "claude-sonnet-4-6";
+const EXTENDED_THINKING = process.env.EXTENDED_THINKING !== "false"; // enabled by default
 
 // Read the system prompt
 let systemPrompt;
@@ -35,6 +36,7 @@ const rl = createInterface({
 });
 
 console.log("AI Tutor ready.  Type your message and press Enter.");
+console.log(`Model: ${MODEL}  |  Extended thinking: ${EXTENDED_THINKING ? "on" : "off"}`);
 console.log("Type 'quit' to exit.  Type 'export' to print the transcript.\n");
 
 function prompt() {
@@ -67,22 +69,34 @@ function prompt() {
     messages.push({ role: "user", content: trimmed });
 
     try {
-      // Send to Claude
-      const response = await client.messages.create({
+      // Build the request
+      const requestParams = {
         model: MODEL,
-        max_tokens: 1024,
+        max_tokens: 16000,
         system: systemPrompt,
         messages: messages,
-      });
+      };
 
-      // Extract the text response
+      // Add extended thinking if enabled
+      if (EXTENDED_THINKING) {
+        requestParams.thinking = {
+          type: "enabled",
+          budget_tokens: 10000,
+        };
+      }
+
+      // Send to Claude
+      const response = await client.messages.create(requestParams);
+
+      // Extract the text response (skip thinking blocks)
       const assistantMessage = response.content
         .filter((block) => block.type === "text")
         .map((block) => block.text)
         .join("\n");
 
-      // Add to history
-      messages.push({ role: "assistant", content: assistantMessage });
+      // Store the full response content for history (includes thinking blocks)
+      // so the model maintains its reasoning chain across turns
+      messages.push({ role: "assistant", content: response.content });
 
       console.log(`\nTutor: ${assistantMessage}\n`);
     } catch (err) {
