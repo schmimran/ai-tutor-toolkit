@@ -35,6 +35,7 @@ The other variables have sensible defaults but you can change them:
 | `ANTHROPIC_API_KEY` | (required) | Your Anthropic API key |
 | `SYSTEM_PROMPT_PATH` | `../templates/tutor-prompt.md` | Path to the tutor system prompt |
 | `MODEL` | `claude-sonnet-4-6` | Model to use |
+| `EXTENDED_THINKING` | `true` | Enable extended thinking (set to `false` to disable) |
 
 ### Run
 
@@ -46,6 +47,7 @@ You'll see:
 
 ```
 AI Tutor ready.  Type your message and press Enter.
+Model: claude-sonnet-4-6  |  Extended thinking: on
 Type 'quit' to exit.  Type 'export' to print the transcript.
 ```
 
@@ -63,9 +65,10 @@ Or set it in your `.env` file.
 
 ## Notes
 
+- **Extended thinking is on by default.**  Our testing showed it significantly improves tutoring quality — one question at a time, better tone, stronger diagnostics.  It uses more tokens per response (thinking tokens are consumed but not displayed).  Set `EXTENDED_THINKING=false` in `.env` to disable if latency or cost is a concern.
 - The CLI loads the system prompt from a file and strips everything above `## Begin prompt` (the template variables section).  If you're using a prompt without that marker, it loads the entire file.
 - Conversation history is maintained in memory for the duration of the session.  Closing the app clears it.
-- Extended thinking is not enabled in the CLI skeleton.  To add it, modify the `client.messages.create` call in `index.js` to include the appropriate parameters.
+- When extended thinking is enabled, the full response (including thinking blocks) is stored in conversation history so the model maintains its reasoning chain across turns.  Only the text response is displayed.
 
 ---
 
