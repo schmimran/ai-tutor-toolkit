@@ -53,6 +53,7 @@ ai-tutor-toolkit/
 ├── README.md                   ← You are here
 ├── LICENSE                     ← MIT
 ├── CLAUDE.md                   ← Agent context (for AI contributors)
+├── .gitignore                  ← Standard ignores (node_modules, .env)
 ├── templates/
 │   ├── tutor-prompt.md         ← Parameterized prompt template
 │   └── evaluation-checklist.md ← Reusable scoring rubric
@@ -72,6 +73,7 @@ ai-tutor-toolkit/
 └── app/
     ├── README.md               ← Setup instructions and roadmap
     ├── package.json            ← Node/Anthropic SDK/Express
+    ├── package-lock.json       ← Auto-generated lockfile
     ├── server.js               ← Web server (npm run serve)
     ├── index.js                ← CLI tutor (npm start)
     ├── .env.example            ← Environment variables
