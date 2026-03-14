@@ -1,14 +1,17 @@
 {
   "name": "ai-tutor-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lightweight AI tutor powered by Anthropic's Claude SDK",
-  "main": "index.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "serve": "node server.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0"
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0"
   },
   "license": "MIT"
 }

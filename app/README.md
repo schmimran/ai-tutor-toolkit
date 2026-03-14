@@ -1,6 +1,6 @@
-# AI Tutor — CLI App
+# AI Tutor — App
 
-A command-line tutor powered by Anthropic's Claude SDK.  Type messages as the student, get tutor responses in your terminal.
+Two interfaces for the tutor: a command-line version and a web version.  Both use the same Anthropic SDK backend, the same system prompt, and the same extended thinking configuration.
 
 ## Setup
 
@@ -28,7 +28,7 @@ Open `.env` and set your API key:
 ANTHROPIC_API_KEY=sk-ant-your-key-here
 ```
 
-The other variables have sensible defaults but you can change them:
+All variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -36,39 +36,47 @@ The other variables have sensible defaults but you can change them:
 | `SYSTEM_PROMPT_PATH` | `../templates/tutor-prompt.md` | Path to the tutor system prompt |
 | `MODEL` | `claude-sonnet-4-6` | Model to use |
 | `EXTENDED_THINKING` | `true` | Enable extended thinking (set to `false` to disable) |
+| `PORT` | `3000` | Port for the web server |
 
-### Run
+## Web interface
+
+```bash
+npm run serve
+```
+
+Open `http://localhost:3000` in your browser.  The student types in the chat, the tutor responds.  Features:
+
+- **Chat interface** — messages appear in a conversation thread, student on the right, tutor on the left.
+- **Transcript export** — click "Transcript" to view the full session, copy it to clipboard.
+- **New session** — click "New session" to clear the conversation and start fresh.
+- **Model indicator** — shows which model and whether extended thinking is active.
+- **Error handling** — if the API key is missing or the server is down, errors appear as a toast notification.
+
+The API key stays server-side.  The frontend never sees it.  This means your student can use the web interface directly without access to your credentials.
+
+### Using a specific prompt
+
+To use the example prompt we built (9th-grade physics and geometry):
+
+```bash
+SYSTEM_PROMPT_PATH=../examples/physics-geometry-9th-grade.md npm run serve
+```
+
+Or set it in your `.env` file.
+
+## CLI interface
 
 ```bash
 npm start
 ```
 
-You'll see:
-
-```
-AI Tutor ready.  Type your message and press Enter.
-Model: claude-sonnet-4-6  |  Extended thinking: on
-Type 'quit' to exit.  Type 'export' to print the transcript.
-```
-
-Type as the student.  The tutor responds.  When you're done, type `export` to print the full transcript, or `quit` to exit.
-
-### Using your own prompt
-
-By default the app loads the template from `templates/tutor-prompt.md`.  To use the example prompt we built (already customized for 9th-grade physics and geometry):
-
-```bash
-SYSTEM_PROMPT_PATH=../examples/physics-geometry-9th-grade.md npm start
-```
-
-Or set it in your `.env` file.
+Same tutor, terminal-based.  Type messages, get responses.  Type `export` for the transcript, `quit` to exit.
 
 ## Notes
 
-- **Extended thinking is on by default.**  Our testing showed it significantly improves tutoring quality — one question at a time, better tone, stronger diagnostics.  It uses more tokens per response (thinking tokens are consumed but not displayed).  Set `EXTENDED_THINKING=false` in `.env` to disable if latency or cost is a concern.
-- The CLI loads the system prompt from a file and strips everything above `## Begin prompt` (the template variables section).  If you're using a prompt without that marker, it loads the entire file.
-- Conversation history is maintained in memory for the duration of the session.  Closing the app clears it.
-- When extended thinking is enabled, the full response (including thinking blocks) is stored in conversation history so the model maintains its reasoning chain across turns.  Only the text response is displayed.
+- **Extended thinking is on by default.**  Our testing showed it significantly improves tutoring quality.  Set `EXTENDED_THINKING=false` in `.env` to disable if latency or cost is a concern.
+- The system prompt is loaded from a file and stripped of the template variables section (everything above `## Begin prompt`).  If your prompt doesn't have that marker, the entire file is used.
+- The web server stores sessions in memory.  Restarting the server clears all sessions.
 
 ---
 
@@ -76,11 +84,11 @@ Or set it in your `.env` file.
 
 ### Phase 1: CLI tutor ✅
 
-Command-line interface with extended thinking, transcript export, and configurable system prompt.  You're looking at it.
+Command-line interface with extended thinking, transcript export, and configurable system prompt.
 
-### Phase 2: Simple web UI
+### Phase 2: Web UI ✅
 
-A single-page app with a chat interface, system prompt loaded from config, and transcript export.  Express API server-side, vanilla HTML/JS or React on the front.
+Express server with a single-page chat interface, transcript export, and session management.
 
 ### Phase 3: Parent configuration
 

@@ -95,12 +95,26 @@ The prompt uses she/her throughout as written.  The `PRONOUNS` variable reminds 
 - Opus is unnecessary for high school homework.  The reasoning demands don't justify the cost or latency.
 - Extended thinking matters not because the math is hard, but because it gives the model a scratchpad to check its own behavior (one question at a time, tone, whether to probe reasoning) before responding.
 
-### CLI app (`app/`)
+### App (`app/`)
+
+The app has two interfaces that share the same backend logic:
+
+- **CLI** (`index.js`, run with `npm start`) — terminal-based, student types messages, tutor responds.  `export` command prints the transcript.
+- **Web** (`server.js` + `public/index.html`, run with `npm run serve`) — Express server with a single-page chat interface.  Student messages on the right, tutor on the left.  Transcript modal with copy-to-clipboard.  New session button.  API key stays server-side.
+
+Both interfaces share these implementation details:
 
 - Node.js with the Anthropic SDK.
 - Extended thinking is **on by default** — set `EXTENDED_THINKING=false` in `.env` to disable.
-- The app maintains two parallel data structures: `messages` (full API content blocks including thinking blocks, for context continuity) and `transcript` (plain text strings, for the `export` command).  This was a bug fix — the original version stored raw content blocks and the export printed `[object Object]`.
+- Both maintain two parallel data structures: `messages` (full API content blocks including thinking blocks, for context continuity) and `transcript` (plain text strings, for export).  This was a bug fix — the original version stored raw content blocks and the export printed `[object Object]`.
 - The system prompt is loaded from a file.  If the file contains `## Begin prompt`, everything above that marker is stripped (it's the template variables section, not part of the prompt itself).
+
+The web server additionally:
+
+- Stores sessions in memory keyed by UUID (generated client-side).  Restarting the server clears all sessions.
+- Exposes `/api/chat`, `/api/transcript/:sessionId`, `/api/reset`, and `/api/config` endpoints.
+- Serves static files from `public/`.
+- Never exposes the API key to the frontend.
 
 ---
 
@@ -168,7 +182,7 @@ Across all test runs, the tutor consistently asks *what* the student did but rar
 
 ### Transcript request handling
 
-The tutor sometimes refuses to provide a session transcript, interpreting it as outside its scope.  The v5 prompt includes "practical requests like recapping the conversation or summarizing what was covered are fine" to address this, but enforcement is inconsistent.
+The tutor sometimes refuses to provide a session transcript, interpreting it as outside its scope.  The v5 prompt includes "practical requests like recapping the conversation or summarizing what was covered are fine" to address this, but enforcement is inconsistent.  The web interface sidesteps this with a built-in transcript export button.
 
 ### No progress tracking
 
@@ -194,12 +208,15 @@ The tutor has no memory across sessions.  It can't detect patterns like "she con
 4. Setup should be a single step: "Start a new conversation in your tutor project."  Don't include navigation steps — the user has already set up shortcuts.
 5. The student character must NOT know the correct answer.  If you find yourself writing scratch work to figure out the error, delete it before committing (this happened twice in development and was caught in review).
 
-### When editing the CLI app
+### When editing the app
 
 1. The `messages` array stores full API content blocks (including thinking blocks) for context continuity.
-2. The `transcript` array stores plain text for the export command.  These must be updated in parallel.
+2. The `transcript` array stores plain text for export.  These must be updated in parallel in both `index.js` and `server.js`.
 3. Extended thinking is on by default.  Any new API call parameters must account for both thinking-on and thinking-off states.
 4. The `.env.example` file must document every environment variable with defaults and descriptions.
+5. The web server (`server.js`) must never expose the API key to the frontend.  All Anthropic API calls happen server-side.
+6. The frontend (`public/index.html`) is a single file — HTML, CSS, and JS together.  No build step, no dependencies, no framework.  Keep it that way unless there's a strong reason to add complexity.
+7. If you add a new API endpoint to `server.js`, document it in `app/README.md`.
 
 ### When editing documentation
 
@@ -245,6 +262,7 @@ The v3 → v4 transition (deleting all decision trees) produced the largest sing
 | File | Purpose | Edits require syncing with |
 |------|---------|---------------------------|
 | `README.md` | Public-facing overview, quick start, key findings | Repo structure diagram must match actual files |
+| `CLAUDE.md` | This file — agent context | Update when major decisions are made |
 | `templates/tutor-prompt.md` | Parameterized prompt for customization | `examples/physics-geometry-9th-grade.md` |
 | `templates/evaluation-checklist.md` | Reusable scoring rubric | All test files (they embed similar checklists) |
 | `examples/physics-geometry-9th-grade.md` | Production prompt, tested and validated | `templates/tutor-prompt.md` |
@@ -253,8 +271,9 @@ The v3 → v4 transition (deleting all decision trees) produced the largest sing
 | `docs/methodology.md` | Process documentation | Should reflect actual process used |
 | `docs/model-selection.md` | Model comparison findings | Update if new models are tested |
 | `docs/lessons-learned.md` | 10 key findings | Update as new findings emerge |
-| `app/README.md` | Setup instructions and roadmap | Must document all `.env` variables |
-| `app/index.js` | CLI tutor implementation | `messages` and `transcript` arrays must stay in sync |
-| `app/package.json` | Node dependencies | Update SDK version as needed |
-| `app/.env.example` | Environment variable documentation | Must match what `index.js` reads |
-| `CLAUDE.md` | This file — agent context | Update when major decisions are made |
+| `app/README.md` | Setup instructions and roadmap | Must document all `.env` variables and API endpoints |
+| `app/index.js` | CLI tutor | `messages` and `transcript` arrays must stay in sync |
+| `app/server.js` | Web server (Express) | Same dual-array pattern as `index.js`; API key must stay server-side |
+| `app/public/index.html` | Chat interface (single-file, no build step) | Must match API endpoints in `server.js` |
+| `app/package.json` | Node dependencies and scripts | `start` = CLI, `serve` = web |
+| `app/.env.example` | Environment variable documentation | Must match what both `index.js` and `server.js` read |

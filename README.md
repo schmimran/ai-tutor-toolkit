@@ -12,7 +12,7 @@ This repo contains three things:
 
 2. **A test harness** using Claude's Chrome extension to simulate student interactions and evaluate tutor behavior — without needing an actual student in the loop.
 
-3. **A working CLI tutor** (Anthropic SDK) with extended thinking enabled by default, plus a roadmap for a lightweight web frontend.
+3. **A working tutor app** — both a CLI and a web interface, powered by the Anthropic SDK with extended thinking enabled by default.  Run `npm run serve` and hand your student a browser.
 
 ## The core insight
 
@@ -20,19 +20,29 @@ This repo contains three things:
 
 ## Quick start
 
-### 1. Create a Claude Project
+### Option A: Claude Project (no code required)
 
-Go to [claude.ai](https://claude.ai), create a new Project, and paste the contents of [`templates/tutor-prompt.md`](templates/tutor-prompt.md) into the custom instructions.  Customize the variables at the top (subject, grade level, tone, pronouns).
+1. Go to [claude.ai](https://claude.ai), create a new Project.
+2. Paste the contents of [`templates/tutor-prompt.md`](templates/tutor-prompt.md) into the custom instructions.  Customize the variables at the top.
+3. Set the model to **Sonnet 4.6 with extended thinking**.
 
-### 2. Set the model
+### Option B: Web app (local)
 
-Use **Sonnet 4.6 with extended thinking**.  Our testing showed that extended thinking significantly improves soft skills — one question at a time, tone calibration, and reasoning about *why* the student made an error, not just *what* they got wrong.  Sonnet without extended thinking works but produces more robotic interactions.
+```bash
+cd app
+npm install
+cp .env.example .env
+# Edit .env and add your Anthropic API key
+npm run serve
+```
 
-### 3. Test it
+Open `http://localhost:3000`.  Your student gets a chat interface.  Your API key stays server-side.
+
+### Testing
 
 Use the character briefs in [`tests/`](tests/) to simulate student sessions via the Claude Chrome extension, or just paste them manually into conversations.  Each test includes a scenario, a character brief, and an evaluation checklist.
 
-### 4. Iterate
+### Iterating
 
 When something breaks, diagnose the transcript, trace the failure to a specific example or principle in the prompt, and make a targeted edit.  Swap examples — don't add rules.
 
@@ -40,29 +50,33 @@ When something breaks, diagnose the transcript, trace the failure to a specific 
 
 ```
 ai-tutor-toolkit/
-├── README.md                 ← You are here
-├── LICENSE                   ← MIT
+├── README.md                   ← You are here
+├── LICENSE                     ← MIT
+├── CLAUDE.md                   ← Agent context (for AI contributors)
 ├── templates/
-│   ├── tutor-prompt.md       ← Parameterized prompt template
+│   ├── tutor-prompt.md         ← Parameterized prompt template
 │   └── evaluation-checklist.md ← Reusable scoring rubric
 ├── tests/
-│   ├── README.md             ← How to run tests
-│   ├── kinematics.md         ← Wrong equation, basic error
-│   ├── projectile-motion.md  ← Multi-step, buried error
-│   ├── friction.md           ← Frustrated/defeated student
-│   ├── similar-triangles.md  ← Geometry, conceptual error
-│   └── pendulum.md           ← Overconfident student
+│   ├── README.md               ← How to run tests
+│   ├── kinematics.md           ← Wrong equation, basic error
+│   ├── projectile-motion.md    ← Multi-step, buried error
+│   ├── friction.md             ← Frustrated/defeated student
+│   ├── similar-triangles.md    ← Geometry, conceptual error
+│   └── pendulum.md             ← Overconfident student
 ├── examples/
 │   └── physics-geometry-9th-grade.md ← The actual prompt we built
 ├── docs/
-│   ├── methodology.md        ← How to build a tutor from scratch
-│   ├── model-selection.md    ← Sonnet vs Opus, extended thinking
-│   └── lessons-learned.md    ← What we learned from Khan, etc.
+│   ├── methodology.md          ← How to build a tutor from scratch
+│   ├── model-selection.md      ← Sonnet vs Opus, extended thinking
+│   └── lessons-learned.md      ← What we learned from Khan, etc.
 └── app/
-    ├── README.md             ← Setup instructions and roadmap
-    ├── package.json          ← Node/Anthropic SDK
-    ├── index.js              ← CLI tutor with extended thinking
-    └── .env.example          ← Environment variables
+    ├── README.md               ← Setup instructions and roadmap
+    ├── package.json            ← Node/Anthropic SDK/Express
+    ├── server.js               ← Web server (npm run serve)
+    ├── index.js                ← CLI tutor (npm start)
+    ├── .env.example            ← Environment variables
+    └── public/
+        └── index.html          ← Chat interface
 ```
 
 ## Key findings
