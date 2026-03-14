@@ -26,4 +26,16 @@ npm-debug.log*
 # Package lock (optional — remove this line if you want reproducible installs)
 package-lock.json
 
+# iOS / Xcode
+*.xcworkspace/
+*.xcodeproj/
+DerivedData/
+build/
+Pods/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+
 .claude

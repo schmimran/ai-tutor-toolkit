@@ -1,0 +1,13 @@
+{
+  "name": "ai-tutor-toolkit",
+  "private": true,
+  "workspaces": [
+    "apps/core",
+    "apps/cli",
+    "apps/web"
+  ],
+  "scripts": {
+    "cli": "npm start -w apps/cli",
+    "serve": "npm run serve -w apps/web"
+  }
+}

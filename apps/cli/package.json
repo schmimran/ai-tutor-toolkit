@@ -1,0 +1,14 @@
+{
+  "name": "@ai-tutor/cli",
+  "version": "0.3.0",
+  "description": "Command-line tutor interface",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@ai-tutor/core": "*"
+  },
+  "license": "MIT"
+}
