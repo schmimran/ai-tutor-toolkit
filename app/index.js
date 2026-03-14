@@ -26,8 +26,11 @@ try {
 // Initialize the Anthropic client
 const client = new Anthropic();
 
-// Conversation history
+// Conversation history (full content blocks for API context)
 const messages = [];
+
+// Plain-text transcript for export
+const transcript = [];
 
 // Set up readline for CLI interaction
 const rl = createInterface({
@@ -51,9 +54,8 @@ function prompt() {
 
     if (trimmed.toLowerCase() === "export") {
       console.log("\n--- TRANSCRIPT ---\n");
-      for (const msg of messages) {
-        const role = msg.role === "user" ? "Student" : "Tutor";
-        console.log(`${role}: ${msg.content}`);
+      for (const entry of transcript) {
+        console.log(`${entry.role}: ${entry.text}`);
       }
       console.log("\n--- END TRANSCRIPT ---\n");
       prompt();
@@ -65,8 +67,9 @@ function prompt() {
       return;
     }
 
-    // Add user message to history
+    // Add user message to history and transcript
     messages.push({ role: "user", content: trimmed });
+    transcript.push({ role: "Student", text: trimmed });
 
     try {
       // Build the request
@@ -94,9 +97,12 @@ function prompt() {
         .map((block) => block.text)
         .join("\n");
 
-      // Store the full response content for history (includes thinking blocks)
+      // Store full response content for API history (includes thinking blocks)
       // so the model maintains its reasoning chain across turns
       messages.push({ role: "assistant", content: response.content });
+
+      // Store plain text for transcript export
+      transcript.push({ role: "Tutor", text: assistantMessage });
 
       console.log(`\nTutor: ${assistantMessage}\n`);
     } catch (err) {

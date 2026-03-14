@@ -74,6 +74,10 @@ Or set it in your `.env` file.
 
 ## Roadmap
 
+### Phase 1: CLI tutor ✅
+
+Command-line interface with extended thinking, transcript export, and configurable system prompt.  You're looking at it.
+
 ### Phase 2: Simple web UI
 
 A single-page app with a chat interface, system prompt loaded from config, and transcript export.  Express API server-side, vanilla HTML/JS or React on the front.

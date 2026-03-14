@@ -12,7 +12,7 @@ This repo contains three things:
 
 2. **A test harness** using Claude's Chrome extension to simulate student interactions and evaluate tutor behavior — without needing an actual student in the loop.
 
-3. **A skeleton for a web app** (Anthropic SDK) that can eventually serve as a lightweight frontend for parents and students.
+3. **A working CLI tutor** (Anthropic SDK) with extended thinking enabled by default, plus a roadmap for a lightweight web frontend.
 
 ## The core insight
 
@@ -22,7 +22,7 @@ This repo contains three things:
 
 ### 1. Create a Claude Project
 
-Go to [claude.ai](https://claude.ai), create a new Project, and paste the contents of [`templates/tutor-prompt.md`](templates/tutor-prompt.md) into the custom instructions.  Customize the variables at the top (subject, grade level, tone).
+Go to [claude.ai](https://claude.ai), create a new Project, and paste the contents of [`templates/tutor-prompt.md`](templates/tutor-prompt.md) into the custom instructions.  Customize the variables at the top (subject, grade level, tone, pronouns).
 
 ### 2. Set the model
 
@@ -59,9 +59,9 @@ ai-tutor-toolkit/
 │   ├── model-selection.md    ← Sonnet vs Opus, extended thinking
 │   └── lessons-learned.md    ← What we learned from Khan, etc.
 └── app/
-    ├── README.md             ← Roadmap for the web app
-    ├── package.json          ← Node/Anthropic SDK skeleton
-    ├── index.js              ← Basic SDK setup
+    ├── README.md             ← Setup instructions and roadmap
+    ├── package.json          ← Node/Anthropic SDK
+    ├── index.js              ← CLI tutor with extended thinking
     └── .env.example          ← Environment variables
 ```
 

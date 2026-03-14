@@ -2,7 +2,7 @@
 
 ## How it works
 
-Each test file is a **character brief** — a set of instructions for simulating a student interaction with the tutor.  You can use these in two ways:
+Each test file is a **character brief** — a set of instructions for simulating a student interaction with the tutor.  You can use these in three ways:
 
 ### Option 1: Claude Chrome Extension (recommended for quick iteration)
 
@@ -21,7 +21,7 @@ Each test file is a **character brief** — a set of instructions for simulating
 
 ### Option 3: API (for scale)
 
-If you want to run many scenarios programmatically, use the Anthropic SDK to send the student messages and capture the tutor's responses.  See `app/` for a skeleton.
+If you want to run many scenarios programmatically, use the Anthropic SDK to send the student messages and capture the tutor's responses.  See `app/` for a working CLI tutor.
 
 ## Test scenarios
 
