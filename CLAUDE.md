@@ -262,6 +262,7 @@ The v3 → v4 transition (deleting all decision trees) produced the largest sing
 | File | Purpose | Edits require syncing with |
 |------|---------|---------------------------|
 | `README.md` | Public-facing overview, quick start, key findings | Repo structure diagram must match actual files |
+| `LICENSE` | MIT license | No edits expected |
 | `CLAUDE.md` | This file — agent context | Update when major decisions are made |
 | `templates/tutor-prompt.md` | Parameterized prompt for customization | `examples/physics-geometry-9th-grade.md` |
 | `templates/evaluation-checklist.md` | Reusable scoring rubric | All test files (they embed similar checklists) |
