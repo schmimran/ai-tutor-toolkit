@@ -105,7 +105,7 @@ All tutor interfaces share four modules extracted into `@ai-tutor/core`:
 
 - **`config.js`** — reads environment variables with defaults (`MODEL`, `EXTENDED_THINKING`, `SYSTEM_PROMPT_PATH`, `PORT`).
 - **`prompt-loader.js`** — loads a system prompt file and strips the template variables section above `## Begin prompt`.  Paths resolve relative to the repository root unless absolute.
-- **`session.js`** — the `Session` class that enforces the dual-array invariant.  `messages[]` stores full API content blocks for context continuity.  `transcript[]` stores plain text for export.  Both arrays are always updated together through `addUserMessage()` and `addAssistantResponse()`.
+- **`session.js`** — the `Session` class that enforces the dual-array invariant.  `messages[]` stores full API content blocks for context continuity.  `transcript[]` stores plain text for export.  Both arrays are always updated together through `addUserMessage()` and `addAssistantResponse()`.  The class also tracks `files[]` (uploaded file buffers and metadata), `startedAt`, `lastActivityAt`, `clientInfo` (IP, geo, user agent), and `emailSent`.  Use `addFile()`, `touchActivity()`, `setClientInfo()`, `markEmailSent()`, and `getSessionSummary()` — do not access these fields directly.
 - **`tutor-client.js`** — wraps the Anthropic SDK.  Builds request parameters, handles extended thinking configuration, extracts text from response content blocks.
 
 #### `apps/cli/` — Terminal tutor
@@ -120,7 +120,8 @@ Express server with a single-page chat interface.  Run with `npm run serve` from
 - File uploads via drag-and-drop or paperclip icon (images and PDFs, up to 5 per message, 10 MB each).
 - Transcript export with copy-to-clipboard.
 - Sessions stored in memory keyed by UUID (generated client-side).  Restarting the server clears all sessions.
-- Exposes `/api/chat`, `/api/transcript/:sessionId`, `/api/reset`, and `/api/config` endpoints.
+- End-session email sent to a configured parent address via Resend when the session ends (button, reset, tab close via `sendBeacon`, or 10-minute inactivity sweep).  File uploads are attached to the email; attachments are skipped if the total exceeds Resend's 40 MB limit.
+- Exposes `/api/chat`, `/api/transcript/:sessionId`, `/api/reset`, `/api/config`, and `/api/end-session` endpoints.
 - The API key stays server-side.  The frontend never sees it.
 
 #### `apps/web-parent/` — Parent config UI (planned)
@@ -329,8 +330,9 @@ The v3 → v4 transition (deleting all decision trees) produced the largest sing
 | `apps/cli/.env.example` | CLI environment variables | Must match what `apps/core/config.js` reads |
 | `apps/cli/README.md` | CLI setup and usage | Must include deps, tech, design methodology |
 | `apps/web/server.js` | Web server (Express) | API key must stay server-side |
+| `apps/web/email.js` | Builds and sends HTML session summary via Resend; graceful failure (logs, never throws) | Must stay in sync with Session fields returned by `getSessionSummary()` |
 | `apps/web/public/index.html` | Chat interface (single-file, no build step) | Must match API endpoints in `apps/web/server.js` |
-| `apps/web/package.json` | Web dependencies (Express, Multer) | No sync required |
+| `apps/web/package.json` | Web dependencies (Express, Multer, Resend, geoip-lite) | No sync required |
 | `apps/web/.env.example` | Web environment variables | Must match what `apps/core/config.js` reads |
 | `apps/web/README.md` | Web setup, API endpoints, usage | Must include deps, tech, design methodology |
 | `apps/web-parent/README.md` | Planned parent config UI | Update when implementation begins |
