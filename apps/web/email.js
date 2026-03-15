@@ -144,13 +144,17 @@ export async function sendSessionEmail(session, emailConfig) {
 
   try {
     const resend = new Resend(resendApiKey);
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: "tutor@tutor.schmim.com",
       to: parentEmail,
       subject,
       html: buildEmailHtml(summary),
       attachments,
     });
+    if (error) {
+      console.error("Failed to send session email:", error.message);
+      return;
+    }
     console.log(`Session email sent to ${parentEmail} (${summary.transcript.length} transcript entries).`);
   } catch (err) {
     console.error("Failed to send session email:", err.message);
