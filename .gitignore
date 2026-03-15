@@ -1,8 +1,12 @@
 # Dependencies
 node_modules/
 
-# Environment variables (contains API key)
+# Compiled output
+dist/
+
+# Environment variables (contains API key and secrets)
 .env
+.env.local
 
 # macOS
 .DS_Store
@@ -23,8 +27,8 @@ transcripts/
 # npm debug logs
 npm-debug.log*
 
-# Package lock (optional — remove this line if you want reproducible installs)
-package-lock.json
+# TypeScript build info
+*.tsbuildinfo
 
 # iOS / Xcode
 *.xcworkspace/

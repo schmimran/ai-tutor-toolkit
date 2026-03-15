@@ -2,12 +2,16 @@
   "name": "ai-tutor-toolkit",
   "private": true,
   "workspaces": [
-    "apps/core",
-    "apps/cli",
-    "apps/web"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "cli": "npm start -w apps/cli",
-    "serve": "npm run serve -w apps/web"
+    "api": "npm start -w apps/api",
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev -w apps/api"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
