@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import geoip from "geoip-lite";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import {
@@ -8,6 +9,7 @@ import {
   Session,
   createTutorClient,
 } from "@ai-tutor/core";
+import { sendSessionEmail } from "./email.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,6 +17,11 @@ const __dirname = dirname(__filename);
 const config = loadConfig();
 const systemPrompt = loadSystemPrompt(config.systemPromptPath);
 const tutor = createTutorClient(config, systemPrompt);
+
+const emailConfig = {
+  resendApiKey: process.env.RESEND_API_KEY || "",
+  parentEmail: process.env.PARENT_EMAIL || "me@schmim.com",
+};
 
 // File upload config — store in memory, 10MB limit
 const upload = multer({
@@ -99,6 +106,23 @@ app.post("/api/chat", upload.array("files", 5), async (req, res) => {
   }
 
   const session = getSession(sessionId);
+
+  // Capture client info on the first message of this session
+  if (session.transcript.length === 0) {
+    const ip = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
+    const geo = geoip.lookup(ip);
+    session.setClientInfo({ ip, geo, userAgent: req.headers["user-agent"] || "" });
+  }
+
+  // Store uploaded file buffers in the session for later email attachment
+  if (req.files && req.files.length > 0) {
+    for (const file of req.files) {
+      session.addFile(file.originalname, file.mimetype, file.buffer);
+    }
+  }
+
+  session.touchActivity();
+
   const userContent = buildUserContent(message, req.files);
 
   // Build transcript text (files referenced by name)
@@ -142,10 +166,34 @@ app.get("/api/transcript/:sessionId", (req, res) => {
   res.json({ transcript: session.getTranscript() });
 });
 
-// POST /api/reset — clear a session
-app.post("/api/reset", (req, res) => {
+// POST /api/end-session — email the session summary and clear the session
+// Accepts both normal fetch (express.json parses) and sendBeacon (Blob with application/json,
+// also parsed by express.json since the Content-Type matches).
+app.post("/api/end-session", async (req, res) => {
+  const { sessionId } = req.body || {};
+
+  if (!sessionId || !sessions.has(sessionId)) {
+    return res.json({ ok: true });
+  }
+
+  const session = sessions.get(sessionId);
+  if (!session.emailSent) {
+    await sendSessionEmail(session, emailConfig);
+    session.markEmailSent();
+  }
+  sessions.delete(sessionId);
+  res.json({ ok: true });
+});
+
+// POST /api/reset — clear a session (also emails if not already sent)
+app.post("/api/reset", async (req, res) => {
   const { sessionId } = req.body;
   if (sessionId && sessions.has(sessionId)) {
+    const session = sessions.get(sessionId);
+    if (!session.emailSent) {
+      await sendSessionEmail(session, emailConfig);
+      session.markEmailSent();
+    }
     sessions.delete(sessionId);
   }
   res.json({ ok: true });
@@ -158,6 +206,20 @@ app.get("/api/config", (req, res) => {
     extendedThinking: config.extendedThinking,
   });
 });
+
+// Inactivity sweep — reap sessions idle for more than 10 minutes
+const INACTIVITY_MS = 10 * 60 * 1000;
+setInterval(async () => {
+  const now = Date.now();
+  for (const [id, session] of sessions.entries()) {
+    if (!session.emailSent && now - session.lastActivityAt > INACTIVITY_MS) {
+      console.log(`Session ${id} reaped after 10 minutes of inactivity.`);
+      await sendSessionEmail(session, emailConfig);
+      session.markEmailSent();
+      sessions.delete(id);
+    }
+  }
+}, 60 * 1000);
 
 app.listen(config.port, () => {
   console.log(`AI Tutor running at http://localhost:${config.port}`);

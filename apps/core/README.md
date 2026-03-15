@@ -49,6 +49,18 @@ const session = new Session();
 session.addUserMessage("Hi", "Hi");
 const text = session.addAssistantResponse(response.content);
 const transcript = session.getTranscript();
+
+// File tracking (web app — buffers held in memory for the session lifetime)
+session.addFile("photo.jpg", "image/jpeg", buffer);
+
+// Activity and client info (web app)
+session.touchActivity();
+session.setClientInfo({ ip: "1.2.3.4", geo: { city: "Brooklyn" }, userAgent: "..." });
+
+// Email guard
+session.markEmailSent();      // prevents double-send
+const summary = session.getSessionSummary(); // { transcript, filesMetadata, clientInfo, startedAt, lastActivityAt, durationMs }
+
 session.reset();
 ```
 
