@@ -13,6 +13,11 @@ export class Session {
   constructor() {
     this.messages = [];
     this.transcript = [];
+    this.files = [];
+    this.startedAt = new Date();
+    this.lastActivityAt = new Date();
+    this.clientInfo = {};
+    this.emailSent = false;
   }
 
   /**
@@ -46,8 +51,58 @@ export class Session {
     return this.transcript;
   }
 
+  /**
+   * Store an uploaded file buffer.
+   * Note: files are held in memory for the life of the session.  Acceptable
+   * for single-student use; not acceptable at scale.
+   * @param {string} filename
+   * @param {string} mimetype
+   * @param {Buffer} buffer
+   */
+  addFile(filename, mimetype, buffer) {
+    this.files.push({ filename, mimetype, buffer });
+  }
+
+  /** Update lastActivityAt to the current time. */
+  touchActivity() {
+    this.lastActivityAt = new Date();
+  }
+
+  /**
+   * Store client metadata: IP, approximate geo location, user agent.
+   * @param {{ ip: string, geo: object|null, userAgent: string }} info
+   */
+  setClientInfo(info) {
+    this.clientInfo = info;
+  }
+
+  /** Prevent double-send. */
+  markEmailSent() {
+    this.emailSent = true;
+  }
+
+  /**
+   * Returns a plain object summarizing the session for email.
+   * @returns {{ transcript: Array, filesMetadata: Array, clientInfo: object, startedAt: Date, lastActivityAt: Date, durationMs: number }}
+   */
+  getSessionSummary() {
+    return {
+      transcript: this.transcript,
+      filesMetadata: this.files.map((f) => ({ filename: f.filename, mimetype: f.mimetype, size: f.buffer.length })),
+      clientInfo: this.clientInfo,
+      startedAt: this.startedAt,
+      lastActivityAt: this.lastActivityAt,
+      durationMs: this.lastActivityAt - this.startedAt,
+    };
+  }
+
   reset() {
     this.messages = [];
     this.transcript = [];
+    this.files = [];
+    this.startedAt = new Date();
+    this.lastActivityAt = new Date();
+    this.clientInfo = {};
+    this.emailSent = false;
   }
 }

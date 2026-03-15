@@ -518,6 +518,7 @@
     </div>
     <div class="header-actions">
       <button class="btn-subtle" id="transcript-btn">Transcript</button>
+      <button class="btn-subtle" id="end-session-btn">End session</button>
       <button class="btn-subtle" id="new-session-btn">New session</button>
     </div>
   </header>
@@ -576,6 +577,7 @@
     const sendBtn = document.getElementById("send-btn");
     const modelLabel = document.getElementById("model-label");
     const transcriptBtn = document.getElementById("transcript-btn");
+    const endSessionBtn = document.getElementById("end-session-btn");
     const newSessionBtn = document.getElementById("new-session-btn");
     const transcriptModal = document.getElementById("transcript-modal");
     const transcriptContent = document.getElementById("transcript-content");
@@ -870,14 +872,8 @@
       });
     });
 
-    // New session
-    newSessionBtn.addEventListener("click", () => {
-      fetch("/api/reset", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
-      });
-
+    // Reset the UI to the empty state and generate a new session ID
+    function resetUI() {
       sessionId = crypto.randomUUID();
       pendingFiles = [];
       renderFilePreview();
@@ -885,6 +881,38 @@
       emptyState.style.display = "";
       chatEl.appendChild(emptyState);
       input.focus();
+    }
+
+    // End session — emails the summary, then resets the UI
+    endSessionBtn.addEventListener("click", async () => {
+      const currentId = sessionId;
+      resetUI();
+      try {
+        await fetch("/api/end-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: currentId }),
+        });
+      } catch {
+        // Best-effort — server-side sweep will catch it after 10 minutes
+      }
+    });
+
+    // New session — server emails and clears session, frontend resets
+    newSessionBtn.addEventListener("click", () => {
+      const currentId = sessionId;
+      resetUI();
+      fetch("/api/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: currentId }),
+      }).catch(() => {});
+    });
+
+    // Best-effort email on tab close — server-side sweep catches failures at 10 min
+    window.addEventListener("beforeunload", () => {
+      const blob = new Blob([JSON.stringify({ sessionId })], { type: "application/json" });
+      navigator.sendBeacon("/api/end-session", blob);
     });
 
     // Focus input on load
