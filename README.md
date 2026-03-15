@@ -31,7 +31,8 @@ This repo contains three things:
 ```bash
 npm install
 cp apps/web/.env.example apps/web/.env
-# Edit apps/web/.env and add your Anthropic API key
+# Edit apps/web/.env — set ANTHROPIC_API_KEY (required)
+# Set RESEND_API_KEY and PARENT_EMAIL to enable session email summaries
 npm run serve
 ```
 
@@ -97,6 +98,7 @@ ai-tutor-toolkit/
     │   ├── README.md
     │   ├── package.json
     │   ├── server.js
+    │   ├── email.js                  ← Session summary email (Resend)
     │   ├── .env.example
     │   └── public/
     │       └── index.html
@@ -135,7 +137,7 @@ Command-line interface with extended thinking, transcript export, and configurab
 
 ### Phase 2: Web UI ✅
 
-Express server with a single-page chat interface, file uploads, transcript export, and session management.
+Express server with a single-page chat interface, file uploads, transcript export, session management, and end-of-session email summaries sent to the parent via Resend.
 
 ### Phase 3: Parent configuration
 
