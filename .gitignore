@@ -31,3 +31,17 @@ npm-debug.log*
 
 # Claude Code
 .claude
+
+# Supabase CLI
+supabase/.temp/
+
+# iOS / Xcode
+apps/ios/DerivedData/
+apps/ios/*.xcworkspace/xcuserdata/
+apps/ios/**/*.xcuserstate
+apps/ios/Pods/
+apps/ios/.build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+apps/ios/Config.xcconfig

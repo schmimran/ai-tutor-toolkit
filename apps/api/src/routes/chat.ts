@@ -1,6 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import geoip from "geoip-lite";
+import type Anthropic from "@anthropic-ai/sdk";
 import type { TutorClient } from "@ai-tutor/core";
 import {
   createMessage,
@@ -38,10 +39,10 @@ const upload = multer({
 function buildUserContent(
   text: string,
   files: Express.Multer.File[]
-): string | import("@anthropic-ai/sdk").ContentBlockParam[] {
+): string | Anthropic.Messages.ContentBlockParam[] {
   if (files.length === 0) return text;
 
-  const blocks: import("@anthropic-ai/sdk").ContentBlockParam[] = [
+  const blocks: Anthropic.Messages.ContentBlockParam[] = [
     { type: "text", text },
   ];
 
@@ -55,7 +56,7 @@ function buildUserContent(
           media_type: "application/pdf",
           data: base64,
         },
-      } as import("@anthropic-ai/sdk").ContentBlockParam);
+      } as Anthropic.Messages.ContentBlockParam);
     } else {
       blocks.push({
         type: "image",
@@ -121,7 +122,7 @@ export function createChatRouter(
           const geo = geoip.lookup(ip);
           session.setClientInfo({
             ip,
-            geo: geo ? (geo as Record<string, unknown>) : null,
+            geo: geo ? (geo as unknown as Record<string, unknown>) : null,
             userAgent: req.headers["user-agent"],
           });
 
