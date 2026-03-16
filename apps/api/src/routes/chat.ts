@@ -129,6 +129,7 @@ export function createChatRouter(
           // Upsert the session row in the database.
           try {
             await createSession(db, {
+              id: sessionId,
               client_ip: session.clientInfo.ip ?? null,
               client_geo: session.clientInfo.geo ?? null,
               client_user_agent: session.clientInfo.userAgent ?? null,
