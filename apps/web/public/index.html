@@ -574,6 +574,7 @@
     <div class="header-right">
       <span id="model-badge" class="model-badge" style="display:none"></span>
       <button class="btn btn-sm" id="btn-transcript">Transcript</button>
+      <button class="btn btn-sm" id="btn-end-session-header">End session</button>
       <button class="btn btn-sm" id="btn-new-session">New session</button>
     </div>
   </header>
@@ -684,9 +685,10 @@
   const fileInput      = $('file-input');
   const fileStrip      = $('file-strip');
   const endBanner      = $('end-banner');
-  const btnEndSession  = $('btn-end-session');
-  const btnTranscript  = $('btn-transcript');
-  const btnNewSession  = $('btn-new-session');
+  const btnEndSession       = $('btn-end-session');
+  const btnEndSessionHeader = $('btn-end-session-header');
+  const btnTranscript       = $('btn-transcript');
+  const btnNewSession       = $('btn-new-session');
   const modelBadge     = $('model-badge');
   const modalTranscript = $('modal-transcript');
   const txBody         = $('tx-body');
@@ -921,9 +923,10 @@
   }
 
   function setInputDisabled(disabled) {
-    btnSend.disabled    = disabled;
-    msgInput.disabled   = disabled;
-    btnAttach.disabled  = disabled;
+    btnSend.disabled          = disabled;
+    msgInput.disabled         = disabled;
+    btnAttach.disabled        = disabled;
+    btnEndSessionHeader.disabled = disabled;
   }
 
   // ── Inactivity timer ──────────────────────────────────────────────────────
@@ -958,6 +961,7 @@
     msgInput.disabled = true;
     btnSend.disabled  = true;
     btnAttach.disabled = true;
+    btnEndSessionHeader.disabled = true;
     msgInput.placeholder = 'Session ended.';
     showToast(message, 5000);
   }
@@ -1197,6 +1201,7 @@
   });
 
   btnEndSession.addEventListener('click', endSession);
+  btnEndSessionHeader.addEventListener('click', endSession);
   btnTranscript.addEventListener('click', openTranscript);
   btnNewSession.addEventListener('click', newSession);
 
