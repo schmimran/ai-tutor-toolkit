@@ -64,7 +64,9 @@ The API server exposes REST endpoints under `/api/`.  See [apps/api/README.md](a
 
 Supabase is used as a managed Postgres database.  The toolkit uses it for three tables: `sessions`, `messages`, and `feedback`.  No Edge Functions, no Realtime, no Storage.
 
-If you skip Supabase setup, the API server still runs and the web/CLI interfaces still work — sessions just won't be persisted between server restarts and no transcript history will be available.
+Session data is **retained after sessions end** — rows are soft-ended (via an `ended_at` timestamp) rather than deleted, so conversation history and per-response feedback ratings are preserved for analysis.
+
+If you skip Supabase setup, the API server still runs and the web/CLI interfaces still work — sessions just won't be persisted between server restarts and no transcript or feedback history will be available.
 
 **Step 1: Create a Supabase project**
 
@@ -81,9 +83,12 @@ If you skip Supabase setup, the API server still runs and the web/CLI interfaces
 
 Keep the service role key secret.  It bypasses row-level security and has full database access.
 
-**Step 3: Run the migration**
+**Step 3: Run the migrations**
 
-Open **SQL Editor** in your Supabase dashboard, paste the contents of `supabase/migrations/001_initial_schema.sql`, and click **Run**.
+Open **SQL Editor** in your Supabase dashboard and run each migration in order:
+
+1. Paste the contents of `supabase/migrations/001_initial_schema.sql` and click **Run**.
+2. Paste the contents of `supabase/migrations/002_soft_session_end.sql` and click **Run**.
 
 Alternatively, if you have the [Supabase CLI](https://supabase.com/docs/guides/cli) installed:
 
@@ -161,7 +166,8 @@ ai-tutor-toolkit/
 │
 ├── supabase/
 │   └── migrations/
-│       └── 001_initial_schema.sql        ← DB schema (sessions, messages, feedback)
+│       ├── 001_initial_schema.sql        ← DB schema (sessions, messages, feedback)
+│       └── 002_soft_session_end.sql      ← Adds ended_at; retains data after session end
 │
 ├── templates/
 │   ├── tutor-prompt.md                   ← Parameterized tutor prompt (customize this)
@@ -325,7 +331,7 @@ These emerged from five iterations and eight test runs across four distinct scen
 Command-line interface with extended thinking, transcript export, and configurable system prompt.
 
 ### Phase 2: Web UI ✅
-Express server with a single-page chat interface, file uploads, transcript export, session management, and end-of-session email summaries sent to the parent via Resend.
+Express server with a single-page chat interface, file uploads, transcript export, session management, end-of-session email summaries sent to the parent via Resend, and a full-page feedback review overlay that collects per-response ratings (Accuracy, Helpful, Tone) at session end.  Session data is retained in the database for analysis.
 
 ### Phase 3: Documentation and deployment ✅
 CLAUDE.md, package READMEs, deployment files (Dockerfile, render.yaml, docs/deployment.md).
