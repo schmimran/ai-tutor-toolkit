@@ -1,4 +1,6 @@
 import express from "express";
+import { fileURLToPath } from "url";
+import path from "path";
 import {
   loadConfig,
   loadSystemPrompt,
@@ -15,6 +17,8 @@ import { createConfigRouter } from "./routes/config.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const config = loadConfig();
 const systemPrompt = loadSystemPrompt(config.systemPromptPath);
 const tutorClient = createTutorClient(config, systemPrompt);
@@ -30,6 +34,10 @@ const app = express();
 
 app.use(corsMiddleware);
 app.use(express.json());
+
+// Serve the static web frontend.
+// __dirname is apps/api/dist/ at runtime, so ../../web/public resolves to apps/web/public/.
+app.use(express.static(path.join(__dirname, "../../web/public")));
 
 // Routes
 app.use("/api/chat", createChatRouter(tutorClient, db));
