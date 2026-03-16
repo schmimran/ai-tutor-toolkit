@@ -9,6 +9,7 @@ dist/
 .env
 .env.local
 .env.*
+env.sh
 
 # macOS
 .DS_Store
