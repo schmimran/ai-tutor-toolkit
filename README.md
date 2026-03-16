@@ -64,7 +64,7 @@ The API server exposes REST endpoints under `/api/`.  See [apps/api/README.md](a
 
 Supabase is used as a managed Postgres database.  The toolkit uses it for three tables: `sessions`, `messages`, and `feedback`.  No Edge Functions, no Realtime, no Storage.
 
-Session data is **retained after sessions end** — rows are soft-ended (via an `ended_at` timestamp) rather than deleted, so conversation history and per-response feedback ratings are preserved for analysis.
+Session data is **retained after sessions end** — rows are soft-ended (via an `ended_at` timestamp) rather than deleted, so conversation history and per-response feedback ratings are preserved for analysis, each linked to the specific assistant message they rate.
 
 If you skip Supabase setup, the API server still runs and the web/CLI interfaces still work — sessions just won't be persisted between server restarts and no transcript or feedback history will be available.
 
@@ -89,6 +89,8 @@ Open **SQL Editor** in your Supabase dashboard and run each migration in order:
 
 1. Paste the contents of `supabase/migrations/001_initial_schema.sql` and click **Run**.
 2. Paste the contents of `supabase/migrations/002_soft_session_end.sql` and click **Run**.
+3. Paste the contents of `supabase/migrations/003_feedback_message_id.sql` and click **Run**.
+4. Paste the contents of `supabase/migrations/004_feedback_category.sql` and click **Run**.
 
 Alternatively, if you have the [Supabase CLI](https://supabase.com/docs/guides/cli) installed:
 
@@ -167,7 +169,9 @@ ai-tutor-toolkit/
 ├── supabase/
 │   └── migrations/
 │       ├── 001_initial_schema.sql        ← DB schema (sessions, messages, feedback)
-│       └── 002_soft_session_end.sql      ← Adds ended_at; retains data after session end
+│       ├── 002_soft_session_end.sql      ← Adds ended_at; retains data after session end
+│       ├── 003_feedback_message_id.sql   ← Adds message_id FK to feedback; links ratings to messages
+│       └── 004_feedback_category.sql     ← Adds category column; one row per category per message
 │
 ├── templates/
 │   ├── tutor-prompt.md                   ← Parameterized tutor prompt (customize this)

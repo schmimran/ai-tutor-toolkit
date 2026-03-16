@@ -66,9 +66,10 @@ export function createFeedbackRouter(
    *
    * Body (JSON):
    *   sessionId  — string (required)
-   *   items      — Array<{ msgId, category, sentiment, rating }> (required, non-empty)
+   *   items      — Array<{ msgId, msgText, category, sentiment, rating }> (required, non-empty)
    *
    * Saves all feedback rows in one DB round-trip and sends a single summary email.
+   * All three categories are sent for every message; unselected categories have null rating/sentiment.
    */
   router.post("/batch", async (req, res, next) => {
     try {
@@ -87,30 +88,34 @@ export function createFeedbackRouter(
         return;
       }
 
-      const inserts = (items as Array<{ msgId?: unknown; category?: unknown; sentiment?: unknown; rating?: unknown }>)
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+      const inserts = (items as Array<{ msgId?: unknown; msgText?: unknown; category?: unknown; sentiment?: unknown; rating?: unknown }>)
         .filter(item => typeof item === "object" && item !== null)
         .map(item => ({
           session_id: sessionId,
+          message_id: typeof item.msgId === "string" && UUID_RE.test(item.msgId)
+            ? item.msgId
+            : null,
+          category: typeof item.category === "string" && item.category.trim()
+            ? item.category.trim()
+            : null,
           rating: typeof item.rating === "number" && item.rating >= 1 && item.rating <= 5
             ? Math.round(item.rating)
             : null,
-          comment: [
-            typeof item.msgId === "string" ? `msg:${item.msgId}` : null,
-            typeof item.category === "string" ? `category:${item.category}` : null,
-            typeof item.sentiment === "string" ? `sentiment:${item.sentiment}` : null,
-          ]
-            .filter(Boolean)
-            .join(" ") || null,
+          comment: null,
         }));
 
       const rows = await createFeedbackBatch(db, inserts);
 
-      const emailItems: BatchFeedbackItem[] = (items as Array<{ msgId?: unknown; category?: unknown; sentiment?: unknown }>)
+      const emailItems: BatchFeedbackItem[] = (items as Array<{ msgText?: unknown; category?: unknown; sentiment?: unknown }>)
         .filter(item => typeof item === "object" && item !== null)
         .map(item => ({
-          msgId: String(item.msgId ?? ""),
+          msgText: typeof item.msgText === "string" && item.msgText.trim()
+            ? item.msgText.trim().slice(0, 120)
+            : "(no text)",
           category: String(item.category ?? ""),
-          sentiment: String(item.sentiment ?? ""),
+          sentiment: typeof item.sentiment === "string" ? item.sentiment : null,
         }));
 
       void sendFeedbackBatch(emailConfig, sessionId, emailItems);

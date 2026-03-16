@@ -882,7 +882,7 @@
     div.appendChild(bubble);
     messagesEl.appendChild(div);
 
-    const entry = { id, role: 'tutor', bubbleEl: bubble };
+    const entry = { id, role: 'tutor', dbId: null, bubbleEl: bubble };
     msgList.push(entry);
     scrollBottom();
     return entry;
@@ -986,6 +986,7 @@
               rawText.replace(END_SENTINEL, '').trimEnd();
             scrollBottom();
           } else if (event.type === 'message_stop') {
+            if (event.messageId) tutorEntry.dbId = event.messageId;
             finalizeTutor(tutorEntry, rawText);
           } else if (event.type === 'error') {
             throw new Error(event.message || 'Streaming error');
@@ -1070,13 +1071,14 @@
     ).join('');
 
     const rows = tutorMessages.map(entry => {
-      fbRatings.set(entry.id, new Map());
+      const mid = entry.dbId ?? entry.id;
       const snippet = (entry.bubbleEl.textContent || '').trim().slice(0, 120);
+      fbRatings.set(mid, { snippet, cats: new Map() });
       const cells = FB_CATEGORIES.map(c => `
         <td class="fb-cell">
           <div class="fb-pair">
-            <button class="fb-btn" data-mid="${entry.id}" data-cat="${c.key}" data-val="up"   title="Good">👍</button>
-            <button class="fb-btn" data-mid="${entry.id}" data-cat="${c.key}" data-val="down" title="Not great">👎</button>
+            <button class="fb-btn" data-mid="${mid}" data-cat="${c.key}" data-val="up"   title="Good">👍</button>
+            <button class="fb-btn" data-mid="${mid}" data-cat="${c.key}" data-val="down" title="Not great">👎</button>
           </div>
         </td>`).join('');
       return `
@@ -1105,13 +1107,15 @@
 
     if (!skip) {
       const items = [];
-      for (const [msgId, cats] of fbRatings) {
-        for (const [category, sentiment] of cats) {
+      for (const [msgId, { snippet, cats }] of fbRatings) {
+        for (const cat of FB_CATEGORIES) {
+          const sentiment = cats.get(cat.key) ?? null;
           items.push({
             msgId,
-            category,
+            msgText: snippet,
+            category: cat.key,
             sentiment,
-            rating: sentiment === 'up' ? 5 : 1,
+            rating: sentiment === 'up' ? 5 : sentiment === 'down' ? 1 : null,
           });
         }
       }
@@ -1364,9 +1368,9 @@
     const btn = e.target.closest('.fb-btn');
     if (!btn) return;
     const { mid, cat, val } = btn.dataset;
-    // Track rating in state
-    if (!fbRatings.has(mid)) fbRatings.set(mid, new Map());
-    fbRatings.get(mid).set(cat, val);
+    // Track rating in state — fbRatings values are { snippet, cats: Map }
+    if (!fbRatings.has(mid)) fbRatings.set(mid, { snippet: '', cats: new Map() });
+    fbRatings.get(mid).cats.set(cat, val);
     // Highlight chosen button within its pair
     btn.closest('.fb-pair').querySelectorAll('.fb-btn').forEach(b => b.classList.remove('chosen'));
     btn.classList.add('chosen');

@@ -31,7 +31,11 @@ export interface DbMessage {
 export interface DbFeedback {
   id: string;
   session_id: string;
-  /** 1–5 star rating.  Null if the user left a comment without rating. */
+  /** FK → messages(id).  The assistant message this feedback rates.  Null for legacy rows. */
+  message_id: string | null;
+  /** "accuracy" | "usefulness" | "tone".  Null for legacy rows. */
+  category: string | null;
+  /** 1–5 star rating.  Null if the category was not rated (N/A). */
   rating: number | null;
   comment: string | null;
   created_at: string;
@@ -43,7 +47,14 @@ export type DbSessionInsert = Omit<DbSession, "id" | "started_at" | "last_activi
 
 export type DbMessageInsert = Omit<DbMessage, "id" | "created_at">;
 
-export type DbFeedbackInsert = Omit<DbFeedback, "id" | "created_at">;
+/** Explicit insert type so message_id/category are optional — legacy callers still work. */
+export interface DbFeedbackInsert {
+  session_id: string;
+  message_id?: string | null;
+  category?: string | null;
+  rating?: number | null;
+  comment?: string | null;
+}
 
 /** Update payloads — all fields optional except the primary key. */
 export type DbSessionUpdate = Partial<Omit<DbSession, "id">>;

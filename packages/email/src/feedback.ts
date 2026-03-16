@@ -39,9 +39,9 @@ function buildHtml(entry: FeedbackEntry): string {
 }
 
 export interface BatchFeedbackItem {
-  msgId: string;
+  msgText: string;  // human-readable snippet of the assistant message being rated
   category: string;
-  sentiment: string; // "up" | "down"
+  sentiment: string | null; // "up" | "down" | null (not selected)
 }
 
 function buildBatchHtml(sessionId: string, items: BatchFeedbackItem[], submittedAt: Date): string {
@@ -49,9 +49,9 @@ function buildBatchHtml(sessionId: string, items: BatchFeedbackItem[], submitted
     .map(
       item => `
     <tr>
-      <td style="padding:5px 10px;border:1px solid #ddd;font-size:0.85em;">${item.msgId}</td>
+      <td style="padding:5px 10px;border:1px solid #ddd;font-size:0.85em;">${item.msgText}</td>
       <td style="padding:5px 10px;border:1px solid #ddd;">${item.category}</td>
-      <td style="padding:5px 10px;border:1px solid #ddd;">${item.sentiment === "up" ? "👍" : "👎"}</td>
+      <td style="padding:5px 10px;border:1px solid #ddd;">${item.sentiment === "up" ? "👍" : item.sentiment === "down" ? "👎" : "—"}</td>
     </tr>`
     )
     .join("");

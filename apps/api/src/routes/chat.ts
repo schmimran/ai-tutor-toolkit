@@ -164,6 +164,7 @@ export function createChatRouter(
         }
 
         // Persist the exchange to the database.
+        let assistantMessageId: string | null = null;
         try {
           await createMessage(db, {
             session_id: sessionId,
@@ -171,12 +172,13 @@ export function createChatRouter(
             content: transcriptText,
             thinking: null,
           });
-          await createMessage(db, {
+          const assistantRow = await createMessage(db, {
             session_id: sessionId,
             role: "assistant",
             content: fullText,
             thinking: null, // Thinking blocks are stored in session.messages[] for context continuity.
           });
+          assistantMessageId = assistantRow.id;
           await updateSession(db, sessionId, {
             last_activity_at: new Date().toISOString(),
           });
@@ -184,7 +186,7 @@ export function createChatRouter(
           console.error("[chat] Could not persist messages to DB:", err);
         }
 
-        sendEvent(res, { type: "message_stop" });
+        sendEvent(res, { type: "message_stop", messageId: assistantMessageId });
         res.end();
       } catch (err) {
         if (!res.headersSent) {

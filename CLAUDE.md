@@ -36,7 +36,7 @@ Chat responses stream token-by-token over Server-Sent Events.  The client opens 
 
 Event types:
 - `{ type: "text_delta", text: "..." }` — one per token
-- `{ type: "message_stop" }` — signals end of response
+- `{ type: "message_stop", messageId: "<uuid or null>" }` — signals end of response; `messageId` is the DB UUID of the persisted assistant message, or `null` if DB persistence failed
 - `{ type: "error", message: "..." }` — on failure
 
 ### In-memory session store + database
@@ -104,7 +104,9 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 |--------|------|-------|
 | id | uuid | PK |
 | session_id | uuid | FK → sessions(id) ON DELETE CASCADE |
-| rating | integer | CHECK 1–5, nullable |
+| message_id | uuid | FK → messages(id) ON DELETE SET NULL. Nullable; links per-message feedback to the assistant turn being rated. Added in migration 003. |
+| category | text | "accuracy" \| "usefulness" \| "tone". One row per category per message. Nullable for legacy rows. Added in migration 004. |
+| rating | integer | CHECK 1–5, nullable. Null means the category was not rated (N/A). |
 | comment | text | Nullable |
 | created_at | timestamptz | |
 
@@ -133,7 +135,7 @@ data: {"type":"text_delta","text":"Let's look at..."}
 
 data: {"type":"text_delta","text":" that equation."}
 
-data: {"type":"message_stop"}
+data: {"type":"message_stop","messageId":"<uuid or null>"}
 ```
 
 On error: `data: {"type":"error","message":"..."}` followed by connection close.
