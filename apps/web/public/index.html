@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Tutor</title>
+  <title>Axiom AI Tutor</title>
 
   <!-- KaTeX -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
@@ -13,28 +13,45 @@
   <!-- marked -->
   <script defer src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js" crossorigin="anonymous"></script>
 
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <style>
     /* ── CSS variables ─────────────────────────────────────────────────────── */
     :root {
-      --bg:            #faf8f5;
-      --surface:       #ffffff;
-      --surface-alt:   #f2ede6;
-      --border:        #e0d8cf;
-      --text:          #2d2a26;
-      --text-muted:    #8a8070;
-      --accent:        #7c6f5b;
-      --accent-light:  #ece6dd;
-      --accent-dark:   #5c5244;
-      --user-bg:       #e8e0d4;
-      --danger:        #c0392b;
-      --success:       #27ae60;
-      --font-serif:    Georgia, 'Times New Roman', serif;
-      --font-sans:     -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      --font-mono:     'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-      --radius:        12px;
-      --radius-sm:     6px;
-      --shadow:        0 1px 3px rgba(0,0,0,0.07);
-      --shadow-md:     0 4px 16px rgba(0,0,0,0.12);
+      --bg:            #0f1117;
+      --surface:       #1a1d27;
+      --surface-alt:   #252836;
+      --surface-raise: #2e3247;
+      --border:        #2e3247;
+      --border-bright: #4a4f6a;
+      --text:          #e8eaf6;
+      --text-muted:    #6b7194;
+      --accent:        #7c6af7;
+      --accent-light:  #2d2860;
+      --accent-dark:   #5b4dd4;
+      --accent-glow:   rgba(124, 106, 247, 0.25);
+      --tutor-accent:  #22d3ee;
+      --tutor-bg:      #0e1e26;
+      --tutor-border:  #1a3a48;
+      --user-bg:       #1e1a40;
+      --user-border:   #3d3572;
+      --danger:        #f87171;
+      --success:       #34d399;
+      --banner-bg:     #0d2318;
+      --banner-border: #1a4a30;
+      --font-heading:  'Nunito', sans-serif;
+      --font-sans:     'Plus Jakarta Sans', sans-serif;
+      --font-serif:    'Nunito', sans-serif;
+      --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+      --radius:        16px;
+      --radius-sm:     10px;
+      --radius-pill:   999px;
+      --shadow:        0 2px 8px rgba(0,0,0,0.4);
+      --shadow-md:     0 8px 32px rgba(0,0,0,0.5);
+      --shadow-accent: 0 0 16px var(--accent-glow);
     }
 
     /* ── Reset ─────────────────────────────────────────────────────────────── */
@@ -64,17 +81,54 @@
       justify-content: space-between;
       padding: 12px 20px;
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid transparent;
+      border-image: linear-gradient(90deg, var(--accent), var(--tutor-accent)) 1;
       flex-shrink: 0;
       gap: 12px;
     }
 
     .header-title {
-      font-family: var(--font-serif);
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--accent-dark);
+      display: flex;
+      align-items: center;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .logo-wordmark {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+      gap: 1px;
+    }
+
+    .logo-company {
+      font-family: var(--font-heading);
+      font-size: 1.1rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--tutor-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       letter-spacing: -0.01em;
+    }
+
+    .logo-product {
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
     }
 
     .header-right {
@@ -85,11 +139,13 @@
     }
 
     .model-badge {
-      font-size: 0.73rem;
+      font-family: var(--font-sans);
+      font-size: 0.71rem;
+      font-weight: 500;
       color: var(--text-muted);
       background: var(--surface-alt);
-      padding: 3px 9px;
-      border-radius: 20px;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
       border: 1px solid var(--border);
       white-space: nowrap;
     }
@@ -132,18 +188,13 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 16px;
       color: var(--text-muted);
       text-align: center;
     }
 
-    #empty-state .empty-icon {
-      font-size: 2.4rem;
-      opacity: 0.35;
-    }
-
     #empty-state .empty-prompt {
-      font-family: var(--font-serif);
+      font-family: var(--font-heading);
       font-size: 1.1rem;
       color: var(--text-muted);
     }
@@ -170,12 +221,15 @@
     .msg.tutor { align-items: flex-start; }
 
     .msg-label {
+      font-family: var(--font-heading);
       font-size: 0.68rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text-muted);
+      letter-spacing: 0.08em;
     }
+
+    .msg.user  .msg-label { color: var(--accent); }
+    .msg.tutor .msg-label { color: var(--tutor-accent); }
 
     .msg-bubble {
       max-width: 82%;
@@ -188,14 +242,18 @@
 
     .msg.user  .msg-bubble {
       background: var(--user-bg);
-      border-bottom-right-radius: 3px;
+      border: 1px solid var(--user-border);
+      border-bottom-right-radius: 4px;
+      color: var(--text);
     }
 
     .msg.tutor .msg-bubble {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 3px;
-      box-shadow: var(--shadow);
+      background: var(--tutor-bg);
+      border: 1px solid var(--tutor-border);
+      border-left: 3px solid var(--tutor-accent);
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+      color: var(--text);
     }
 
     /* Markdown inside tutor bubbles */
@@ -212,15 +270,17 @@
     .msg-bubble ol               { margin: 0.35em 0 0.55em 1.3em; }
     .msg-bubble li               { margin-bottom: 0.2em; }
     .msg-bubble code             {
-      background: var(--surface-alt);
-      padding: 1px 5px;
-      border-radius: 3px;
+      background: var(--surface-raise);
+      color: var(--tutor-accent);
+      padding: 1px 6px;
+      border-radius: 5px;
       font-size: 0.87em;
       font-family: var(--font-mono);
     }
     .msg-bubble pre {
-      background: #1b1e23;
+      background: #0d1117;
       color: #cdd6f4;
+      border: 1px solid var(--border);
       padding: 12px 14px;
       border-radius: var(--radius-sm);
       overflow-x: auto;
@@ -228,7 +288,7 @@
     }
     .msg-bubble pre code         { background: none; padding: 0; color: inherit; font-size: 0.85em; }
     .msg-bubble blockquote       {
-      border-left: 3px solid var(--border);
+      border-left: 3px solid var(--border-bright);
       padding-left: 12px;
       color: var(--text-muted);
       margin: 0.55em 0;
@@ -251,18 +311,19 @@
     }
 
     .typing-dot {
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: var(--text-muted);
-      animation: bounce 1.3s infinite ease-in-out;
+      background: var(--tutor-accent);
+      box-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
+      animation: pulse-dot 1.4s infinite ease-in-out;
     }
-    .typing-dot:nth-child(2) { animation-delay: 0.18s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.36s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0);    opacity: 0.5; }
-      30%            { transform: translateY(-6px); opacity: 1; }
+    @keyframes pulse-dot {
+      0%, 60%, 100% { transform: translateY(0) scale(1);       opacity: 0.5; }
+      30%           { transform: translateY(-7px) scale(1.15); opacity: 1; }
     }
 
     /* ── Feedback overlay (full-page review) ──────────────────────────────── */
@@ -283,10 +344,10 @@
       flex-shrink: 0;
     }
     .fb-overlay-head h2 {
-      font-family: var(--font-serif);
+      font-family: var(--font-heading);
       font-size: 1.15rem;
-      font-weight: 600;
-      color: var(--accent-dark);
+      font-weight: 800;
+      color: var(--text);
       margin-bottom: 3px;
     }
     .fb-overlay-head p {
@@ -351,18 +412,18 @@
       gap: 2px;
     }
     .fb-btn {
-      background: none;
-      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      border: 1px solid var(--border-bright);
       cursor: pointer;
       padding: 4px 7px;
       border-radius: var(--radius-sm);
-      font-size: 0.88rem;
-      opacity: 0.6;
-      transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+      font-size: 0.9rem;
+      opacity: 0.65;
+      transition: opacity 0.15s, background 0.15s, border-color 0.15s, transform 0.1s;
       line-height: 1;
     }
-    .fb-btn:hover  { opacity: 1; background: var(--surface-alt); }
-    .fb-btn.chosen { opacity: 1; background: var(--accent-light); border-color: var(--accent); }
+    .fb-btn:hover  { opacity: 1; background: var(--surface-raise); transform: scale(1.15); }
+    .fb-btn.chosen { opacity: 1; background: var(--accent-light); border-color: var(--accent); transform: scale(1.15); }
 
     .fb-overlay-foot {
       display: flex;
@@ -392,12 +453,14 @@
       inset: 8px;
       border: 2px dashed var(--accent);
       border-radius: var(--radius);
-      background: rgba(124,111,91,0.06);
+      background: rgba(124,106,247,0.08);
       z-index: 20;
       pointer-events: none;
       align-items: center;
       justify-content: center;
-      font-size: 0.95rem;
+      font-family: var(--font-heading);
+      font-size: 1.05rem;
+      font-weight: 700;
       color: var(--accent);
       gap: 8px;
     }
@@ -410,10 +473,12 @@
       justify-content: center;
       gap: 12px;
       padding: 10px 20px;
-      background: #eef7ee;
-      border-top: 1px solid #c3dfc3;
-      border-bottom: 1px solid #c3dfc3;
+      background: var(--banner-bg);
+      border-top: 1px solid var(--banner-border);
+      border-bottom: 1px solid var(--banner-border);
       font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--success);
       flex-shrink: 0;
     }
     #end-banner.active { display: flex; }
@@ -423,6 +488,7 @@
       flex-shrink: 0;
       background: var(--surface);
       border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
     }
 
     /* ── File preview strip ────────────────────────────────────────────────── */
@@ -440,8 +506,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: var(--bg);
-      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      border: 1px solid var(--border-bright);
       border-radius: var(--radius-sm);
       padding: 4px 8px;
       font-size: 0.8rem;
@@ -487,21 +553,21 @@
     #msg-input {
       flex: 1;
       resize: none;
-      border: 1px solid var(--border);
+      border: 1.5px solid var(--border);
       border-radius: var(--radius);
       padding: 9px 13px;
       font-family: var(--font-sans);
       font-size: 0.93rem;
       line-height: 1.5;
-      background: var(--bg);
+      background: var(--surface-alt);
       color: var(--text);
       min-height: 42px;
       max-height: 180px;
       outline: none;
-      transition: border-color 0.15s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    #msg-input:focus        { border-color: var(--accent); }
-    #msg-input::placeholder { color: var(--text-muted); }
+    #msg-input:focus        { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    #msg-input::placeholder { color: var(--text-muted); font-style: italic; }
 
     /* ── Buttons ───────────────────────────────────────────────────────────── */
     .btn {
@@ -510,27 +576,34 @@
       justify-content: center;
       gap: 5px;
       padding: 7px 13px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-bright);
+      background: var(--surface-alt);
+      color: var(--text-muted);
       font-family: var(--font-sans);
       font-size: 0.86rem;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
       white-space: nowrap;
       line-height: 1;
     }
-    .btn:hover    { background: var(--surface-alt); }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn:hover    { background: var(--surface-raise); color: var(--text); border-color: var(--accent); }
+    .btn:active   { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
     .btn-primary {
-      background: var(--accent);
-      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--accent) 0%, #9c6af7 100%);
+      border-color: transparent;
       color: #fff;
     }
-    .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-accent);
+    }
+    .btn-primary:active { transform: translateY(0); box-shadow: none; }
+    .btn-primary:disabled { opacity: 0.4; transform: none; box-shadow: none; }
 
     .btn-sm {
       padding: 5px 10px;
@@ -552,16 +625,20 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.42);
+      background: rgba(0,0,0,0.7);
       z-index: 100;
       align-items: center;
       justify-content: center;
       padding: 16px;
     }
+    @supports (backdrop-filter: blur(4px)) {
+      .modal-backdrop { backdrop-filter: blur(4px); }
+    }
     .modal-backdrop.active { display: flex; }
 
     .modal-card {
       background: var(--surface);
+      border: 1px solid var(--border-bright);
       border-radius: var(--radius);
       box-shadow: var(--shadow-md);
       max-width: 600px;
@@ -579,9 +656,10 @@
       border-bottom: 1px solid var(--border);
     }
     .modal-head h2 {
-      font-family: var(--font-serif);
+      font-family: var(--font-heading);
       font-size: 1.05rem;
-      font-weight: 600;
+      font-weight: 800;
+      color: var(--text);
     }
 
     .modal-body {
@@ -609,7 +687,7 @@
       margin-bottom: 3px;
       color: var(--text-muted);
     }
-    .tx-entry.student .tx-role { color: var(--accent-dark); }
+    .tx-entry.student .tx-role { color: var(--accent); }
     .tx-text {
       white-space: pre-wrap;
       font-size: 0.88rem;
@@ -622,11 +700,15 @@
       bottom: 72px;
       left: 50%;
       transform: translateX(-50%);
-      background: #2d2a26;
-      color: #faf8f5;
-      padding: 9px 18px;
-      border-radius: var(--radius-sm);
+      background: var(--surface-raise);
+      color: var(--text);
+      border: 1px solid var(--border-bright);
+      padding: 10px 22px;
+      border-radius: var(--radius-pill);
+      font-family: var(--font-sans);
       font-size: 0.86rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-md);
       z-index: 500;
       opacity: 0;
       pointer-events: none;
@@ -644,14 +726,112 @@
       .msg-bubble  { max-width: 93%; }
       #input-row   { padding: 8px 12px 12px; }
       #file-strip  { padding: 8px 12px 0; }
+      .empty-chips { display: none; }
+      .logo-company { font-size: 1rem; }
     }
+
+    /* ── Message appear animation ──────────────────────────────────────────── */
+    .msg { animation: msg-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+    @keyframes msg-in {
+      from { opacity: 0; transform: translateY(10px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ── Empty state new elements ──────────────────────────────────────────── */
+    .empty-icon-wrap {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-light), #0e1e26);
+      border: 2px solid var(--border-bright);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: float 4s ease-in-out infinite;
+    }
+    .empty-icon {
+      font-size: 2rem;
+      opacity: 1;
+      background: linear-gradient(135deg, var(--accent), var(--tutor-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .empty-heading {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .empty-sub {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      max-width: 280px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .empty-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .empty-chip {
+      background: var(--surface-alt);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-pill);
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .empty-chip:hover {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+
+    /* ── Custom scrollbar ──────────────────────────────────────────────────── */
+    #chat-area::-webkit-scrollbar       { width: 6px; }
+    #chat-area::-webkit-scrollbar-track { background: transparent; }
+    #chat-area::-webkit-scrollbar-thumb {
+      background: var(--surface-raise);
+      border-radius: var(--radius-pill);
+    }
+    #chat-area::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
   </style>
 </head>
 <body>
 
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <header>
-    <span class="header-title">AI Tutor</span>
+    <span class="header-title">
+      <span class="header-logo">
+        <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="logo-grad" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#7c6af7"/>
+              <stop offset="100%" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+          <line x1="4" y1="28" x2="16" y2="4" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="28" y1="28" x2="16" y2="4" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="9" y1="19" x2="23" y2="19" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span class="logo-wordmark">
+          <span class="logo-company">Axiom</span>
+          <span class="logo-product">AI Tutor</span>
+        </span>
+      </span>
+    </span>
     <div class="header-right">
       <span id="model-badge" class="model-badge" style="display:none"></span>
       <button class="btn btn-sm" id="btn-transcript">Transcript</button>
@@ -665,8 +845,16 @@
     <div id="chat-container">
       <div id="chat-area">
         <div id="empty-state">
-          <div class="empty-icon">✏️</div>
-          <p class="empty-prompt">What are you working on?</p>
+          <div class="empty-icon-wrap">
+            <div class="empty-icon">✦</div>
+          </div>
+          <p class="empty-heading">What are you stuck on?</p>
+          <p class="empty-sub">Drop a question or upload a photo of your homework.</p>
+          <div class="empty-chips">
+            <button class="empty-chip" data-fill="Can you help me understand this problem?">Help me understand</button>
+            <button class="empty-chip" data-fill="Check my work: ">Check my work</button>
+            <button class="empty-chip" data-fill="Explain ">Explain a concept</button>
+          </div>
         </div>
         <div id="messages"></div>
       </div>
@@ -686,7 +874,7 @@
         <button class="btn btn-icon" id="btn-attach" title="Attach files (images or PDF)">📎</button>
         <input type="file" id="file-input" multiple
                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" hidden>
-        <textarea id="msg-input" placeholder="Ask your tutor…" rows="1"></textarea>
+        <textarea id="msg-input" placeholder="What are you stuck on?" rows="1"></textarea>
         <button class="btn btn-primary" id="btn-send">Send</button>
       </div>
     </div>
@@ -1206,7 +1394,7 @@
     fileStrip.innerHTML = '';
     fileStrip.classList.remove('active');
     msgInput.value = '';
-    msgInput.placeholder = 'Ask your tutor…';
+    msgInput.placeholder = 'What are you stuck on?';
     msgInput.disabled = false;
     btnSend.disabled = false;
     btnAttach.disabled = false;
@@ -1378,6 +1566,16 @@
 
   btnFbSubmit.addEventListener('click', () => submitAllFeedback(false));
   btnFbSkip.addEventListener('click',   () => submitAllFeedback(true));
+
+  // ── Empty-state prompt chips ──────────────────────────────────────────────
+  document.getElementById('empty-state').addEventListener('click', e => {
+    const chip = e.target.closest('.empty-chip');
+    if (!chip) return;
+    msgInput.value = chip.dataset.fill;
+    resizeInput();
+    msgInput.focus();
+    msgInput.setSelectionRange(msgInput.value.length, msgInput.value.length);
+  });
 
   // ── Init ──────────────────────────────────────────────────────────────────
   showEmpty();
