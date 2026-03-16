@@ -302,6 +302,7 @@
 
     /* Table layout */
     .fb-table {
+      table-layout: fixed;
       width: 100%;
       max-width: 820px;
       margin: 0 auto;
@@ -326,18 +327,18 @@
     .fb-table tbody tr:last-child { border-bottom: none; }
 
     .fb-snippet {
+      overflow: hidden;
       padding: 10px 10px 10px 0;
       font-size: 0.85rem;
       color: var(--text);
       line-height: 1.45;
-      max-width: 0; /* forces truncation via overflow */
+      max-width: 0;
       width: 100%;
     }
     .fb-snippet-text {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 400px;
     }
 
     .fb-cell {
@@ -450,6 +451,7 @@
       height: 26px;
       object-fit: cover;
       border-radius: 3px;
+      flex-shrink: 0;
     }
     .file-icon { font-size: 1.15rem; line-height: 1; }
     .file-name {
@@ -1124,7 +1126,10 @@
       }
     }
 
-    void finalizeSessionEnd();
+    try { await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }); }
+    catch { /* ignore */ }
+    showToast(skip ? 'Session ended.' : 'Feedback received — thanks!', 3000);
+    setTimeout(newSession, 1500);
   }
 
   // ── Transcript modal ──────────────────────────────────────────────────────
