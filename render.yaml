@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: ai-tutor
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # All env vars are set in the Render dashboard — no .env files
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: PARENT_EMAIL
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: MODEL
+        value: claude-sonnet-4-6
+      - key: EXTENDED_THINKING
+        value: "true"
+      - key: PORT
+        value: "3000"
+    healthCheckPath: /api/config
+    autoDeploy: true

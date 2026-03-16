@@ -3,10 +3,12 @@ node_modules/
 
 # Compiled output
 dist/
+*.tsbuildinfo
 
-# Environment variables (contains API key and secrets)
+# Environment variables (contains API keys and secrets)
 .env
 .env.local
+.env.*
 
 # macOS
 .DS_Store
@@ -27,19 +29,5 @@ transcripts/
 # npm debug logs
 npm-debug.log*
 
-# TypeScript build info
-*.tsbuildinfo
-
-# iOS / Xcode
-*.xcworkspace/
-*.xcodeproj/
-DerivedData/
-build/
-Pods/
-*.pbxuser
-*.mode1v3
-*.mode2v3
-*.perspectivev3
-xcuserdata/
-
+# Claude Code
 .claude
