@@ -1,0 +1,6 @@
+{
+  "name": "@ai-tutor/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static web frontend for AI Tutor — no build step required"
+}
