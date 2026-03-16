@@ -16,7 +16,7 @@ All deployments use the same Docker image.  No `.env` files are committed.  All 
 
 - A [Render](https://render.com) account
 - This repo pushed to a GitHub repository you control
-- A Supabase project with the migration applied (see root README)
+- A Supabase project with all migrations applied (see root README): `001_initial_schema.sql` and `002_soft_session_end.sql`
 - A Resend account with a verified sending domain (see root README)
 
 ### Step 1: Create a Web Service
@@ -245,6 +245,13 @@ npm install
 # Build all TypeScript packages
 npm run build
 ```
+
+### Supabase migrations
+
+Apply all migrations in order via the Supabase dashboard SQL editor or CLI:
+
+1. `supabase/migrations/001_initial_schema.sql` — creates sessions, messages, feedback tables
+2. `supabase/migrations/002_soft_session_end.sql` — adds `ended_at` column for data retention
 
 ### Environment variables
 

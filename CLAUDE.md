@@ -41,7 +41,7 @@ Event types:
 
 ### In-memory session store + database
 
-Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — sending an email transcript before removal.
+Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — sending an email transcript and marking the session ended in the DB.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.
 
 ### Extended thinking
 
@@ -72,7 +72,7 @@ Rules:
 
 ## Database schema reference
 
-Managed via `supabase/migrations/001_initial_schema.sql`.  No RLS.  All queries run server-side with the service role key.
+Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run server-side with the service role key.
 
 ### sessions
 
@@ -81,6 +81,7 @@ Managed via `supabase/migrations/001_initial_schema.sql`.  No RLS.  All queries 
 | id | uuid | gen_random_uuid() | PK |
 | started_at | timestamptz | now() | |
 | last_activity_at | timestamptz | now() | Indexed |
+| ended_at | timestamptz | null | Set on session end; indexed. Added in migration 002. |
 | client_ip | text | null | |
 | client_geo | jsonb | null | From geoip-lite |
 | client_user_agent | text | null | |
@@ -177,7 +178,7 @@ Returns `404` if not found.
 
 ### DELETE /api/sessions/:sessionId
 
-End a session.  Sends transcript email if transcript exists and email not yet sent.  Deletes from DB (cascades to messages and feedback).
+End a session.  Sends transcript email if transcript exists and email not yet sent.  Removes the in-memory session and sets `ended_at` on the DB row.  Session data (messages, feedback) is **retained** for analysis.
 
 **Response**: `application/json`
 
@@ -206,7 +207,7 @@ Get conversation transcript.  Prefers in-memory session; falls back to DB.
 
 ### POST /api/feedback
 
-Submit session feedback.
+Submit a single feedback record.
 
 **Request**: `application/json`
 
@@ -220,6 +221,27 @@ Submit session feedback.
 
 ```json
 { "ok": true, "id": "uuid" }
+```
+
+---
+
+### POST /api/feedback/batch
+
+Submit all feedback for a session at once (used by the end-of-session feedback overlay).  Saves all records in a single DB round-trip and sends one summary email.
+
+**Request**: `application/json`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| sessionId | string (UUID) | yes | |
+| items | array | yes | Non-empty array of `{ msgId, category, sentiment, rating }` |
+
+Each item: `msgId` (string), `category` (`accuracy`/`usefulness`/`tone`), `sentiment` (`up`/`down`), `rating` (`5` for up, `1` for down).
+
+**Response**: `application/json`
+
+```json
+{ "ok": true, "count": 6 }
 ```
 
 ---
@@ -282,6 +304,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 | `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev` |
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
 | `supabase/migrations/001_initial_schema.sql` | Initial DB schema (sessions, messages, feedback) |
+| `supabase/migrations/002_soft_session_end.sql` | Adds `ended_at` column to sessions; enables data retention |
 | `templates/tutor-prompt.md` | Parameterized tutor prompt (source of truth) |
 | `templates/evaluation-checklist.md` | Scoring rubric for test evaluation |
 | `examples/physics-geometry-9th-grade.md` | Real production prompt (reference) |
@@ -296,9 +319,9 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
 | `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments |
 | `packages/db/src/client.ts` | `createSupabaseClient()` — Supabase initialization |
-| `packages/db/src/sessions.ts` | Session CRUD (create, get, update, delete) |
+| `packages/db/src/sessions.ts` | Session CRUD (create, get, update, markSessionEnded, delete) |
 | `packages/db/src/messages.ts` | Message CRUD (create, list by session, delete by session) |
-| `packages/db/src/feedback.ts` | Feedback CRUD (create, list by session) |
+| `packages/db/src/feedback.ts` | Feedback CRUD (create, createBatch, list by session) |
 | `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend |
 | `packages/email/src/feedback.ts` | `sendFeedback()` — feedback notification email via Resend |
 | `apps/api/src/index.ts` | Express server entry — routes, middleware, inactivity sweep |

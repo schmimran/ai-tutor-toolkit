@@ -6,7 +6,7 @@ import {
   loadSystemPrompt,
   createTutorClient,
 } from "@ai-tutor/core";
-import { createSupabaseClient } from "@ai-tutor/db";
+import { createSupabaseClient, markSessionEnded } from "@ai-tutor/db";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/errors.js";
 import { createChatRouter } from "./routes/chat.js";
@@ -68,6 +68,9 @@ setInterval(() => {
         session.markEmailSent();
       }
       removeSession(sessionId);
+      void markSessionEnded(db, sessionId).catch(err =>
+        console.error(`[sweep] Could not mark session ${sessionId} as ended:`, err)
+      );
       console.log(`[sweep] Reaped idle session ${sessionId}.`);
     }
   }

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getSession as getDbSession, deleteSession as deleteDbSession } from "@ai-tutor/db";
+import { getSession as getDbSession, markSessionEnded } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
@@ -62,9 +62,9 @@ export function createSessionsRouter(
       removeSession(sessionId);
 
       try {
-        await deleteDbSession(db, sessionId);
+        await markSessionEnded(db, sessionId);
       } catch (err) {
-        console.error("[sessions] Could not delete DB session row:", err);
+        console.error("[sessions] Could not mark DB session as ended:", err);
       }
 
       res.json({ ok: true });

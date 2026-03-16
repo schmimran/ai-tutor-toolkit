@@ -56,7 +56,22 @@ export async function updateSession(
   return assertRow(data, error, "updateSession");
 }
 
-/** Delete a session and all its cascade-dependent rows (messages, feedback). */
+/**
+ * Mark a session as ended by setting ended_at to now.
+ * Session data (messages, feedback) is retained for analysis.
+ */
+export async function markSessionEnded(
+  client: SupabaseClient,
+  id: string
+): Promise<void> {
+  const { error } = await client
+    .from("sessions")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`markSessionEnded: ${error.message}`);
+}
+
+/** Hard-delete a session and all its cascade-dependent rows. For admin use only. */
 export async function deleteSession(
   client: SupabaseClient,
   id: string

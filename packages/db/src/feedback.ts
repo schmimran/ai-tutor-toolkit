@@ -25,6 +25,21 @@ export async function createFeedback(
   return assertRow(data, error, "createFeedback");
 }
 
+/** Insert multiple feedback rows in a single request and return them. */
+export async function createFeedbackBatch(
+  client: SupabaseClient,
+  inserts: DbFeedbackInsert[]
+): Promise<DbFeedback[]> {
+  if (inserts.length === 0) return [];
+  const { data, error } = await client
+    .from("feedback")
+    .insert(inserts)
+    .select();
+
+  if (error) throw new Error(`createFeedbackBatch: ${error.message}`);
+  return data ?? [];
+}
+
 /** Fetch all feedback for a session. */
 export async function getFeedbackBySession(
   client: SupabaseClient,

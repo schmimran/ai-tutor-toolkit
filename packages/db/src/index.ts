@@ -1,6 +1,6 @@
 export { createSupabaseClient } from "./client.js";
 
-export { createSession, getSession, updateSession, deleteSession } from "./sessions.js";
+export { createSession, getSession, updateSession, markSessionEnded, deleteSession } from "./sessions.js";
 
 export {
   createMessage,
@@ -8,7 +8,7 @@ export {
   deleteMessagesBySession,
 } from "./messages.js";
 
-export { createFeedback, getFeedbackBySession } from "./feedback.js";
+export { createFeedback, createFeedbackBatch, getFeedbackBySession } from "./feedback.js";
 
 export type {
   DbSession,
