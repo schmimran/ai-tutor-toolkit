@@ -1,48 +1,94 @@
 # AI Tutor Toolkit
 
-A framework for building, testing, and iterating on AI-powered homework tutors using Claude.
-
-Built by a parent who wanted a better homework helper for his 9th grader — and discovered that building a good AI tutor is mostly about building a good feedback loop.
-
-## What this is
-
-This repo contains three things:
-
-1. **A parameterized tutor prompt** that you can customize for any student, subject, and grade level.  It's built on principles from Khan Academy's Khanmigo research, Socratic tutoring literature, and five rounds of real-world iteration.
-
-2. **A test harness** using Claude's Chrome extension to simulate student interactions and evaluate tutor behavior — without needing an actual student in the loop.
-
-3. **Working tutor apps** — a CLI and a web interface, powered by the Anthropic SDK with extended thinking enabled by default.  Run `npm run api` from the repo root and hand your student a browser.
-
-## The core insight
-
-**Examples drive model behavior more than rules.**  We went through five prompt versions.  The biggest improvements came not from adding principles or "never do this" lists, but from showing the model annotated examples of good and bad judgment.  When a stated principle conflicted with a demonstrated example, the model followed the example every time.
+A homework tutor for your student, built on the same principles as Khan Academy's Khanmigo.  One parent built this for his 9th grader because he wanted something that would actually teach — not just hand over answers.  It has gone through five rounds of real-world testing with a real student.  This is the result.
 
 ---
 
-## Quick start
+## What the tutor does
 
-### Option A: Claude Project (no code required)
+Most AI tools will give your student the answer if they ask for it.  This tutor won't.  It's designed around a question-first approach: instead of solving the problem for your student, it asks questions that help them figure out what they're missing on their own.
 
-1. Go to [claude.ai](https://claude.ai), create a new Project.
-2. Paste the contents of [`templates/tutor-prompt.md`](templates/tutor-prompt.md) into the custom instructions.  Customize the variables at the top.
-3. Set the model to **Sonnet 4.6 with extended thinking**.
+This idea — sometimes called Socratic tutoring — has a solid research base.  The short version: when students explain their reasoning out loud, they either confirm that they understood it, or they catch their own mistake.  A good tutor creates those moments.  An AI that just delivers answers skips them entirely.
 
-### Option B: Web app
+The tutor follows six core principles:
 
-```bash
-npm install
+1. **See the problem first, then figure out where your student is.**  Before anything else, the tutor asks your student to share the actual problem.  Then it asks how far they got, and where they're stuck.  It doesn't start helping until it understands the situation.
 
-# Export required env vars (see Environment variables below)
-export ANTHROPIC_API_KEY=sk-ant-...
+2. **One question at a time.**  If your student has two errors in their work, the tutor addresses the more important one first, waits for them to work through it, and then moves on.  It doesn't pile on.
 
-# Start the API server (also serves the web frontend)
-npm run api
-```
+3. **Ask why, not just what.**  Instead of checking arithmetic, the tutor asks your student to explain their reasoning.  "Why did you use that equation?" gets further than "what did you get?"  The goal is for your student to hear themselves explain it — that's often when the mistake surfaces.
 
-Open `http://localhost:3000`.  Your student gets a chat interface.  Your API key stays server-side.  First-time visitors see a brief disclaimer overlay (prototype warning, privacy note, AI accuracy caveat) that can be dismissed and will not reappear.
+4. **Meet your student where they actually are.**  If your student got earlier parts of a problem right, the tutor doesn't re-quiz them on what they already know.  It works at the actual gap.  If your student is frustrated or overwhelmed, it backs off rather than pushing harder.
 
-### Option C: CLI
+5. **When they're stuck in a loop, try a fresh problem.**  Sometimes a student can't spot an error because they're too close to their own work — the same way you miss a typo on your third re-read.  The tutor gives them the same type of problem with different numbers.  They'll do it correctly, and the contrast usually makes the original mistake obvious.
+
+6. **Confirm each step, not just the final answer.**  The tutor checks in as your student walks through their work.  A quick "that step is right" after each correct move keeps them on track and tells them exactly where things went sideways when something's off.
+
+The last step of every problem is always your student's.  The tutor will guide them right up to the edge, but it won't type out the answer.
+
+---
+
+## Quick start — three options
+
+Before you start any option, you'll need an **Anthropic API key** for Options B and C.  Get one at [console.anthropic.com](https://console.anthropic.com).  Anthropic charges per use based on the number of tokens (roughly, words) processed.  The extended thinking mode this tutor uses costs more per session than a basic chat.  Check [Anthropic's pricing page](https://www.anthropic.com/pricing) so you know what to expect.  Option A (Claude Project) uses your existing Claude subscription instead.
+
+---
+
+### Option A: Claude Project (no code, no extra cost)
+
+This is the fastest path.  It uses the Claude website directly — no server to run, no API key needed beyond your Claude subscription.
+
+1. Go to [claude.ai](https://claude.ai) and sign in.
+2. Click **Projects** in the left sidebar, then **New project**.
+3. Open [`templates/tutor-prompt.md`](templates/tutor-prompt.md) in this repo.
+4. At the top of the file, fill in the variables for your student: their grade level, the subjects you want covered, their pronouns, and a brief description of how they learn.
+5. Copy everything from "Begin prompt" onward and paste it into the project's **Custom instructions** field.
+6. Set the model to **Claude Sonnet 4.6 with extended thinking**.
+
+That's it.  Hand your student the project link.  They'll see a clean chat interface.  You can watch the conversation in the project history.
+
+**What you don't get with this option:** session history saved to a database, email transcripts sent to you automatically, or per-response feedback ratings.  For those, use Option B.
+
+---
+
+### Option B: Web app (self-hosted)
+
+This runs the full application on your computer (or on a server — see [Deploying on Render](#deploying-on-render) below).  It gives you a chat interface at a web address, plus session history, email transcripts, and feedback tracking.
+
+**Before you start:**  You'll need [Node.js](https://nodejs.org) version 20 or later installed.  If you're not sure whether you have it, open a terminal and run `node --version`.  If you see a version number starting with 20 or higher, you're set.
+
+1. Download this repo.  If you have git installed:
+   ```bash
+   git clone https://github.com/schmimran/ai-tutor-toolkit.git
+   cd ai-tutor-toolkit
+   ```
+   Or download the zip from GitHub and unzip it.
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Export your API key:
+   ```bash
+   export ANTHROPIC_API_KEY=sk-ant-...
+   ```
+
+4. Build and start the server:
+   ```bash
+   npm run build
+   npm run api
+   ```
+
+5. Open `http://localhost:3000` in your browser.  Your student gets a chat interface.  Your API key stays on your computer — it's never sent to the browser.
+
+To also set up session history and email transcripts, continue to [Setting up the full experience](#setting-up-the-full-experience).
+
+---
+
+### Option C: CLI (terminal)
+
+For parents comfortable in a terminal.  No web interface — you type your student's messages at a prompt and see the tutor's responses in the terminal.
 
 ```bash
 npm install
@@ -50,60 +96,62 @@ export ANTHROPIC_API_KEY=sk-ant-...
 npm run cli
 ```
 
-Type your student's messages at the prompt.  Type `export` to print the transcript.  Type `quit` to exit.
-
-### Option D: API only
-
-The API server exposes REST endpoints under `/api/`.  See [apps/api/README.md](apps/api/README.md) for the full endpoint reference.
+Type `export` to print the transcript.  Type `quit` to exit.
 
 ---
 
-## Third-party setup
+## Setting up the full experience
 
-### Supabase (Postgres database)
+The web app works with just an Anthropic API key.  To get session history saved to a database, email transcripts, and feedback tracking, you'll need to set up two additional services: **Supabase** (a free database) and **Resend** (email delivery).  Both have free tiers that are more than enough for a single student.
 
-Supabase is used as a managed Postgres database.  The toolkit uses it for three tables: `sessions`, `messages`, and `feedback`.  No Edge Functions, no Realtime, no Storage.
+---
 
-Session data is **retained after sessions end** — rows are soft-ended (via an `ended_at` timestamp) rather than deleted, so conversation history and per-response feedback ratings are preserved for analysis, each linked to the specific assistant message they rate.
+### Anthropic — AI access
 
-Supabase is required for the API server — if either env var is absent, the server will not start.  The CLI (`npm run cli`) works without Supabase since it does not use the database.
+1. Go to [console.anthropic.com](https://console.anthropic.com) and create an account.
+2. Click **API Keys → Create Key**.
+3. Copy the key.  You won't see it again.
+4. Check [Anthropic's pricing page](https://www.anthropic.com/pricing) so you know what a session will cost.
 
-**Step 1: Create a Supabase project**
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
 
-1. Go to [supabase.com](https://supabase.com) and sign in (or create an account).
+---
+
+### Supabase — database
+
+Supabase is a free hosted database.  The tutor uses it to store session transcripts, messages, and feedback ratings so nothing is lost if the server restarts.
+
+**Step 1: Create a project**
+
+1. Go to [supabase.com](https://supabase.com) and sign in (or create a free account).
 2. Click **New project**.
-3. Give it a name (e.g., `ai-tutor`), choose a region close to you, and set a database password.
-4. Wait for the project to initialize (about 1 minute).
+3. Give it a name (e.g., `ai-tutor`), choose a region near you, and set a database password.  Wait about a minute for it to initialize.
 
 **Step 2: Get your credentials**
 
-1. In your Supabase project dashboard, go to **Settings → API**.
+1. In your project dashboard, go to **Settings → API**.
 2. Copy the **Project URL** — this is your `SUPABASE_URL`.
-3. Under **Project API keys**, copy the **service_role** key (the secret one, not `anon`) — this is your `SUPABASE_SERVICE_ROLE_KEY`.
-
-Keep the service role key secret.  It bypasses row-level security and has full database access.
+3. Under **Project API keys**, copy the **service_role** key (the secret one, not `anon`) — this is your `SUPABASE_SERVICE_ROLE_KEY`.  Keep this key secret.  It has full access to your database.
 
 **Step 3: Run the migrations**
 
-Open **SQL Editor** in your Supabase dashboard and run each migration in order:
+Migrations are SQL scripts that create the database tables the app needs.  You run them once, in order.
 
-1. Paste the contents of `supabase/migrations/001_initial_schema.sql` and click **Run**.
-2. Paste the contents of `supabase/migrations/002_soft_session_end.sql` and click **Run**.
-3. Paste the contents of `supabase/migrations/003_feedback_message_id.sql` and click **Run**.
-4. Paste the contents of `supabase/migrations/004_feedback_category.sql` and click **Run**.
-5. Paste the contents of `supabase/migrations/005_token_tracking.sql` and click **Run**.
-6. Paste the contents of `supabase/migrations/006_disclaimer_acceptances.sql` and click **Run**.
-7. Paste the contents of `supabase/migrations/007_disclaimer_client_session_id.sql` and click **Run**.
+In your Supabase project dashboard, open **SQL Editor** (in the left sidebar).  For each file below, copy its contents and click **Run**:
 
-Alternatively, if you have the [Supabase CLI](https://supabase.com/docs/guides/cli) installed:
+1. `supabase/migrations/001_initial_schema.sql`
+2. `supabase/migrations/002_soft_session_end.sql`
+3. `supabase/migrations/003_feedback_message_id.sql`
+4. `supabase/migrations/004_feedback_category.sql`
+5. `supabase/migrations/005_token_tracking.sql`
+6. `supabase/migrations/006_disclaimer_acceptances.sql`
+7. `supabase/migrations/007_disclaimer_client_session_id.sql`
 
-```bash
-supabase login
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
+Run them in order.  Each one builds on the previous.
 
-**Step 4: Set environment variables**
+**Step 4: Export the variables**
 
 ```bash
 export SUPABASE_URL=https://your-project-ref.supabase.co
@@ -112,206 +160,91 @@ export SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 ---
 
-### Resend (outbound email)
+### Resend — email
 
-Resend sends two types of emails: session transcript summaries (to the parent) and feedback notifications.  If you skip this setup, the app works fine — emails are just silently skipped.
+Resend sends you two types of emails: a transcript summary when a session ends, and a notification when your student submits feedback.  If you skip this setup, the app works fine — emails are silently skipped.
 
-**Step 1: Create a Resend account**
+**Step 1: Create an account**
 
 Go to [resend.com](https://resend.com) and sign up.
 
-**Step 2: Add and verify your sending domain**
+**Step 2: Add and verify a sending domain**
 
-You need to send from a domain you own.  Resend cannot send from Gmail/Yahoo/etc.
+You need a domain you own to send from.  Resend can't send from Gmail, Yahoo, or other personal email addresses.
 
 1. In Resend, go to **Domains → Add Domain**.
-2. Enter your domain (e.g., `tutor.yourdomain.com`).
-3. Resend will show you DNS records to add:
-   - An SPF `TXT` record
-   - A DKIM `TXT` record
-   - Optionally a DMARC `TXT` record
-4. Add these records in your DNS provider (Cloudflare, Route 53, Namecheap, etc.).
-5. DNS propagation takes 5 minutes to 48 hours.  Click **Verify** in Resend when you're ready.
+2. Enter a domain or subdomain you own (e.g., `tutor.yourdomain.com`).
+3. Resend will show you a few DNS records to add — typically an SPF record and a DKIM record.  These are short text entries you add in wherever you manage your domain (Cloudflare, Namecheap, GoDaddy, etc.).  Resend walks you through exactly what to paste where.
+4. DNS changes can take anywhere from five minutes to a few hours to propagate.  Once they're live, click **Verify** in Resend.
 
 **Step 3: Generate an API key**
 
 1. In Resend, go to **API Keys → Create API Key**.
-2. Give it a name (e.g., `ai-tutor-production`).
-3. Copy the key — you won't see it again.
+2. Give it a name (e.g., `ai-tutor`).
+3. Copy the key.  You won't see it again.
 
-**Step 4: Set environment variables**
+**Step 4: Export the variables**
 
 ```bash
 export RESEND_API_KEY=re_...
-export PARENT_EMAIL=you@yourdomain.com   # where transcripts are sent
-export EMAIL_FROM=tutor@tutor.yourdomain.com  # must match verified domain
+export PARENT_EMAIL=you@yourdomain.com       # where transcripts go
+export EMAIL_FROM=tutor@tutor.yourdomain.com # must match your verified domain
 ```
 
 ---
 
-## Monorepo structure
+### Environment variables — full reference
 
-```
-ai-tutor-toolkit/
-├── package.json                          ← Workspace root (npm workspaces)
-├── tsconfig.base.json                    ← Shared TypeScript config
-├── render.yaml                           ← Render.com deployment config
-├── CLAUDE.md                             ← Agent context (for AI contributors)
-│
-├── packages/                             ← Shared libraries
-│   ├── core/                             ← @ai-tutor/core — tutor logic, Anthropic SDK wrapper, token usage tracking
-│   ├── db/                               ← @ai-tutor/db — Supabase client and CRUD
-│   └── email/                            ← @ai-tutor/email — Resend email templates
-│
-├── apps/                                 ← Applications
-│   ├── api/                              ← @ai-tutor/api — Express server + API routes
-│   ├── web/                              ← @ai-tutor/web — Static single-file SPA
-│   └── cli/                              ← @ai-tutor/cli — Terminal REPL
-│
-├── supabase/
-│   └── migrations/
-│       ├── 001_initial_schema.sql        ← DB schema (sessions, messages, feedback)
-│       ├── 002_soft_session_end.sql      ← Adds ended_at; retains data after session end
-│       ├── 003_feedback_message_id.sql   ← Adds message_id FK to feedback; links ratings to messages
-│       ├── 004_feedback_category.sql     ← Adds category column; one row per category per message
-│       ├── 005_token_tracking.sql        ← Adds token columns to sessions and messages
-│       ├── 006_disclaimer_acceptances.sql ← New table for disclaimer acceptance records
-│       └── 007_disclaimer_client_session_id.sql ← Adds client_session_id for deferred FK backfill
-│
-├── templates/
-│   ├── tutor-prompt.md                   ← Parameterized tutor prompt (customize this)
-│   └── evaluation-checklist.md           ← Scoring rubric for test evaluation
-│
-├── examples/
-│   └── physics-geometry-9th-grade.md     ← Real production prompt
-│
-├── tests/
-│   ├── README.md                         ← Test harness usage
-│   ├── kinematics.md                     ← Wrong equation, confused student
-│   ├── projectile-motion.md              ← Buried vector error, puzzled student
-│   ├── friction.md                       ← Frustrated/defeated student
-│   ├── similar-triangles.md              ← Geometry, conceptual error
-│   └── pendulum.md                       ← Overconfident student
-│
-└── docs/
-    ├── methodology.md                    ← How to build a tutor from scratch
-    ├── model-selection.md                ← Sonnet vs Opus, extended thinking analysis
-    ├── lessons-learned.md                ← Key findings from five iterations
-    └── deployment.md                     ← Render, AWS, and local deployment instructions
-```
+| Variable | Required | Default | What it does |
+|----------|----------|---------|--------------|
+| `ANTHROPIC_API_KEY` | **yes** | — | Your Anthropic API key. |
+| `SUPABASE_URL` | **yes (web app)** | — | Your Supabase project URL. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes (web app)** | — | Supabase service role key.  Keep secret. |
+| `RESEND_API_KEY` | no | — | Resend API key.  Emails skipped if absent. |
+| `PARENT_EMAIL` | no | — | Where transcript and feedback emails are sent. |
+| `EMAIL_FROM` | no | `tutor@tutor.schmim.com` | Sender address.  Must match a verified Resend domain. |
+| `CORS_ORIGIN` | no | `*` | Allowed origin if you put the app behind a specific URL. |
+| `MODEL` | no | `claude-sonnet-4-6` | Claude model ID. |
+| `EXTENDED_THINKING` | no | `true` | Set to `false` to disable extended thinking (faster, lower cost, weaker tutoring quality). |
+| `PORT` | no | `3000` | Port the server listens on. |
 
 ---
 
-## Technology stack
+## Deploying on Render
 
-| Layer | Technology | Notes |
-|-------|-----------|-------|
-| AI | Claude (Anthropic SDK) | Sonnet 4.6, extended thinking enabled |
-| API server | Express | TypeScript, SSE streaming |
-| Frontend | Plain HTML/CSS/JS | No framework, no build step |
-| Math rendering | KaTeX (CDN) | LaTeX in tutor responses |
-| Markdown | marked (CDN) | Markdown in tutor responses |
-| Database | Supabase (Postgres) | Sessions, messages, feedback |
-| Email | Resend | Transcript and feedback emails |
-| File uploads | multer | Images and PDFs up to 10 MB each |
-| Geolocation | geoip-lite | Client IP to city/country (local lookup) |
-| Language | TypeScript | Node 20+, strict mode |
-| Build | tsc --build | Composite projects, incremental |
-| Package management | npm workspaces | Monorepo, single node_modules |
-| Deployment | Render (primary) | Node.js web service via render.yaml |
+Once the web app is working locally, you can put it online so your student can access it from any device — their laptop, their phone, anywhere.  [Render.com](https://render.com) is the recommended hosting service.  It has a free tier that covers a single low-traffic app.
+
+See [docs/deployment.md](docs/deployment.md) for the full step-by-step walkthrough.
 
 ---
 
-## Environment variables reference
+## How the tutor was built
 
-| Variable | Required | Default | Used by | Description |
-|----------|----------|---------|---------|-------------|
-| `ANTHROPIC_API_KEY` | **yes** | — | api, cli | Your Anthropic API key. Get it at [console.anthropic.com](https://console.anthropic.com). |
-| `SUPABASE_URL` | **yes (API)** | — | api | Your Supabase project URL. **Settings → API → Project URL**. |
-| `SUPABASE_SERVICE_ROLE_KEY` | **yes (API)** | — | api | Supabase service role key. **Settings → API → service_role**. Keep secret. |
-| `RESEND_API_KEY` | no | — | api | Resend API key. **API Keys → Create API Key** in Resend dashboard. |
-| `PARENT_EMAIL` | no | — | api | Email address where transcripts and feedback notifications are sent. |
-| `EMAIL_FROM` | no | `tutor@tutor.schmim.com` | api | Sender address. Must match a verified Resend domain. |
-| `CORS_ORIGIN` | no | `*` | api | Allowed CORS origin (e.g., `https://yourapp.com`). |
-| `MODEL` | no | `claude-sonnet-4-6` | core | Claude model ID. |
-| `EXTENDED_THINKING` | no | `true` | core | Set to `false` to disable extended thinking (faster, lower cost, weaker soft skills). |
-| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt.md` | core | Path to the system prompt file, relative to the repo root. |
-| `PORT` | no | `3000` | api | HTTP listen port. |
+This isn't a prompt someone typed into ChatGPT once and published.  The tutor went through five rounds of iteration, each one involving real test sessions, evaluation against a scoring rubric, and targeted changes based on what broke.
+
+The biggest lesson: examples drive model behavior more than rules.  Every version of the prompt that used annotated examples of good and bad tutor judgment outperformed versions that used rule lists or decision trees.  When a stated principle conflicted with a demonstrated example, the model followed the example every time.
+
+Full details are in the methodology docs:
+
+- [docs/methodology.md](docs/methodology.md) — the eight-phase process for building a tutor from scratch
+- [docs/model-selection.md](docs/model-selection.md) — why Sonnet with extended thinking, and what we tested against
+- [docs/lessons-learned.md](docs/lessons-learned.md) — key findings from five real iterations
 
 ---
 
-## Deployment
+## Testing the tutor
 
-### Local development
+The `tests/` folder contains character briefs for five simulated students.  Each brief describes a student's error, emotional state, and how they'd respond to different tutor moves.  You can use them to verify the tutor is working the way it should — without needing your actual student to sit through a test session.
 
-```bash
-# Install all workspace dependencies
-npm install
+See [tests/README.md](tests/README.md) for instructions on how to run a simulated session.
 
-# Export environment variables (no .env files)
-export ANTHROPIC_API_KEY=sk-ant-...
-export SUPABASE_URL=https://...supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=eyJ...
-export RESEND_API_KEY=re_...
-export PARENT_EMAIL=you@example.com
-
-# Build all TypeScript packages
-npm run build
-
-# Start API server (serves web frontend at http://localhost:3000)
-npm run api
-
-# Or start in watch mode (rebuilds on changes)
-npm run dev
-```
-
-### Render.com
-
-See [docs/deployment.md](docs/deployment.md) for step-by-step Render deployment instructions.
-
-Quick version:
-1. Push this repo to GitHub.
-2. Create a new **Blueprint** on Render and connect your repo — it will detect `render.yaml` automatically.
-3. Add all required environment variables in Render's dashboard.
-4. Deploy.
-
----
-
-## Testing
-
-Use the character briefs in [`tests/`](tests/) to simulate student sessions.
-
-### Using the Claude Chrome extension (recommended)
-
-1. Install the Claude Chrome extension.
-2. Configure a shortcut pointing to your Claude Project.
-3. Set the shortcut's instructions to the content of a test file (e.g., `tests/kinematics.md`).
-4. Run it.  The extension plays the student role and captures the transcript.
-5. Evaluate with the checklist in `templates/evaluation-checklist.md`.
-
-### Manual testing
-
-1. Open your Claude Project or the web app.
-2. Play the student role yourself, following the character brief.
-3. Evaluate responses against the checklist.
-
-### Test scenarios
-
-| File | Error type | Student state | Tests |
-|------|-----------|--------------|-------|
-| `kinematics.md` | Wrong equation | Confused | Basic opening sequence, error diagnosis |
-| `projectile-motion.md` | Buried vector error | Puzzled | Step-by-step confirmation, finding hidden error |
-| `friction.md` | Forgot a force | Frustrated | Emotional adaptation, not lecturing |
-| `similar-triangles.md` | Wrong side correspondence | Confused | Geometry handling, conceptual vs arithmetic |
-| `pendulum.md` | Unit conversion miss | Overconfident | Respectful pushback, not caving |
-
----
-
-## Methodology docs
-
-- [docs/methodology.md](docs/methodology.md) — Eight-phase process for building a tutor from scratch
-- [docs/model-selection.md](docs/model-selection.md) — Sonnet vs Opus, extended thinking analysis
-- [docs/lessons-learned.md](docs/lessons-learned.md) — Key findings from five real iterations
+| Test file | What the student got wrong | Student's state |
+|-----------|---------------------------|-----------------|
+| `kinematics.md` | Wrong equation | Confused |
+| `projectile-motion.md` | Buried vector error | Puzzled |
+| `friction.md` | Forgot a force | Frustrated |
+| `similar-triangles.md` | Wrong side correspondence | Confused |
+| `pendulum.md` | Unit conversion miss | Overconfident |
 
 ---
 
@@ -353,6 +286,57 @@ A native mobile tutor interface.
 
 ---
 
+## Project structure
+
+If you're a developer looking at the code, here's how the repo is organized.  Everything runs as a single Node.js service (`apps/api`) that also serves the web frontend as a static file.
+
+```
+ai-tutor-toolkit/
+├── package.json                          ← Workspace root (npm workspaces)
+├── tsconfig.base.json                    ← Shared TypeScript config
+├── render.yaml                           ← Render.com deployment config
+├── CLAUDE.md                             ← Agent context (for AI contributors)
+│
+├── packages/                             ← Shared libraries
+│   ├── core/                             ← @ai-tutor/core — tutor logic, Anthropic SDK wrapper
+│   ├── db/                               ← @ai-tutor/db — Supabase client and CRUD
+│   └── email/                            ← @ai-tutor/email — Resend email templates
+│
+├── apps/                                 ← Applications
+│   ├── api/                              ← @ai-tutor/api — Express server + API routes
+│   ├── web/                              ← @ai-tutor/web — Static single-file frontend
+│   └── cli/                              ← @ai-tutor/cli — Terminal REPL
+│
+├── supabase/
+│   └── migrations/
+│       ├── 001_initial_schema.sql        ← DB schema (sessions, messages, feedback)
+│       ├── 002_soft_session_end.sql      ← Adds ended_at; retains data after session end
+│       ├── 003_feedback_message_id.sql   ← Links ratings to specific messages
+│       ├── 004_feedback_category.sql     ← One row per feedback category per message
+│       ├── 005_token_tracking.sql        ← Token usage columns on sessions and messages
+│       ├── 006_disclaimer_acceptances.sql ← Disclaimer acceptance records
+│       └── 007_disclaimer_client_session_id.sql ← Deferred FK backfill support
+│
+├── templates/
+│   ├── tutor-prompt.md                   ← Parameterized tutor prompt (customize this)
+│   └── evaluation-checklist.md          ← Scoring rubric for test evaluation
+│
+├── examples/
+│   └── physics-geometry-9th-grade.md    ← Real production prompt
+│
+├── tests/
+│   ├── README.md                         ← Test harness usage
+│   └── *.md                              ← Student character briefs
+│
+└── docs/
+    ├── methodology.md                    ← How to build a tutor from scratch
+    ├── model-selection.md               ← Model and extended thinking analysis
+    ├── lessons-learned.md               ← Key findings from five iterations
+    └── deployment.md                    ← Render and local deployment instructions
+```
+
+---
+
 ## Prior art and references
 
 - [Khan Academy: How We Built AI Tutoring Tools](https://blog.khanacademy.org/how-we-built-ai-tutoring-tools/)
@@ -364,7 +348,7 @@ A native mobile tutor interface.
 
 ## Contributing
 
-This started as a one-evening project for one student.  If you adapt it for your own kid, a different subject, or a different grade level, open a PR with your findings.  The methodology section of the docs is where the real value is — the more examples of the iterate-and-test loop, the better.
+This started as a one-evening project for one student.  If you adapt it for your own kid, a different subject, or a different grade level, open a PR with your findings.  The methodology docs are where the real value is — the more examples of the iterate-and-test loop, the better.
 
 ## License
 
