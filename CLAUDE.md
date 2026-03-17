@@ -337,6 +337,20 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 
 ---
 
+## Behavioral rules for AI contributors
+
+These apply to every Claude Code session in this repo.
+
+1. **Read before writing.**  Before modifying any file, read it in full.  If the task involves multiple files, read all of them before proposing changes.  Do not work from assumptions about file contents.
+2. **Documentation is part of the change.**  If you modify a function signature, API route, environment variable, database column, or file structure, update all documentation that references it in the same session.  This includes: CLAUDE.md (schema tables, API reference, file-level reference table), the relevant package or app README, and docs/deployment.md if deployment config changed.
+3. **Build is the final step.**  Run `npm run build` from the repo root before declaring any task complete.  If the build fails, fix the issue.  Do not leave a broken build.
+4. **Report scope creep, do not act on it.**  If you discover a bug, inconsistency, or improvement opportunity outside the current task, mention it in your summary.  Do not fix it unless explicitly asked.
+5. **Respect protected files.**  Do not modify files in `templates/`, `examples/`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  This rule is already in the consistency section — it bears repeating because it is the most important guardrail in the repo.
+6. **No silent additions.**  Do not add npm dependencies, new files, new directories, or new environment variables without stating what you are adding and why.  Wait for confirmation.
+7. **Test what you changed.**  If you modified a route, show a curl or describe how to verify it.  If you modified the frontend, describe what the user should see.  If you modified a package, show that downstream consumers still build.
+
+---
+
 ## File-level reference table
 
 | Path | Purpose |
