@@ -186,7 +186,14 @@ export function createChatRouter(
           console.error("[chat] Could not persist messages to DB:", err);
         }
 
-        sendEvent(res, { type: "message_stop", messageId: assistantMessageId });
+        sendEvent(res, {
+          type: "message_stop",
+          messageId: assistantMessageId,
+          tokenUsage: {
+            inputTokens: session.tokenUsage.inputTokens,
+            outputTokens: session.tokenUsage.outputTokens,
+          },
+        });
         res.end();
       } catch (err) {
         if (!res.headersSent) {

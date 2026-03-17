@@ -154,6 +154,19 @@
       color: var(--accent);
     }
 
+    #token-counter {
+      font-family: var(--font-sans);
+      font-size: 0.71rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--surface-alt);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      display: none;
+    }
+
     /* ── Main ──────────────────────────────────────────────────────────────── */
     main {
       flex: 1;
@@ -783,6 +796,54 @@
       50%       { transform: translateY(-8px); }
     }
 
+    /* ── Disclaimer overlay ────────────────────────────────────────────────── */
+    #disclaimer-overlay .modal-card {
+      max-width: 480px;
+    }
+    .disclaimer-body {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .disclaimer-title {
+      font-family: var(--font-heading);
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .disclaimer-items {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .disclaimer-items li {
+      font-size: 0.87rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      padding-left: 18px;
+      position: relative;
+    }
+    .disclaimer-items li::before {
+      content: '·';
+      position: absolute;
+      left: 4px;
+      color: var(--accent);
+      font-size: 1.1rem;
+      line-height: 1.4;
+    }
+    .disclaimer-items strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .disclaimer-foot {
+      padding: 12px 24px 20px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
     /* ── Custom scrollbar ──────────────────────────────────────────────────── */
     #chat-area::-webkit-scrollbar       { width: 6px; }
     #chat-area::-webkit-scrollbar-track { background: transparent; }
@@ -818,9 +879,9 @@
     </span>
     <div class="header-right">
       <span id="model-badge" class="model-badge" style="display:none"></span>
-      <button class="btn btn-sm" id="btn-transcript">Transcript</button>
-      <button class="btn btn-sm" id="btn-end-session-header">End session</button>
-      <button class="btn btn-sm" id="btn-new-session">New session</button>
+      <span id="token-counter"></span>
+      <button class="btn btn-sm" id="btn-transcript" disabled>Transcript</button>
+      <button class="btn btn-sm" id="btn-end-session-header" disabled>End session</button>
     </div>
   </header>
 
@@ -898,6 +959,23 @@
   <!-- ── Toast ───────────────────────────────────────────────────────────── -->
   <div id="toast"></div>
 
+  <!-- ── Disclaimer overlay ──────────────────────────────────────────────── -->
+  <div class="modal-backdrop active" id="disclaimer-overlay">
+    <div class="modal-card">
+      <div class="disclaimer-body">
+        <p class="disclaimer-title">Before you start</p>
+        <ul class="disclaimer-items">
+          <li><strong>Early prototype.</strong> This tool is under active development and may be unreliable. Use at your own risk.</li>
+          <li><strong>No PII stored.</strong> We don't collect personal information about you. However, chat transcripts are retained for review — avoid entering names, emails, or other personal details.</li>
+          <li><strong>AI can make mistakes.</strong> Always verify important information with a teacher or trusted source.</li>
+        </ul>
+      </div>
+      <div class="disclaimer-foot">
+        <button class="btn btn-primary btn-sm" id="btn-disclaimer-ok">Got it</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   // ── KaTeX init (called by auto-render.min.js onload) ──────────────────────
   let katexReady = false;
@@ -963,8 +1041,8 @@
   const btnFbInlineSkip    = $('btn-fb-inline-skip');
   const inputRow           = $('input-row');
   const btnTranscript       = $('btn-transcript');
-  const btnNewSession       = $('btn-new-session');
   const modelBadge     = $('model-badge');
+  const tokenCounter   = $('token-counter');
   const modalTranscript = $('modal-transcript');
   const txBody         = $('tx-body');
   const btnCloseTx     = $('btn-close-tx');
@@ -991,6 +1069,13 @@
         modelBadge.style.display = '';
       }
     } catch { /* no config available */ }
+  }
+
+  // ── Header button state ───────────────────────────────────────────────────
+  function updateHeaderButtons() {
+    const hasMessages = msgList.length > 0;
+    btnTranscript.disabled       = !hasMessages;
+    btnEndSessionHeader.disabled = !hasMessages;
   }
 
   // ── Empty-state toggle ────────────────────────────────────────────────────
@@ -1031,6 +1116,7 @@
     div.appendChild(bubble);
     messagesEl.appendChild(div);
     msgList.push({ id, role: 'user', bubbleEl: bubble });
+    updateHeaderButtons();
     scrollBottom();
     return id;
   }
@@ -1163,6 +1249,11 @@
             scrollBottom();
           } else if (event.type === 'message_stop') {
             if (event.messageId) tutorEntry.dbId = event.messageId;
+            if (event.tokenUsage) {
+              const total = (event.tokenUsage.inputTokens || 0) + (event.tokenUsage.outputTokens || 0);
+              tokenCounter.textContent = `${total.toLocaleString()} tokens`;
+              tokenCounter.style.display = 'inline';
+            }
             finalizeTutor(tutorEntry, rawText);
           } else if (event.type === 'error') {
             throw new Error(event.message || 'Streaming error');
@@ -1189,7 +1280,8 @@
     btnSend.disabled          = disabled;
     msgInput.disabled         = disabled;
     btnAttach.disabled        = disabled;
-    btnEndSessionHeader.disabled = disabled;
+    // When re-enabling after streaming, respect the "has messages" gate
+    btnEndSessionHeader.disabled = disabled || msgList.length === 0;
   }
 
   // ── Inactivity timer ──────────────────────────────────────────────────────
@@ -1378,6 +1470,8 @@
     sessionEnded    = false;
     msgCounter      = 0;
     fbRatings       = new Map();
+    tokenCounter.style.display = 'none';
+    tokenCounter.textContent = '';
 
     // Reset UI
     messagesEl.innerHTML = '';
@@ -1394,6 +1488,7 @@
     msgInput.disabled = false;
     btnSend.disabled = false;
     btnAttach.disabled = false;
+    updateHeaderButtons();
     resizeInput();
     msgInput.focus();
   }
@@ -1538,7 +1633,6 @@
   btnEndSession.addEventListener('click', endSession);
   btnEndSessionHeader.addEventListener('click', endSession);
   btnTranscript.addEventListener('click', openTranscript);
-  btnNewSession.addEventListener('click', newSession);
 
   btnCloseTx.addEventListener('click', closeTranscript);
   btnCloseTx2.addEventListener('click', closeTranscript);
@@ -1588,9 +1682,24 @@
     msgInput.setSelectionRange(msgInput.value.length, msgInput.value.length);
   });
 
+  // ── Disclaimer overlay ────────────────────────────────────────────────────
+  const disclaimerOverlay = $('disclaimer-overlay');
+  const btnDisclaimerOk   = $('btn-disclaimer-ok');
+
+  function dismissDisclaimer() {
+    localStorage.setItem('disclaimer-accepted', '1');
+    disclaimerOverlay.classList.remove('active');
+  }
+
+  btnDisclaimerOk.addEventListener('click', dismissDisclaimer);
+
   // ── Init ──────────────────────────────────────────────────────────────────
   showEmpty();
   fetchConfig();
+  // Show disclaimer only on first visit
+  if (localStorage.getItem('disclaimer-accepted')) {
+    disclaimerOverlay.classList.remove('active');
+  }
   msgInput.focus();
   </script>
 </body>

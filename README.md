@@ -40,7 +40,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 npm run api
 ```
 
-Open `http://localhost:3000`.  Your student gets a chat interface.  Your API key stays server-side.
+Open `http://localhost:3000`.  Your student gets a chat interface.  Your API key stays server-side.  First-time visitors see a brief disclaimer overlay (prototype warning, privacy note, AI accuracy caveat) that can be dismissed and will not reappear.
 
 ### Option C: CLI
 
@@ -335,7 +335,7 @@ These emerged from five iterations and eight test runs across four distinct scen
 Command-line interface with extended thinking, transcript export, and configurable system prompt.
 
 ### Phase 2: Web UI ✅
-Express server with a single-page chat interface, file uploads, transcript export, session management, end-of-session email summaries (with session ID and token usage) sent to the parent via Resend, and a full-page feedback review overlay that collects per-response ratings (Accuracy, Helpful, Tone) at session end.  Session data is retained in the database for analysis.
+Express server with a single-page chat interface, file uploads, transcript export, session management, end-of-session email summaries (with session ID and token usage) sent to the parent via Resend, a live cumulative token counter in the header, a first-visit disclaimer overlay, and a full-page feedback review overlay that collects per-response ratings (Accuracy, Helpful, Tone) at session end.  Session data is retained in the database for analysis.
 
 ### Phase 3: Documentation and deployment ✅
 CLAUDE.md, package READMEs, deployment files (Dockerfile, render.yaml, docs/deployment.md).
