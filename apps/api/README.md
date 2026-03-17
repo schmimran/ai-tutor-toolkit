@@ -46,7 +46,7 @@ data: {"type":"text_delta","text":"Let's look at..."}
 
 data: {"type":"text_delta","text":" that equation."}
 
-data: {"type":"message_stop"}
+data: {"type":"message_stop","messageId":"<uuid or null>","tokenUsage":{"inputTokens":N,"outputTokens":N}}
 ```
 
 On error: `data: {"type":"error","message":"..."}` then connection closes.
@@ -64,7 +64,7 @@ Get non-secret runtime config.
 **Response:**
 
 ```json
-{ "model": "claude-sonnet-4-6", "extendedThinking": true }
+{ "model": "claude-sonnet-4-6", "extendedThinking": true, "inactivityMs": 600000 }
 ```
 
 ---
@@ -100,7 +100,7 @@ End a session.
 **Behavior:**
 1. If session is in memory, transcript exists, and email not yet sent → send transcript email
 2. Remove from in-memory store
-3. Delete from DB (cascades to messages and feedback)
+3. Set `ended_at` on the DB session row (soft delete — session data is retained for analysis)
 
 **Response:**
 
@@ -176,8 +176,8 @@ Always returns `200 { ok: true }`.  DB errors are caught and logged — never su
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | **yes** | — | Anthropic API key |
-| `SUPABASE_URL` | no | — | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | no | — | Supabase service role key |
+| `SUPABASE_URL` | **yes** | — | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | — | Supabase service role key |
 | `RESEND_API_KEY` | no | — | Resend API key |
 | `PARENT_EMAIL` | no | — | Email recipient |
 | `EMAIL_FROM` | no | `tutor@tutor.schmim.com` | Sender address |
@@ -226,5 +226,7 @@ apps/api/src/
 │   └── errors.ts           ← Global error handler
 └── lib/
     ├── session-store.ts    ← In-memory Map<sessionId, Session>
-    └── stream.ts           ← SSE helpers (initSSE, sendEvent, sendHeartbeat)
+    ├── stream.ts           ← SSE helpers (initSSE, sendEvent, sendHeartbeat)
+    ├── geo.ts              ← extractClientInfo() — IP, geolocation, user-agent
+    └── validation.ts       ← Shared validation constants (UUID regex)
 ```
