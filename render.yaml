@@ -1,8 +1,9 @@
 services:
   - type: web
     name: ai-tutor
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run api
     # All env vars are set in the Render dashboard — no .env files
     envVars:
       - key: ANTHROPIC_API_KEY
