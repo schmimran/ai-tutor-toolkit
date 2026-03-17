@@ -348,7 +348,7 @@ These apply to every Claude Code session in this repo.
 5. **Respect protected files.**  Do not modify files in `templates/`, `examples/`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  This rule is already in the consistency section — it bears repeating because it is the most important guardrail in the repo.
 6. **No silent additions.**  Do not add npm dependencies, new files, new directories, or new environment variables without stating what you are adding and why.  Wait for confirmation.
 7. **Test what you changed.**  If you modified a route, show a curl or describe how to verify it.  If you modified the frontend, describe what the user should see.  If you modified a package, show that downstream consumers still build.
-
+8. **Clean up what you remove.**  If you delete or replace a function, route, component, or config variable, check for and remove any remaining references to it — imports, documentation mentions, type definitions, and test fixtures.  Do not leave dead code or stale references behind.
 ---
 
 ## File-level reference table
