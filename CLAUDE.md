@@ -349,6 +349,7 @@ These apply to every Claude Code session in this repo.
 6. **No silent additions.**  Do not add npm dependencies, new files, new directories, or new environment variables without stating what you are adding and why.  Wait for confirmation.
 7. **Test what you changed.**  If you modified a route, show a curl or describe how to verify it.  If you modified the frontend, describe what the user should see.  If you modified a package, show that downstream consumers still build.
 8. **Clean up what you remove.**  If you delete or replace a function, route, component, or config variable, check for and remove any remaining references to it — imports, documentation mentions, type definitions, and test fixtures.  Do not leave dead code or stale references behind.
+9. **Pre-merge checklist.**  Run `/simplify` on changed files before committing.  After committing, push the branch, create the pull request, then run `/review` against the PR.  Address any findings before merging.
 ---
 
 ## File-level reference table
