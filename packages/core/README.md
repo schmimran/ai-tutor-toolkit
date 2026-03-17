@@ -29,7 +29,7 @@ Reads environment variables and returns a typed config object.
 {
   model: string;             // MODEL env var, default "claude-sonnet-4-6"
   extendedThinking: boolean; // EXTENDED_THINKING env var, default true
-  systemPromptPath: string;  // SYSTEM_PROMPT_PATH env var, default "templates/tutor-prompt.md"
+  systemPromptPath: string;  // SYSTEM_PROMPT_PATH env var, default "examples/physics-geometry-9th-grade.md"
   port: number;              // PORT env var, default 3000
 }
 ```
@@ -153,7 +153,7 @@ All configuration is via environment variables.  See the root README for the ful
 | `ANTHROPIC_API_KEY` | **yes** | — |
 | `MODEL` | no | `claude-sonnet-4-6` |
 | `EXTENDED_THINKING` | no | `true` |
-| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt.md` |
+| `SYSTEM_PROMPT_PATH` | no | `examples/physics-geometry-9th-grade.md` |
 | `PORT` | no | `3000` |
 
 ## Setup
