@@ -10,6 +10,7 @@ export type {
   FileMetadata,
   ClientInfo,
   SessionSummary,
+  TokenUsage,
 } from "./session.js";
 
 export { createTutorClient } from "./tutor-client.js";

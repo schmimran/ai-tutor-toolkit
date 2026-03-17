@@ -17,6 +17,8 @@ export interface TranscriptEmailPayload {
   startedAt: Date;
   lastActivityAt: Date;
   durationMs: number;
+  sessionId?: string;
+  tokenUsage?: { inputTokens: number; outputTokens: number };
 }
 
 /** Maximum total attachment size Resend accepts (40 MB in bytes). */
@@ -42,8 +44,13 @@ function formatDate(date: Date): string {
   });
 }
 
+function formatTokens(usage: { inputTokens: number; outputTokens: number }): string {
+  const total = usage.inputTokens + usage.outputTokens;
+  return `${usage.inputTokens.toLocaleString()} in / ${usage.outputTokens.toLocaleString()} out (${total.toLocaleString()} total)`;
+}
+
 function buildHtml(payload: TranscriptEmailPayload): string {
-  const { transcript, files, clientInfo, startedAt, durationMs } = payload;
+  const { transcript, files, clientInfo, startedAt, durationMs, sessionId, tokenUsage } = payload;
 
   const exchangeCount = Math.floor(transcript.length / 2);
 
@@ -74,9 +81,11 @@ function buildHtml(payload: TranscriptEmailPayload): string {
 <body style="font-family:sans-serif;max-width:800px;margin:0 auto;padding:24px;color:#222;">
   <h1 style="font-size:1.4rem;border-bottom:2px solid #4f46e5;padding-bottom:8px;">Tutor Session Summary</h1>
   <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-    <tr><td style="padding:6px 0;color:#555;width:160px;">Started</td><td>${formatDate(startedAt)}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;width:160px;">Session ID</td><td style="font-size:0.85em;">${sessionId ?? "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Started</td><td>${formatDate(startedAt)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Duration</td><td>${formatDuration(durationMs)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Exchanges</td><td>${exchangeCount}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Tokens</td><td>${tokenUsage ? formatTokens(tokenUsage) : "N/A"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">IP</td><td>${clientInfo.ip ?? "unknown"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Location</td><td>${clientInfo.geo ? JSON.stringify(clientInfo.geo) : "unknown"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">User agent</td><td style="font-size:0.85em;">${clientInfo.userAgent ?? "unknown"}</td></tr>

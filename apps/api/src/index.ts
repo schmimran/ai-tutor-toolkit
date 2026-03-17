@@ -64,6 +64,8 @@ setInterval(() => {
           startedAt: summary.startedAt,
           lastActivityAt: summary.lastActivityAt,
           durationMs: summary.durationMs,
+          sessionId,
+          tokenUsage: summary.tokenUsage,
         });
         session.markEmailSent();
       }

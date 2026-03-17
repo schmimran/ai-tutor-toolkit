@@ -30,6 +30,11 @@ export interface ClientInfo {
   userAgent?: string;
 }
 
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export interface SessionSummary {
   transcript: TranscriptEntry[];
   filesMetadata: FileMetadata[];
@@ -37,6 +42,7 @@ export interface SessionSummary {
   startedAt: Date;
   lastActivityAt: Date;
   durationMs: number;
+  tokenUsage: TokenUsage;
 }
 
 /**
@@ -67,6 +73,7 @@ export class Session {
   lastActivityAt: Date = new Date();
   clientInfo: ClientInfo = {};
   emailSent = false;
+  tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
 
   /**
    * Record a user message.
@@ -121,6 +128,12 @@ export class Session {
     this.clientInfo = info;
   }
 
+  /** Accumulate token usage from an API response. */
+  addTokenUsage(input: number, output: number): void {
+    this.tokenUsage.inputTokens += input;
+    this.tokenUsage.outputTokens += output;
+  }
+
   /** Prevent double-send of the session email. */
   markEmailSent(): void {
     this.emailSent = true;
@@ -139,6 +152,7 @@ export class Session {
       startedAt: this.startedAt,
       lastActivityAt: this.lastActivityAt,
       durationMs: this.lastActivityAt.getTime() - this.startedAt.getTime(),
+      tokenUsage: { ...this.tokenUsage },
     };
   }
 
@@ -150,5 +164,6 @@ export class Session {
     this.startedAt = new Date();
     this.lastActivityAt = new Date();
     this.emailSent = false;
+    this.tokenUsage = { inputTokens: 0, outputTokens: 0 };
   }
 }
