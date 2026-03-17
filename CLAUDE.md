@@ -43,6 +43,8 @@ Event types:
 
 Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — sending an email transcript and marking the session ended in the DB.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.
 
+Token usage (input and output tokens) is accumulated per session after each API call and included in transcript emails alongside the session ID.
+
 ### Extended thinking
 
 Enabled by default.  The Anthropic SDK is called with `thinking: { type: "enabled", budget_tokens: 10000 }` and `max_tokens: 16000`.  Thinking blocks are stored in the session (so the model can reference its own prior reasoning) but are never sent to the client or stored in transcript emails.
@@ -319,13 +321,13 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 | `packages/core/src/config.ts` | `loadConfig()` — reads and validates all env vars |
 | `packages/core/src/prompt-loader.ts` | `loadSystemPrompt()` — loads prompt file from repo root |
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
-| `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments |
+| `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments, token usage tracking (`TokenUsage` interface) |
 | `packages/db/src/client.ts` | `createSupabaseClient()` — Supabase initialization |
 | `packages/db/src/sessions.ts` | Session CRUD (create, get, update, markSessionEnded, delete) |
 | `packages/db/src/messages.ts` | Message CRUD (create, list by session, delete by session) |
 | `packages/db/src/feedback.ts` | Feedback CRUD (create, createBatch, list by session) |
-| `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend |
-| `packages/email/src/feedback.ts` | `sendFeedback()` — feedback notification email via Resend |
+| `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend; includes session ID and token usage |
+| `packages/email/src/feedback.ts` | `sendFeedback()` — feedback notification email via Resend; batch table uses category columns (Accuracy, Usefulness, Tone) with sentiment badges |
 | `apps/api/src/index.ts` | Express server entry — routes, middleware, inactivity sweep |
 | `apps/api/src/routes/chat.ts` | `POST /api/chat` — streaming chat with file upload |
 | `apps/api/src/routes/sessions.ts` | `GET/DELETE /api/sessions/:id` |

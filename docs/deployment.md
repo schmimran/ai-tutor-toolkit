@@ -252,6 +252,8 @@ Apply all migrations in order via the Supabase dashboard SQL editor or CLI:
 
 1. `supabase/migrations/001_initial_schema.sql` — creates sessions, messages, feedback tables
 2. `supabase/migrations/002_soft_session_end.sql` — adds `ended_at` column for data retention
+3. `supabase/migrations/003_feedback_message_id.sql` — adds `message_id` FK to feedback; links ratings to messages
+4. `supabase/migrations/004_feedback_category.sql` — adds `category` column; one row per category per message
 
 ### Environment variables
 
