@@ -32,7 +32,7 @@ Throws if either env var is missing.
 ### Sessions
 
 ```typescript
-import { createSession, getSession, updateSession, deleteSession } from "@ai-tutor/db";
+import { createSession, getSession, updateSession, markSessionEnded } from "@ai-tutor/db";
 ```
 
 #### `createSession(client, insert): Promise<DbSession>`
@@ -63,16 +63,16 @@ await updateSession(db, sessionId, {
 });
 ```
 
-#### `deleteSession(client, id): Promise<void>`
+#### `markSessionEnded(client, id): Promise<void>`
 
-Deletes session by ID.  Cascades to `messages` and `feedback`.
+Sets `ended_at` to now.  Session data (messages, feedback) is retained for analysis.
 
 ---
 
 ### Messages
 
 ```typescript
-import { createMessage, getMessagesBySession, deleteMessagesBySession } from "@ai-tutor/db";
+import { createMessage, getMessagesBySession } from "@ai-tutor/db";
 ```
 
 #### `createMessage(client, insert): Promise<DbMessage>`
@@ -91,10 +91,6 @@ await createMessage(db, {
 #### `getMessagesBySession(client, sessionId): Promise<DbMessage[]>`
 
 Returns all messages for a session, ordered by `created_at` ascending.
-
-#### `deleteMessagesBySession(client, sessionId): Promise<void>`
-
-Deletes all messages for a session (rarely needed directly — `deleteSession` cascades).
 
 ---
 

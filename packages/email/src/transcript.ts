@@ -49,6 +49,12 @@ function formatTokens(usage: { inputTokens: number; outputTokens: number }): str
   return `${usage.inputTokens.toLocaleString()} in / ${usage.outputTokens.toLocaleString()} out (${total.toLocaleString()} total)`;
 }
 
+function formatGeo(geo: Record<string, unknown> | null | undefined): string {
+  if (!geo) return "unknown";
+  const parts = [geo.city, geo.region, geo.country].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "unknown";
+}
+
 function buildHtml(payload: TranscriptEmailPayload): string {
   const { transcript, files, clientInfo, startedAt, durationMs, sessionId, tokenUsage } = payload;
 
@@ -87,7 +93,7 @@ function buildHtml(payload: TranscriptEmailPayload): string {
     <tr><td style="padding:6px 0;color:#555;">Exchanges</td><td>${exchangeCount}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Tokens</td><td>${tokenUsage ? formatTokens(tokenUsage) : "N/A"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">IP</td><td>${clientInfo.ip ?? "unknown"}</td></tr>
-    <tr><td style="padding:6px 0;color:#555;">Location</td><td>${clientInfo.geo ? JSON.stringify(clientInfo.geo) : "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Location</td><td>${formatGeo(clientInfo.geo)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">User agent</td><td style="font-size:0.85em;">${clientInfo.userAgent ?? "unknown"}</td></tr>
   </table>
   <h2 style="font-size:1.1rem;">Uploaded files</h2>

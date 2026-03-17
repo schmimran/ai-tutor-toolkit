@@ -1008,11 +1008,10 @@
   let endAvailable      = false;
   let sessionEnded      = false;
   let inactivityTimer   = null;
-  let appConfig         = { model: '', extendedThinking: false };
+  let appConfig         = { model: '', extendedThinking: false, inactivityMs: 600000 };
   let msgCounter        = 0;
   let fbRatings         = new Map(); // Map<msgId, Map<category, 'up'|'down'>>
 
-  const INACTIVITY_MS  = 10 * 60 * 1000;
   const END_SENTINEL   = '[END_SESSION_AVAILABLE]';
   const MAX_FILES      = 5;
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -1288,7 +1287,7 @@
   function resetInactivityTimer() {
     if (inactivityTimer) clearTimeout(inactivityTimer);
     if (sessionEnded) return;
-    inactivityTimer = setTimeout(onInactivityTimeout, INACTIVITY_MS);
+    inactivityTimer = setTimeout(onInactivityTimeout, appConfig.inactivityMs);
   }
 
   async function onInactivityTimeout() {

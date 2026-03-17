@@ -1,5 +1,7 @@
 # @ai-tutor/ios
 
+> **Status: Placeholder.**  No Swift code exists yet.  This directory reserves the `apps/ios` slot in the monorepo.  See the project roadmap in the root README for timeline.
+
 Native iOS client for the AI Tutor.  Swift/SwiftUI app that connects to the existing API server — no AI logic runs on device.
 
 ## Overview

@@ -1,10 +1,8 @@
 import { Router } from "express";
-import geoip from "geoip-lite";
 import { createDisclaimerAcceptance } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { extractClientInfo } from "../lib/geo.js";
+import { UUID_RE } from "../lib/validation.js";
 
 export function createDisclaimerRouter(db: SupabaseClient): Router {
   const router = Router();
@@ -22,11 +20,7 @@ export function createDisclaimerRouter(db: SupabaseClient): Router {
     try {
       const { sessionId } = req.body as { sessionId?: unknown };
 
-      const ip =
-        (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
-        req.socket.remoteAddress ??
-        "";
-      const geo = geoip.lookup(ip);
+      const clientInfo = extractClientInfo(req);
 
       const validSessionId =
         typeof sessionId === "string" && UUID_RE.test(sessionId)
@@ -35,9 +29,9 @@ export function createDisclaimerRouter(db: SupabaseClient): Router {
 
       try {
         await createDisclaimerAcceptance(db, {
-          client_ip: ip || null,
-          client_geo: geo ? (geo as unknown as Record<string, unknown>) : null,
-          client_user_agent: (req.headers["user-agent"] as string) ?? null,
+          client_ip: clientInfo.ip || null,
+          client_geo: clientInfo.geo ?? null,
+          client_user_agent: clientInfo.userAgent ?? null,
           // session_id left null — backfilled by linkDisclaimerAcceptance() after
           // the first /api/chat call creates the session row.
           session_id: null,

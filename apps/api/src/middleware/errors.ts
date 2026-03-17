@@ -12,10 +12,11 @@ export const errorHandler: ErrorRequestHandler = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ): void => {
-  console.error("[api] Unhandled error:", err);
+  if (err instanceof Error) {
+    console.error("[api] Unhandled error:", err.message, err.stack);
+  } else {
+    console.error("[api] Unhandled error:", err);
+  }
 
-  const message =
-    err instanceof Error ? err.message : "An unexpected error occurred.";
-
-  res.status(500).json({ error: message });
+  res.status(500).json({ error: "An unexpected error occurred." });
 };

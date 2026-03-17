@@ -42,16 +42,3 @@ export async function getMessagesBySession(
   if (error) throw new Error(`getMessagesBySession: ${error.message}`);
   return data ?? [];
 }
-
-/** Delete all messages for a session (used when resetting a session). */
-export async function deleteMessagesBySession(
-  client: SupabaseClient,
-  sessionId: string
-): Promise<void> {
-  const { error } = await client
-    .from("messages")
-    .delete()
-    .eq("session_id", sessionId);
-
-  if (error) throw new Error(`deleteMessagesBySession: ${error.message}`);
-}

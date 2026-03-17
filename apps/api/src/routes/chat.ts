@@ -1,6 +1,5 @@
 import { Router } from "express";
 import multer from "multer";
-import geoip from "geoip-lite";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { TutorClient, TokenUsage } from "@ai-tutor/core";
 import {
@@ -12,6 +11,7 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOrCreateSession } from "../lib/session-store.js";
 import { initSSE, sendEvent } from "../lib/stream.js";
+import { extractClientInfo } from "../lib/geo.js";
 
 /** Accepted MIME types for file uploads. */
 const ALLOWED_MIME_TYPES = new Set([
@@ -93,7 +93,7 @@ export function createChatRouter(
    *
    * Response: SSE stream
    *   { type: "text_delta", text: "..." }   — one per token
-   *   { type: "message_stop", message_id: "..." }  — final event
+   *   { type: "message_stop", messageId: "...", tokenUsage: { inputTokens: N, outputTokens: N } }  — final event
    *   { type: "error", message: "..." }     — on failure
    */
   router.post(
@@ -116,22 +116,13 @@ export function createChatRouter(
 
         // Capture client info on the first message of the session.
         if (session.transcript.length === 0) {
-          const ip =
-            (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
-            req.socket.remoteAddress ??
-            "";
-          const geo = geoip.lookup(ip);
-          session.setClientInfo({
-            ip,
-            geo: geo ? (geo as unknown as Record<string, unknown>) : null,
-            userAgent: req.headers["user-agent"],
-          });
+          session.setClientInfo(extractClientInfo(req));
 
           // Upsert the session row in the database.
           try {
             await createSession(db, {
               id: sessionId,
-              client_ip: session.clientInfo.ip ?? null,
+              client_ip: session.clientInfo.ip || null,
               client_geo: session.clientInfo.geo ?? null,
               client_user_agent: session.clientInfo.userAgent ?? null,
               email_sent: false,
