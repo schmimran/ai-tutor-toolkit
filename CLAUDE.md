@@ -36,12 +36,14 @@ Chat responses stream token-by-token over Server-Sent Events.  The client opens 
 
 Event types:
 - `{ type: "text_delta", text: "..." }` — one per token
-- `{ type: "message_stop", messageId: "<uuid or null>" }` — signals end of response; `messageId` is the DB UUID of the persisted assistant message, or `null` if DB persistence failed
+- `{ type: "message_stop", messageId: "<uuid or null>", tokenUsage: { inputTokens: N, outputTokens: N } }` — signals end of response; `messageId` is the DB UUID of the persisted assistant message, or `null` if DB persistence failed
 - `{ type: "error", message: "..." }` — on failure
 
 ### In-memory session store + database
 
 Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — sending an email transcript and marking the session ended in the DB.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.
+
+The inactivity timeout (`INACTIVITY_MS`) is defined as a constant in `apps/api/src/index.ts` and served via `GET /api/config` as `inactivityMs` so the frontend stays in sync with the server-side sweep.  The frontend uses the same value to trigger its own auto-end flow after the same duration of client-side inactivity.
 
 Token usage (input and output tokens) is accumulated per session after each API call and included in transcript emails alongside the session ID.
 
@@ -153,7 +155,7 @@ data: {"type":"text_delta","text":"Let's look at..."}
 
 data: {"type":"text_delta","text":" that equation."}
 
-data: {"type":"message_stop","messageId":"<uuid or null>"}
+data: {"type":"message_stop","messageId":"<uuid or null>","tokenUsage":{"inputTokens":N,"outputTokens":N}}
 ```
 
 On error: `data: {"type":"error","message":"..."}` followed by connection close.
@@ -169,7 +171,7 @@ Get non-secret runtime config.
 **Response**: `application/json`
 
 ```json
-{ "model": "claude-sonnet-4-6", "extendedThinking": true }
+{ "model": "claude-sonnet-4-6", "extendedThinking": true, "inactivityMs": 600000 }
 ```
 
 ---
@@ -256,7 +258,7 @@ Submit all feedback for a session at once (used by the end-of-session feedback o
 | sessionId | string (UUID) | yes | |
 | items | array | yes | Non-empty array of `{ msgId, category, sentiment, rating }` |
 
-Each item: `msgId` (string), `category` (`accuracy`/`usefulness`/`tone`), `sentiment` (`up`/`down`), `rating` (`5` for up, `1` for down).
+Each item: `msgId` (string), `msgText` (string — the assistant message text, used in the feedback email), `category` (`accuracy`/`usefulness`/`tone`), `sentiment` (`up`/`down`), `rating` (`5` for up, `1` for down).
 
 **Response**: `application/json`
 
@@ -293,8 +295,8 @@ All configuration comes from environment variables.  No `.env` files are committ
 | Variable | Required | Default | Used by | Purpose |
 |----------|----------|---------|---------|---------|
 | ANTHROPIC_API_KEY | **yes** | — | core, api, cli | Anthropic API authentication |
-| SUPABASE_URL | no | — | db, api | Supabase project URL |
-| SUPABASE_SERVICE_ROLE_KEY | no | — | db, api | Supabase service role (bypasses RLS) |
+| SUPABASE_URL | **yes (API)** | — | db, api | Supabase project URL |
+| SUPABASE_SERVICE_ROLE_KEY | **yes (API)** | — | db, api | Supabase service role (bypasses RLS) |
 | RESEND_API_KEY | no | — | email, api | Resend API key (email skipped if absent) |
 | PARENT_EMAIL | no | — | api | Recipient for transcript/feedback emails |
 | EMAIL_FROM | no | tutor@tutor.schmim.com | email, api | Sender address |
@@ -304,7 +306,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
 
-If `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is absent, the API server starts but all DB operations silently fail.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
+Both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are required for the API server.  If either is absent, the server will not start.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
 
 ---
 
@@ -374,8 +376,8 @@ These apply to every Claude Code session in this repo.
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
 | `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments, token usage tracking (`TokenUsage` interface) |
 | `packages/db/src/client.ts` | `createSupabaseClient()` — Supabase initialization |
-| `packages/db/src/sessions.ts` | Session CRUD (create, get, update, markSessionEnded, delete) |
-| `packages/db/src/messages.ts` | Message CRUD (create, list by session, delete by session) |
+| `packages/db/src/sessions.ts` | Session CRUD (create, get, update, markSessionEnded) |
+| `packages/db/src/messages.ts` | Message CRUD (create, list by session) |
 | `packages/db/src/feedback.ts` | Feedback CRUD (create, createBatch, list by session) |
 | `packages/db/src/disclaimer-acceptances.ts` | `createDisclaimerAcceptance()` — inserts a disclaimer acceptance row; `linkDisclaimerAcceptance()` — backfills session_id after session is created |
 | `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend; includes session ID and token usage |
@@ -389,9 +391,14 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
 | `apps/api/src/lib/session-store.ts` | In-memory session cache (`Map<id, Session>`) |
 | `apps/api/src/lib/stream.ts` | SSE helpers (`initSSE`, `sendEvent`, `sendHeartbeat`) |
+| `apps/api/src/lib/geo.ts` | `extractClientInfo()` — IP, geolocation, user-agent extraction |
+| `apps/api/src/lib/validation.ts` | Shared validation constants (UUID regex) |
 | `apps/api/src/middleware/cors.ts` | CORS middleware (origin from `CORS_ORIGIN` env var) |
 | `apps/api/src/middleware/errors.ts` | Global Express error handler |
 | `apps/web/public/index.html` | Entire frontend — HTML, CSS, JS in one file |
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
-| `Dockerfile` | Multi-stage build: deps → build → production runtime |
+| `apps/ios/README.md` | Placeholder — future iOS app (no code yet) |
 | `render.yaml` | Render.com deployment config |
+| `supabase/config.toml` | Supabase CLI local development config |
+| `env.sh.template` | Template for local environment variable setup |
+| `reports/` | Audit reports and analysis artifacts |

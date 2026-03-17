@@ -66,7 +66,7 @@ Supabase is used as a managed Postgres database.  The toolkit uses it for three 
 
 Session data is **retained after sessions end** — rows are soft-ended (via an `ended_at` timestamp) rather than deleted, so conversation history and per-response feedback ratings are preserved for analysis, each linked to the specific assistant message they rate.
 
-If you skip Supabase setup, the API server still runs and the web/CLI interfaces still work — sessions just won't be persisted between server restarts and no transcript or feedback history will be available.
+Supabase is required for the API server — if either env var is absent, the server will not start.  The CLI (`npm run cli`) works without Supabase since it does not use the database.
 
 **Step 1: Create a Supabase project**
 
@@ -155,7 +155,6 @@ export EMAIL_FROM=tutor@tutor.yourdomain.com  # must match verified domain
 ai-tutor-toolkit/
 ├── package.json                          ← Workspace root (npm workspaces)
 ├── tsconfig.base.json                    ← Shared TypeScript config
-├── Dockerfile                            ← Multi-stage production build
 ├── render.yaml                           ← Render.com deployment config
 ├── CLAUDE.md                             ← Agent context (for AI contributors)
 │
@@ -219,8 +218,7 @@ ai-tutor-toolkit/
 | Language | TypeScript | Node 20+, strict mode |
 | Build | tsc --build | Composite projects, incremental |
 | Package management | npm workspaces | Monorepo, single node_modules |
-| Containerization | Docker | Multi-stage build |
-| Deployment | Render (primary) | Also documented for AWS ECS Fargate |
+| Deployment | Render (primary) | Node.js web service via render.yaml |
 
 ---
 
@@ -229,8 +227,8 @@ ai-tutor-toolkit/
 | Variable | Required | Default | Used by | Description |
 |----------|----------|---------|---------|-------------|
 | `ANTHROPIC_API_KEY` | **yes** | — | api, cli | Your Anthropic API key. Get it at [console.anthropic.com](https://console.anthropic.com). |
-| `SUPABASE_URL` | no | — | api | Your Supabase project URL. **Settings → API → Project URL**. |
-| `SUPABASE_SERVICE_ROLE_KEY` | no | — | api | Supabase service role key. **Settings → API → service_role**. Keep secret. |
+| `SUPABASE_URL` | **yes (API)** | — | api | Your Supabase project URL. **Settings → API → Project URL**. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes (API)** | — | api | Supabase service role key. **Settings → API → service_role**. Keep secret. |
 | `RESEND_API_KEY` | no | — | api | Resend API key. **API Keys → Create API Key** in Resend dashboard. |
 | `PARENT_EMAIL` | no | — | api | Email address where transcripts and feedback notifications are sent. |
 | `EMAIL_FROM` | no | `tutor@tutor.schmim.com` | api | Sender address. Must match a verified Resend domain. |
@@ -273,14 +271,9 @@ See [docs/deployment.md](docs/deployment.md) for step-by-step Render deployment 
 
 Quick version:
 1. Push this repo to GitHub.
-2. Create a new **Web Service** on Render, connect your repo.
-3. Set **Runtime** to **Docker**.
-4. Add all required environment variables in Render's dashboard.
-5. Deploy.
-
-### AWS ECS Fargate
-
-See [docs/deployment.md](docs/deployment.md) for the full AWS deployment guide, including ECS task definition, ALB setup, and secrets in SSM Parameter Store.
+2. Create a new **Blueprint** on Render and connect your repo — it will detect `render.yaml` automatically.
+3. Add all required environment variables in Render's dashboard.
+4. Deploy.
 
 ---
 
@@ -344,7 +337,7 @@ Command-line interface with extended thinking, transcript export, and configurab
 Express server with a single-page chat interface, file uploads, transcript export, session management, end-of-session email summaries (with session ID and token usage) sent to the parent via Resend, a live cumulative token counter in the header, a first-visit disclaimer overlay, and a full-page feedback review overlay that collects per-response ratings (Accuracy, Helpful, Tone) at session end.  Session data is retained in the database for analysis.
 
 ### Phase 3: Documentation and deployment ✅
-CLAUDE.md, package READMEs, deployment files (Dockerfile, render.yaml, docs/deployment.md).
+CLAUDE.md, package READMEs, deployment config (render.yaml, docs/deployment.md).
 
 ### Phase 4: Parent configuration
 A setup page where a parent can choose subject, grade level, tone, and student description — then preview the generated system prompt.
