@@ -88,6 +88,8 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 | client_geo | jsonb | null | From geoip-lite |
 | client_user_agent | text | null | |
 | email_sent | boolean | false | Prevents duplicate emails |
+| total_input_tokens | integer | 0 | Cumulative input tokens across all turns. Updated after each assistant message. Added in migration 005. |
+| total_output_tokens | integer | 0 | Cumulative output tokens across all turns. Updated after each assistant message. Added in migration 005. |
 
 ### messages
 
@@ -98,6 +100,8 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 | role | text | CHECK IN ('user', 'assistant') |
 | content | text | Plain text of the message |
 | thinking | text | Serialized thinking blocks (null if extended thinking off) |
+| input_tokens | integer | Nullable. Input tokens for this API call. Null for user messages and legacy rows. Added in migration 005. |
+| output_tokens | integer | Nullable. Output tokens for this API call. Null for user messages and legacy rows. Added in migration 005. |
 | created_at | timestamptz | Indexed with session_id |
 
 ### feedback
@@ -111,6 +115,18 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 | rating | integer | CHECK 1–5, nullable. Null means the category was not rated (N/A). |
 | comment | text | Nullable |
 | created_at | timestamptz | |
+
+### disclaimer_acceptances
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| accepted_at | timestamptz | Indexed |
+| client_ip | text | Nullable |
+| client_geo | jsonb | Nullable. From geoip-lite |
+| client_user_agent | text | Nullable |
+| session_id | uuid | FK → sessions(id) ON DELETE SET NULL. Nullable; backfilled after first /api/chat call via linkDisclaimerAcceptance(). Added in migration 006. |
+| client_session_id | text | Nullable. The client-generated session UUID stored at acceptance time (no FK constraint). Used to backfill session_id. Added in migration 007. |
 
 ---
 
@@ -142,7 +158,7 @@ data: {"type":"message_stop","messageId":"<uuid or null>"}
 
 On error: `data: {"type":"error","message":"..."}` followed by connection close.
 
-Side effects: Creates or updates session in DB; persists user and assistant messages after stream completes.
+Side effects: Creates or updates session in DB; persists user and assistant messages after stream completes. Assistant message row includes per-call `input_tokens` and `output_tokens`. Session row is updated with cumulative `total_input_tokens` and `total_output_tokens`.
 
 ---
 
@@ -250,6 +266,26 @@ Each item: `msgId` (string), `category` (`accuracy`/`usefulness`/`tone`), `senti
 
 ---
 
+### POST /api/disclaimer/accept
+
+Record that the user accepted the disclaimer overlay.
+
+**Request**: `application/json`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| sessionId | string (UUID) | no | Client's current session ID; links the acceptance to the session for analysis |
+
+**Response**: `application/json`
+
+```json
+{ "ok": true }
+```
+
+Always returns `200 { ok: true }` — DB errors are caught and logged server-side, never surfaced to the client.  The client should call this fire-and-forget.
+
+---
+
 ## Config/secrets management
 
 All configuration comes from environment variables.  No `.env` files are committed.  No secrets are read by client-side code.
@@ -326,6 +362,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 | `packages/db/src/sessions.ts` | Session CRUD (create, get, update, markSessionEnded, delete) |
 | `packages/db/src/messages.ts` | Message CRUD (create, list by session, delete by session) |
 | `packages/db/src/feedback.ts` | Feedback CRUD (create, createBatch, list by session) |
+| `packages/db/src/disclaimer-acceptances.ts` | `createDisclaimerAcceptance()` — inserts a disclaimer acceptance row; `linkDisclaimerAcceptance()` — backfills session_id after session is created |
 | `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend; includes session ID and token usage |
 | `packages/email/src/feedback.ts` | `sendFeedback()` — feedback notification email via Resend; batch table uses category columns (Accuracy, Usefulness, Tone) with sentiment badges |
 | `apps/api/src/index.ts` | Express server entry — routes, middleware, inactivity sweep |
@@ -333,6 +370,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 | `apps/api/src/routes/sessions.ts` | `GET/DELETE /api/sessions/:id` |
 | `apps/api/src/routes/transcript.ts` | `GET /api/transcript/:id` |
 | `apps/api/src/routes/feedback.ts` | `POST /api/feedback` |
+| `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records disclaimer acceptance with IP/geo/user-agent |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
 | `apps/api/src/lib/session-store.ts` | In-memory session cache (`Map<id, Session>`) |
 | `apps/api/src/lib/stream.ts` | SSE helpers (`initSSE`, `sendEvent`, `sendHeartbeat`) |

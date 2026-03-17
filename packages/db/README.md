@@ -148,13 +148,18 @@ Managed by `supabase/migrations/001_initial_schema.sql`.
 
 ```sql
 CREATE TABLE sessions (
-  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  started_at         timestamptz DEFAULT now(),
-  last_activity_at   timestamptz DEFAULT now(),
-  client_ip          text,
-  client_geo         jsonb,
-  client_user_agent  text,
-  email_sent         boolean DEFAULT false
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  started_at           timestamptz DEFAULT now(),
+  last_activity_at     timestamptz DEFAULT now(),
+  client_ip            text,
+  client_geo           jsonb,
+  client_user_agent    text,
+  email_sent           boolean DEFAULT false,
+  -- migration 002
+  ended_at             timestamptz,
+  -- migration 005
+  total_input_tokens   integer NOT NULL DEFAULT 0,
+  total_output_tokens  integer NOT NULL DEFAULT 0
 );
 ```
 
@@ -162,12 +167,15 @@ CREATE TABLE sessions (
 
 ```sql
 CREATE TABLE messages (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id  uuid NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  role        text NOT NULL CHECK (role IN ('user', 'assistant')),
-  content     text NOT NULL,
-  thinking    text,
-  created_at  timestamptz DEFAULT now()
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id    uuid NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  role          text NOT NULL CHECK (role IN ('user', 'assistant')),
+  content       text NOT NULL,
+  thinking      text,
+  created_at    timestamptz DEFAULT now(),
+  -- migration 005
+  input_tokens  integer,
+  output_tokens integer
 );
 ```
 
@@ -180,6 +188,23 @@ CREATE TABLE feedback (
   rating      integer CHECK (rating BETWEEN 1 AND 5),
   comment     text,
   created_at  timestamptz DEFAULT now()
+);
+```
+
+### disclaimer_acceptances
+
+```sql
+-- migration 006
+CREATE TABLE disclaimer_acceptances (
+  id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  accepted_at       timestamptz NOT NULL DEFAULT now(),
+  client_ip         text,
+  client_geo        jsonb,
+  client_user_agent text,
+  session_id        uuid        REFERENCES sessions(id) ON DELETE SET NULL,
+  -- migration 007: plain text copy of the client session UUID (no FK).
+  -- Used to backfill session_id after the sessions row is created.
+  client_session_id text
 );
 ```
 

@@ -14,6 +14,7 @@ import { createSessionsRouter } from "./routes/sessions.js";
 import { createTranscriptRouter } from "./routes/transcript.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createConfigRouter } from "./routes/config.js";
+import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 
@@ -45,6 +46,7 @@ app.use("/api/sessions", createSessionsRouter(db, emailConfig));
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db, emailConfig));
 app.use("/api/config", createConfigRouter(config));
+app.use("/api/disclaimer", createDisclaimerRouter(db));
 
 app.use(errorHandler);
 

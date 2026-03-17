@@ -91,6 +91,9 @@ Open **SQL Editor** in your Supabase dashboard and run each migration in order:
 2. Paste the contents of `supabase/migrations/002_soft_session_end.sql` and click **Run**.
 3. Paste the contents of `supabase/migrations/003_feedback_message_id.sql` and click **Run**.
 4. Paste the contents of `supabase/migrations/004_feedback_category.sql` and click **Run**.
+5. Paste the contents of `supabase/migrations/005_token_tracking.sql` and click **Run**.
+6. Paste the contents of `supabase/migrations/006_disclaimer_acceptances.sql` and click **Run**.
+7. Paste the contents of `supabase/migrations/007_disclaimer_client_session_id.sql` and click **Run**.
 
 Alternatively, if you have the [Supabase CLI](https://supabase.com/docs/guides/cli) installed:
 
@@ -171,7 +174,10 @@ ai-tutor-toolkit/
 │       ├── 001_initial_schema.sql        ← DB schema (sessions, messages, feedback)
 │       ├── 002_soft_session_end.sql      ← Adds ended_at; retains data after session end
 │       ├── 003_feedback_message_id.sql   ← Adds message_id FK to feedback; links ratings to messages
-│       └── 004_feedback_category.sql     ← Adds category column; one row per category per message
+│       ├── 004_feedback_category.sql     ← Adds category column; one row per category per message
+│       ├── 005_token_tracking.sql        ← Adds token columns to sessions and messages
+│       ├── 006_disclaimer_acceptances.sql ← New table for disclaimer acceptance records
+│       └── 007_disclaimer_client_session_id.sql ← Adds client_session_id for deferred FK backfill
 │
 ├── templates/
 │   ├── tutor-prompt.md                   ← Parameterized tutor prompt (customize this)

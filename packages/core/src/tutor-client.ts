@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Config } from "./config.js";
-import type { Session } from "./session.js";
+import type { Session, TokenUsage } from "./session.js";
 
 type UserContent = string | Anthropic.ContentBlockParam[];
 
@@ -82,7 +82,7 @@ export function createTutorClient(config: Config, systemPrompt: string) {
     session: Session,
     userContent: UserContent,
     transcriptText: string
-  ): AsyncGenerator<string> {
+  ): AsyncGenerator<string, TokenUsage> {
     session.addUserMessage(userContent, transcriptText);
     session.touchActivity();
 
@@ -101,8 +101,13 @@ export function createTutorClient(config: Config, systemPrompt: string) {
 
     // Stream is exhausted — finalMessage() is already resolved.
     const finalMessage = await stream.finalMessage();
-    session.addTokenUsage(finalMessage.usage.input_tokens, finalMessage.usage.output_tokens);
+    const perCallTokens: TokenUsage = {
+      inputTokens: finalMessage.usage.input_tokens,
+      outputTokens: finalMessage.usage.output_tokens,
+    };
+    session.addTokenUsage(perCallTokens.inputTokens, perCallTokens.outputTokens);
     session.addAssistantResponse(finalMessage.content);
+    return perCallTokens;
   }
 
   return { sendMessage, streamMessage };

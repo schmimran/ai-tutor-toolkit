@@ -53,7 +53,7 @@ On error: `data: {"type":"error","message":"..."}` then connection closes.
 
 **Side effects:**
 - On first message: captures client IP, geolocation, user-agent; creates session in DB
-- After streaming: persists user and assistant messages to DB; updates `last_activity_at`
+- After streaming: persists user and assistant messages to DB; assistant message row includes per-call `input_tokens` and `output_tokens`; updates session `last_activity_at`, `total_input_tokens`, and `total_output_tokens`
 
 ---
 
@@ -83,7 +83,9 @@ Get session metadata from DB.
   "client_ip": "1.2.3.4",
   "client_geo": { "city": "...", "country": "..." },
   "client_user_agent": "Mozilla/5.0...",
-  "email_sent": false
+  "email_sent": false,
+  "total_input_tokens": 1234,
+  "total_output_tokens": 567
 }
 ```
 
@@ -149,6 +151,26 @@ Submit session feedback.
 
 ---
 
+### POST /api/disclaimer/accept
+
+Record that the user accepted the disclaimer overlay.
+
+**Request:** `application/json`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `sessionId` | string (UUID) | no | Client's current session ID; links acceptance to the session |
+
+**Response:**
+
+```json
+{ "ok": true }
+```
+
+Always returns `200 { ok: true }`.  DB errors are caught and logged — never surfaced to the client.  Call fire-and-forget from the frontend.
+
+---
+
 ## Configuration
 
 | Variable | Required | Default | Description |
@@ -197,7 +219,8 @@ apps/api/src/
 │   ├── config.ts           ← GET /api/config
 │   ├── sessions.ts         ← GET/DELETE /api/sessions/:id
 │   ├── transcript.ts       ← GET /api/transcript/:id
-│   └── feedback.ts         ← POST /api/feedback
+│   ├── feedback.ts         ← POST /api/feedback
+│   └── disclaimer.ts       ← POST /api/disclaimer/accept
 ├── middleware/
 │   ├── cors.ts             ← CORS (origin from CORS_ORIGIN env var)
 │   └── errors.ts           ← Global error handler

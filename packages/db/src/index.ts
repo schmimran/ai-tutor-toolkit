@@ -10,6 +10,8 @@ export {
 
 export { createFeedback, createFeedbackBatch, getFeedbackBySession } from "./feedback.js";
 
+export { createDisclaimerAcceptance, linkDisclaimerAcceptance } from "./disclaimer-acceptances.js";
+
 export type {
   DbSession,
   DbMessage,
@@ -18,4 +20,6 @@ export type {
   DbMessageInsert,
   DbFeedbackInsert,
   DbSessionUpdate,
+  DbDisclaimerAcceptance,
+  DbDisclaimerAcceptanceInsert,
 } from "./types.js";

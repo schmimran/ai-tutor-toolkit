@@ -2,11 +2,12 @@ import { Router } from "express";
 import multer from "multer";
 import geoip from "geoip-lite";
 import type Anthropic from "@anthropic-ai/sdk";
-import type { TutorClient } from "@ai-tutor/core";
+import type { TutorClient, TokenUsage } from "@ai-tutor/core";
 import {
   createMessage,
   createSession,
   updateSession,
+  linkDisclaimerAcceptance,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOrCreateSession } from "../lib/session-store.js";
@@ -135,6 +136,9 @@ export function createChatRouter(
               client_user_agent: session.clientInfo.userAgent ?? null,
               email_sent: false,
             });
+            // Backfill session_id on any disclaimer acceptance rows recorded
+            // before this session row existed.
+            await linkDisclaimerAcceptance(db, sessionId);
           } catch (err) {
             console.error("[chat] Could not create DB session row:", err);
           }
@@ -153,15 +157,17 @@ export function createChatRouter(
 
         initSSE(res);
 
+        // Manual iteration captures the generator's return value (per-call TokenUsage).
         let fullText = "";
-        for await (const delta of tutorClient.streamMessage(
-          session,
-          userContent,
-          transcriptText
-        )) {
-          fullText += delta;
-          sendEvent(res, { type: "text_delta", text: delta });
+        const gen = tutorClient.streamMessage(session, userContent, transcriptText);
+        let step = await gen.next();
+        while (!step.done) {
+          fullText += step.value as string;
+          sendEvent(res, { type: "text_delta", text: step.value as string });
+          step = await gen.next();
         }
+        // step.value is TokenUsage for this specific API call (not cumulative).
+        const perCallTokens = step.value as TokenUsage;
 
         // Persist the exchange to the database.
         let assistantMessageId: string | null = null;
@@ -171,16 +177,22 @@ export function createChatRouter(
             role: "user",
             content: transcriptText,
             thinking: null,
+            input_tokens: null,
+            output_tokens: null,
           });
           const assistantRow = await createMessage(db, {
             session_id: sessionId,
             role: "assistant",
             content: fullText,
             thinking: null, // Thinking blocks are stored in session.messages[] for context continuity.
+            input_tokens: perCallTokens.inputTokens,
+            output_tokens: perCallTokens.outputTokens,
           });
           assistantMessageId = assistantRow.id;
           await updateSession(db, sessionId, {
             last_activity_at: new Date().toISOString(),
+            total_input_tokens: session.tokenUsage.inputTokens,
+            total_output_tokens: session.tokenUsage.outputTokens,
           });
         } catch (err) {
           console.error("[chat] Could not persist messages to DB:", err);
