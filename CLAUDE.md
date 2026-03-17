@@ -1,5 +1,6 @@
 # CLAUDE.md
 
+
 Agent context for AI contributors.  Read this before modifying any file.
 
 ---
