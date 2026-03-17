@@ -1,10 +1,10 @@
 # @ai-tutor/db
 
-Supabase client and CRUD operations for sessions, messages, and feedback.  Used by `apps/api`.
+Supabase client and CRUD operations for sessions, messages, feedback, and disclaimer acceptances.  Used by `apps/api`.
 
 ## Overview
 
-This package wraps `@supabase/supabase-js` and provides typed CRUD functions for the three database tables.  All queries run server-side using the service role key, which bypasses row-level security.  There is no RLS on any table.
+This package wraps `@supabase/supabase-js` and provides typed CRUD functions for the database tables.  All queries run server-side using the service role key, which bypasses row-level security.  There is no RLS on any table.
 
 Supabase is used as a managed Postgres database only — no Edge Functions, no Realtime, no Storage.
 
@@ -85,6 +85,8 @@ await createMessage(db, {
   role: "user",
   content: "I got v = 10 m/s",
   thinking: null,
+  input_tokens: null,
+  output_tokens: null,
 });
 ```
 
@@ -97,20 +99,26 @@ Returns all messages for a session, ordered by `created_at` ascending.
 ### Feedback
 
 ```typescript
-import { createFeedback, getFeedbackBySession } from "@ai-tutor/db";
+import { createFeedback, createFeedbackBatch, getFeedbackBySession } from "@ai-tutor/db";
 ```
 
 #### `createFeedback(client, insert): Promise<DbFeedback>`
 
-Inserts a feedback row.
+Inserts a single feedback row.
 
 ```typescript
 const fb = await createFeedback(db, {
   session_id: sessionId,
-  rating: 4,
+  message_id: messageId,
+  category: "accuracy",
+  rating: 5,
   comment: "Very helpful!",
 });
 ```
+
+#### `createFeedbackBatch(client, inserts): Promise<DbFeedback[]>`
+
+Inserts multiple feedback rows in a single DB round-trip.  Returns the created rows.  Returns `[]` if `inserts` is empty.
 
 #### `getFeedbackBySession(client, sessionId): Promise<DbFeedback[]>`
 
@@ -118,10 +126,36 @@ Returns all feedback for a session, ordered by `created_at` ascending.
 
 ---
 
+### Disclaimer acceptances
+
+```typescript
+import { createDisclaimerAcceptance, linkDisclaimerAcceptance } from "@ai-tutor/db";
+```
+
+#### `createDisclaimerAcceptance(client, insert): Promise<DbDisclaimerAcceptance>`
+
+Inserts a disclaimer acceptance record and returns the created row.
+
+#### `linkDisclaimerAcceptance(client, sessionId): Promise<void>`
+
+Backfills `session_id` on disclaimer acceptance rows that were recorded before the session row existed.  Called after `createSession()` on the first chat turn.  Matches on `client_session_id` and sets the real FK.  Safe to call when no matching rows exist.
+
+---
+
 ## Types
 
 ```typescript
-import type { DbSession, DbMessage, DbFeedback } from "@ai-tutor/db";
+import type {
+  DbSession,
+  DbSessionInsert,
+  DbSessionUpdate,
+  DbMessage,
+  DbMessageInsert,
+  DbFeedback,
+  DbFeedbackInsert,
+  DbDisclaimerAcceptance,
+  DbDisclaimerAcceptanceInsert,
+} from "@ai-tutor/db";
 ```
 
 | Type | Description |
@@ -132,13 +166,15 @@ import type { DbSession, DbMessage, DbFeedback } from "@ai-tutor/db";
 | `DbMessage` | Full message row |
 | `DbMessageInsert` | Insert shape |
 | `DbFeedback` | Full feedback row |
-| `DbFeedbackInsert` | Insert shape |
+| `DbFeedbackInsert` | Insert shape (`message_id`, `category`, `rating`, `comment` all optional) |
+| `DbDisclaimerAcceptance` | Full disclaimer_acceptances row |
+| `DbDisclaimerAcceptanceInsert` | Insert shape (all fields optional) |
 
 ---
 
 ## Database schema
 
-Managed by `supabase/migrations/001_initial_schema.sql`.
+Managed by migrations in `supabase/migrations/`.
 
 ### sessions
 
@@ -183,7 +219,11 @@ CREATE TABLE feedback (
   session_id  uuid NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   rating      integer CHECK (rating BETWEEN 1 AND 5),
   comment     text,
-  created_at  timestamptz DEFAULT now()
+  created_at  timestamptz DEFAULT now(),
+  -- migration 003
+  message_id  uuid REFERENCES messages(id) ON DELETE SET NULL,
+  -- migration 004
+  category    text
 );
 ```
 
@@ -215,14 +255,14 @@ CREATE TABLE disclaimer_acceptances (
 
 ## Setup
 
-Run the migration against your Supabase project before starting the API server:
+Run all migrations against your Supabase project before starting the API server.  Use the Supabase SQL Editor (paste each file in order) or the Supabase CLI:
 
 ```bash
-# Via Supabase SQL Editor (paste supabase/migrations/001_initial_schema.sql)
-# Or via Supabase CLI:
 supabase login
 supabase link --project-ref <your-project-ref>
 supabase db push
 ```
+
+Migrations must be applied in order: `001` through `007`.
 
 This package is not run directly — it is imported by `apps/api`.
