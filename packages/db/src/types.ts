@@ -1,5 +1,5 @@
 /**
- * Database row types — manually maintained to match supabase/migrations/001_initial_schema.sql.
+ * Database row types — manually maintained to match the full migration set in supabase/migrations/.
  *
  * Do not add auth-related tables here.  RLS policies are not applied in this
  * project; the service-role key is used for all server-side queries.

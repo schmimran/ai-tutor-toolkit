@@ -70,12 +70,3 @@ export async function markSessionEnded(
     .eq("id", id);
   if (error) throw new Error(`markSessionEnded: ${error.message}`);
 }
-
-/** Hard-delete a session and all its cascade-dependent rows. For admin use only. */
-export async function deleteSession(
-  client: SupabaseClient,
-  id: string
-): Promise<void> {
-  const { error } = await client.from("sessions").delete().eq("id", id);
-  if (error) throw new Error(`deleteSession: ${error.message}`);
-}

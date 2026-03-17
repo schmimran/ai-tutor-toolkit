@@ -31,6 +31,10 @@ const emailConfig = {
   from: process.env.EMAIL_FROM ?? "tutor@tutor.schmim.com",
 };
 
+// Inactivity sweep — reap sessions idle for more than 10 minutes.
+// Also served via GET /api/config so the frontend uses the same value.
+const INACTIVITY_MS = 10 * 60 * 1000;
+
 const app = express();
 
 app.use(corsMiddleware);
@@ -45,13 +49,10 @@ app.use("/api/chat", createChatRouter(tutorClient, db));
 app.use("/api/sessions", createSessionsRouter(db, emailConfig));
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db, emailConfig));
-app.use("/api/config", createConfigRouter(config));
+app.use("/api/config", createConfigRouter(config, INACTIVITY_MS));
 app.use("/api/disclaimer", createDisclaimerRouter(db));
 
 app.use(errorHandler);
-
-// Inactivity sweep — reap sessions idle for more than 10 minutes.
-const INACTIVITY_MS = 10 * 60 * 1000;
 
 setInterval(() => {
   const now = Date.now();

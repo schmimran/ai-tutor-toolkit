@@ -4,6 +4,7 @@ import { sendFeedback, sendFeedbackBatch } from "@ai-tutor/email";
 import type { BatchFeedbackItem } from "@ai-tutor/email";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EmailConfig } from "./sessions.js";
+import { UUID_RE } from "../lib/validation.js";
 
 export function createFeedbackRouter(
   db: SupabaseClient,
@@ -87,8 +88,6 @@ export function createFeedbackRouter(
         res.status(400).json({ error: "items must be a non-empty array." });
         return;
       }
-
-      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
       const inserts = (items as Array<{ msgId?: unknown; msgText?: unknown; category?: unknown; sentiment?: unknown; rating?: unknown }>)
         .filter(item => typeof item === "object" && item !== null)

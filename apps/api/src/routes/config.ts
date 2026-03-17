@@ -1,14 +1,14 @@
 import { Router } from "express";
 import type { Config } from "@ai-tutor/core";
 
-export function createConfigRouter(config: Config): Router {
+export function createConfigRouter(config: Config, inactivityMs: number): Router {
   const router = Router();
 
   /**
    * GET /api/config
    *
    * Returns non-secret configuration the frontend needs to render correctly
-   * (model name, whether extended thinking is active).
+   * (model name, whether extended thinking is active, inactivity timeout).
    *
    * Never includes API keys or service-role credentials.
    */
@@ -16,6 +16,7 @@ export function createConfigRouter(config: Config): Router {
     res.json({
       model: config.model,
       extendedThinking: config.extendedThinking,
+      inactivityMs,
     });
   });
 

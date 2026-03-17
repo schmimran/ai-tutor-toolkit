@@ -39,7 +39,8 @@ export function createSessionsRouter(
    * DELETE /api/sessions/:sessionId
    *
    * Ends a session: sends the transcript email (if not already sent), removes
-   * the in-memory session, and deletes the database row.
+   * the in-memory session, and marks the session as ended in the database
+   * (sets ended_at); session data is retained for analysis.
    */
   router.delete("/:sessionId", async (req, res, next) => {
     try {
