@@ -61,6 +61,7 @@ export function createTutorClient(config: Config, systemPrompt: string) {
       stream: false,
     } as Anthropic.MessageCreateParamsNonStreaming);
 
+    session.addTokenUsage(response.usage.input_tokens, response.usage.output_tokens);
     return session.addAssistantResponse(response.content);
   }
 
@@ -100,6 +101,7 @@ export function createTutorClient(config: Config, systemPrompt: string) {
 
     // Stream is exhausted — finalMessage() is already resolved.
     const finalMessage = await stream.finalMessage();
+    session.addTokenUsage(finalMessage.usage.input_tokens, finalMessage.usage.output_tokens);
     session.addAssistantResponse(finalMessage.content);
   }
 
