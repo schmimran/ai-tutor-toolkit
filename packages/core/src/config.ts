@@ -23,7 +23,7 @@ export function loadConfig(): Config {
     model: process.env.MODEL ?? "claude-sonnet-4-6",
     extendedThinking: process.env.EXTENDED_THINKING !== "false",
     systemPromptPath:
-      process.env.SYSTEM_PROMPT_PATH ?? "templates/tutor-prompt.md",
+      process.env.SYSTEM_PROMPT_PATH ?? "examples/physics-geometry-9th-grade.md",
     port: parseInt(process.env.PORT ?? "3000", 10),
   };
 }

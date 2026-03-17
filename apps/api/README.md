@@ -131,7 +131,7 @@ Prefers in-memory session (most recent); falls back to DB if session was removed
 
 ### POST /api/feedback
 
-Submit session feedback.
+Submit a single feedback record.
 
 **Request:** `application/json`
 
@@ -148,6 +148,37 @@ Submit session feedback.
 ```
 
 **Side effects:** Inserts into `feedback` table; sends feedback email (fire-and-forget).
+
+---
+
+### POST /api/feedback/batch
+
+Submit all per-message feedback for a session at once.  Used by the end-of-session feedback overlay.  Saves all records in a single DB round-trip and sends one summary email.
+
+**Request:** `application/json`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `sessionId` | string (UUID) | yes | |
+| `items` | array | yes | Non-empty array of feedback items |
+
+Each item in `items`:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `msgId` | string (UUID) | The assistant message being rated |
+| `msgText` | string | The assistant message text being rated (used in feedback email) |
+| `category` | string | `"accuracy"` \| `"usefulness"` \| `"tone"` |
+| `sentiment` | string | `"up"` \| `"down"` |
+| `rating` | integer | `5` for up, `1` for down |
+
+**Response:**
+
+```json
+{ "ok": true, "count": 6 }
+```
+
+**Side effects:** Inserts all rows into `feedback` table in one round-trip; sends a batch feedback summary email (fire-and-forget).
 
 ---
 
@@ -184,7 +215,7 @@ Always returns `200 { ok: true }`.  DB errors are caught and logged — never su
 | `CORS_ORIGIN` | no | `*` | Allowed CORS origin |
 | `MODEL` | no | `claude-sonnet-4-6` | Claude model ID |
 | `EXTENDED_THINKING` | no | `true` | Set `"false"` to disable |
-| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt.md` | Path from repo root |
+| `SYSTEM_PROMPT_PATH` | no | `examples/physics-geometry-9th-grade.md` | Path from repo root |
 | `PORT` | no | `3000` | HTTP listen port |
 
 ## Setup

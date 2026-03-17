@@ -39,7 +39,7 @@ The model ID and extended thinking status are printed at startup.
 | `ANTHROPIC_API_KEY` | **yes** | — | Anthropic API key |
 | `MODEL` | no | `claude-sonnet-4-6` | Claude model ID |
 | `EXTENDED_THINKING` | no | `true` | Set `"false"` to disable |
-| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt.md` | Path from repo root |
+| `SYSTEM_PROMPT_PATH` | no | `examples/physics-geometry-9th-grade.md` | Path from repo root |
 
 ## Setup
 
