@@ -43,8 +43,11 @@ function buildUserContent(
 ): string | Anthropic.Messages.ContentBlockParam[] {
   if (files.length === 0) return text;
 
+  const fileList = files.map((f) => f.originalname).join(", ");
+  const contextText = `[Uploaded files: ${fileList}]\n\n${text}`;
+
   const blocks: Anthropic.Messages.ContentBlockParam[] = [
-    { type: "text", text },
+    { type: "text", text: contextText },
   ];
 
   for (const file of files) {
@@ -143,7 +146,7 @@ export function createChatRouter(
         const userContent = buildUserContent(message, files);
         const transcriptText =
           files.length > 0
-            ? `${message}\n[${files.length} attachment(s): ${files.map((f) => f.originalname).join(", ")}]`
+            ? `[Uploaded files: ${files.map((f) => f.originalname).join(", ")}]\n\n${message}`
             : message;
 
         initSSE(res);
