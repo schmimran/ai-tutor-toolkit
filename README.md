@@ -42,7 +42,7 @@ This is the fastest path.  It uses the Claude website directly — no server to 
 2. Click **Projects** in the left sidebar, then **New project**.
 3. Open [`templates/tutor-prompt-v7.md`](templates/tutor-prompt-v7.md) in this repo.
 4. Copy the entire file and paste it into the project's **Custom instructions** field.  The prompt is ready to use as-is — no variables to fill in.
-6. Set the model to **Claude Sonnet 4.6 with extended thinking**.
+5. Set the model to **Claude Sonnet 4.6 with extended thinking**.
 
 That's it.  Hand your student the project link.  They'll see a clean chat interface.  You can watch the conversation in the project history.
 
