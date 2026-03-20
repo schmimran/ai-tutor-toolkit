@@ -326,7 +326,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | CORS_ORIGIN | no | * | api | Allowed CORS origin |
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
-| SYSTEM_PROMPT_PATH | no | templates/tutor-prompt.md | core | Path from repo root |
+| SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
 
 Both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are required for the API server.  If either is absent, the server will not start.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
@@ -355,7 +355,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 4. **No new npm dependencies in `apps/web/`.**  It is intentionally dependency-free.  Use CDN if you must add a library.
 5. **Build before testing API changes.**  Run `npm run build` from the root, then `npm run api`.
 6. **Never expose secrets through `/api/config`.**  That route is intentionally public.
-7. **Do not modify** `templates/`, `examples/`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  These are source-of-truth documents.
+7. **Do not modify** `templates/tutor-prompt-v7.md`, `templates/tutor-prompt-v6.md`, `examples/physics-geometry-9th-grade-v6.md`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  These are source-of-truth documents.
 8. **Transcript emails must be idempotent.**  The `email_sent` flag and `markEmailSent()` method exist precisely to prevent duplicate emails during the inactivity sweep and explicit session deletion.
 9. **SSE errors must close the connection.**  If you add a new error path in a streaming route, send the error event and then call `res.end()`.
 10. **In-memory session IDs are client-generated UUIDs.**  Never generate them server-side.  The client owns the session ID lifecycle.
@@ -370,7 +370,7 @@ These apply to every Claude Code session in this repo.
 2. **Documentation is part of the change.**  If you modify a function signature, API route, environment variable, database column, or file structure, update all documentation that references it in the same session.  This includes: CLAUDE.md (schema tables, API reference, file-level reference table), the relevant package or app README, and docs/deployment.md if deployment config changed.
 3. **Build is the final step.**  Run `npm run build` from the repo root before declaring any task complete.  If the build fails, fix the issue.  Do not leave a broken build.
 4. **Report scope creep, do not act on it.**  If you discover a bug, inconsistency, or improvement opportunity outside the current task, mention it in your summary.  Do not fix it unless explicitly asked.
-5. **Respect protected files.**  Do not modify files in `templates/`, `examples/`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  This rule is already in the consistency section — it bears repeating because it is the most important guardrail in the repo.
+5. **Respect protected files.**  Do not modify `templates/tutor-prompt-v7.md`, `templates/tutor-prompt-v6.md`, `examples/physics-geometry-9th-grade-v6.md`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  This rule is already in the consistency section — it bears repeating because it is the most important guardrail in the repo.
 6. **No silent additions.**  Do not add npm dependencies, new files, new directories, or new environment variables without stating what you are adding and why.  Wait for confirmation.
 7. **Test what you changed.**  If you modified a route, show a curl or describe how to verify it.  If you modified the frontend, describe what the user should see.  If you modified a package, show that downstream consumers still build.
 8. **Clean up what you remove.**  If you delete or replace a function, route, component, or config variable, check for and remove any remaining references to it — imports, documentation mentions, type definitions, and test fixtures.  Do not leave dead code or stale references behind.
@@ -391,14 +391,16 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/001_initial_schema.sql` | Initial DB schema (sessions, messages, feedback) |
 | `supabase/migrations/002_soft_session_end.sql` | Adds `ended_at` column to sessions; enables data retention |
 | `supabase/migrations/008_feedback_redesign.sql` | Renames `feedback` → `feedback_legacy`; creates `session_feedback` and `session_evaluations` |
-| `templates/tutor-prompt.md` | Parameterized tutor prompt (source of truth) |
+| `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
+| `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/evaluation-checklist.md` | Scoring rubric for test evaluation |
-| `examples/physics-geometry-9th-grade.md` | Real production prompt (reference) |
+| `examples/physics-geometry-9th-grade-v6.md` | Physics & geometry example prompt v6 — retained as rollback reference |
 | `tests/README.md` | Test harness usage guide |
 | `tests/*.md` | Character briefs for simulating student sessions |
-| `docs/methodology.md` | How to build a tutor from scratch |
-| `docs/model-selection.md` | Model and extended thinking analysis |
-| `docs/lessons-learned.md` | Key findings from five iterations |
+| `docs/methodology.md` | Prompt development methodology — pending rewrite for v7 (archived version at `docs/archive/methodology-v1.md`) |
+| `docs/model-selection.md` | Model selection analysis — pending rewrite for v7 (archived version at `docs/archive/model-selection-v1.md`) |
+| `docs/lessons-learned.md` | Key findings — pending rewrite for v7 (archived version at `docs/archive/lessons-learned-v1.md`) |
+| `docs/archive/` | Archived versions of superseded docs |
 | `docs/deployment.md` | Render, AWS, and local deployment instructions |
 | `packages/core/src/config.ts` | `loadConfig()` — reads and validates all env vars |
 | `packages/core/src/prompt-loader.ts` | `loadSystemPrompt()` — loads prompt file from repo root |

@@ -40,9 +40,8 @@ This is the fastest path.  It uses the Claude website directly — no server to 
 
 1. Go to [claude.ai](https://claude.ai) and sign in.
 2. Click **Projects** in the left sidebar, then **New project**.
-3. Open [`templates/tutor-prompt.md`](templates/tutor-prompt.md) in this repo.
-4. At the top of the file, fill in the variables for your student: their grade level, the subjects you want covered, their pronouns, and a brief description of how they learn.
-5. Copy everything from "Begin prompt" onward and paste it into the project's **Custom instructions** field.
+3. Open [`templates/tutor-prompt-v7.md`](templates/tutor-prompt-v7.md) in this repo.
+4. Copy the entire file and paste it into the project's **Custom instructions** field.  The prompt is ready to use as-is — no variables to fill in.
 6. Set the model to **Claude Sonnet 4.6 with extended thinking**.
 
 That's it.  Hand your student the project link.  They'll see a clean chat interface.  You can watch the conversation in the project history.
@@ -207,7 +206,7 @@ export EMAIL_FROM=tutor@tutor.yourdomain.com # must match your verified domain
 | `CORS_ORIGIN` | no | `*` | Allowed origin if you put the app behind a specific URL. |
 | `MODEL` | no | `claude-sonnet-4-6` | Claude model ID. |
 | `EXTENDED_THINKING` | no | `true` | Set to `false` to disable extended thinking (faster, lower cost, weaker tutoring quality). |
-| `SYSTEM_PROMPT_PATH` | no | `examples/physics-geometry-9th-grade.md` | Path to the system prompt file, relative to the repo root. |
+| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt-v7.md` | Path to the system prompt file, relative to the repo root. |
 | `PORT` | no | `3000` | Port the server listens on. |
 
 ---
@@ -320,21 +319,23 @@ ai-tutor-toolkit/
 │       └── 007_disclaimer_client_session_id.sql ← Deferred FK backfill support
 │
 ├── templates/
-│   ├── tutor-prompt.md                   ← Parameterized tutor prompt (customize this)
+│   ├── tutor-prompt-v7.md               ← Production tutor prompt (current)
+│   ├── tutor-prompt-v6.md               ← Previous version (retained as rollback)
 │   └── evaluation-checklist.md          ← Scoring rubric for test evaluation
 │
 ├── examples/
-│   └── physics-geometry-9th-grade.md    ← Real production prompt
+│   └── physics-geometry-9th-grade-v6.md ← Previous production prompt (retained)
 │
 ├── tests/
 │   ├── README.md                         ← Test harness usage
 │   └── *.md                              ← Student character briefs
 │
 └── docs/
-    ├── methodology.md                    ← How to build a tutor from scratch
-    ├── model-selection.md               ← Model and extended thinking analysis
-    ├── lessons-learned.md               ← Key findings from five iterations
-    └── deployment.md                    ← Render and local deployment instructions
+    ├── methodology.md                    ← Prompt development methodology (pending v7 rewrite)
+    ├── model-selection.md               ← Model selection analysis (pending v7 rewrite)
+    ├── lessons-learned.md               ← Key findings (pending v7 rewrite)
+    ├── deployment.md                    ← Render and local deployment instructions
+    └── archive/                         ← Archived v1 documentation
 ```
 
 ---
