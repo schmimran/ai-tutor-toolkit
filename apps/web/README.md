@@ -1,17 +1,19 @@
 # @ai-tutor/web
 
-Static web frontend for the AI Tutor.  No framework, no build step — a single HTML file served directly by the API server.
+Static web frontend for the AI Tutor.  No framework, no build step — plain HTML, CSS, and JavaScript served directly by the API server.
 
 ## Overview
 
-`apps/web/public/index.html` is the entire frontend.  It is served as a static file by `apps/api`.  No compilation required — edit the file and refresh the browser.
+The frontend lives in `apps/web/public/` and is served as static files by `apps/api`.  No compilation required — edit a file and refresh the browser.
 
 ## Structure
 
 ```
 apps/web/
 ├── public/
-│   └── index.html   ← All HTML, CSS, and JavaScript in one file
+│   ├── index.html   ← HTML structure and CDN references
+│   ├── styles.css   ← All CSS, extracted from index.html
+│   └── app.js       ← All JavaScript, extracted from index.html
 ├── package.json
 └── README.md
 ```
@@ -70,6 +72,6 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 
 ## Contributing
 
-Do not add a build step or a framework to this package.  The single-file constraint is intentional — it keeps the frontend auditable, deployable without tooling, and easy to hand to a non-developer.
+Do not add a build step or a framework to this package.  The no-tooling constraint is intentional — it keeps the frontend auditable, deployable without tooling, and easy to hand to a non-developer.
 
-If the file grows significantly, split CSS and JS into separate files in `public/` before reaching for a framework.
+CSS lives in `styles.css` and JavaScript in `app.js`.  New feature modules (e.g., gallery, auth) should be added as separate files in `public/` and loaded via `<script>` tags in `index.html`.
