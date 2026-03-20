@@ -216,7 +216,7 @@ Always returns `200 { ok: true }`.  DB errors are caught and logged — never su
 | `CORS_ORIGIN` | no | `*` | Allowed CORS origin |
 | `MODEL` | no | `claude-sonnet-4-6` | Claude model ID |
 | `EXTENDED_THINKING` | no | `true` | Set `"false"` to disable |
-| `SYSTEM_PROMPT_PATH` | no | `examples/physics-geometry-9th-grade.md` | Path from repo root |
+| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt-v7.md` | Path from repo root |
 | `PORT` | no | `3000` | HTTP listen port |
 
 ## Setup
