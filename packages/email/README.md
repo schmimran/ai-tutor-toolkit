@@ -1,15 +1,16 @@
 # @ai-tutor/email
 
-Resend email templates for session transcripts and feedback notifications.  Used by `apps/api`.
+Resend email templates for session transcripts.  Used by `apps/api`.
 
 ## Overview
 
-This package sends two types of emails:
+This package sends one type of email:
 
-1. **Transcript email** — sent to the parent when a tutoring session ends, containing the full conversation, session metadata, and token usage.
-2. **Feedback email** — sent to the parent when a student submits feedback (single rating or batch of per-message ratings).
+**Transcript email** — sent to the parent when a tutoring session ends, containing the full conversation, session metadata, any uploaded files as attachments, automated evaluation results (if available), and student feedback (if collected).
 
-Both functions fail silently: if the API key or recipient is missing, they log a warning and return without throwing.
+The function fails silently: if the API key or recipient is missing, it logs a warning and returns without throwing.
+
+Feedback is no longer sent as a separate email — it is included in the transcript email as an optional section at the bottom.
 
 ## Dependencies
 
@@ -37,8 +38,8 @@ await sendTranscript(
     startedAt: session.startedAt,
     lastActivityAt: session.lastActivityAt,
     durationMs: Date.now() - session.startedAt.getTime(),
-    sessionId: sessionId,
-    tokenUsage: session.tokenUsage,
+    evaluation: session.evaluation ?? null,
+    studentFeedback: session.studentFeedback ?? null,
   }
 );
 ```
@@ -61,73 +62,44 @@ await sendTranscript(
 | `startedAt` | `Date` | Session start time |
 | `lastActivityAt` | `Date` | Session last activity time |
 | `durationMs` | `number` | Session duration in milliseconds |
-| `sessionId` | `string?` | Session UUID (included in email header) |
-| `tokenUsage` | `{ inputTokens: number; outputTokens: number }?` | Cumulative token usage |
+| `sessionId` | `string` | _(optional)_ Session UUID |
+| `tokenUsage` | `{ inputTokens: number; outputTokens: number }` | _(optional)_ Cumulative token usage |
+| `evaluation` | `EvaluationPayload \| null` | _(optional)_ Automated evaluation results. Omit or pass `null` if evaluation hasn't run. |
+| `studentFeedback` | `StudentFeedbackPayload \| null` | _(optional)_ Student feedback. Omit or pass `null` if not collected. |
 
----
-
-### `sendFeedback(config, entry): Promise<void>`
+**`evaluation` shape:**
 
 Sends a single feedback summary email.
 
 ```typescript
-import { sendFeedback } from "@ai-tutor/email";
-
-await sendFeedback(
-  {
-    apiKey: process.env.RESEND_API_KEY,
-    to: process.env.PARENT_EMAIL,
-    from: process.env.EMAIL_FROM ?? "tutor@tutor.schmim.com",
-  },
-  {
-    sessionId,
-    rating: 4,
-    comment: "Very helpful!",
-    submittedAt: new Date(),
-  }
-);
+{
+  dimensions: Array<{
+    label: string;    // human-readable label, e.g. "Opening sequence"
+    score: string;    // 'pass' | 'partial' | 'fail' | 'na' | 'resolved' | 'unresolved' | 'abandoned'
+    rationale: string; // one-sentence explanation
+  }>;
+  hasFailures: boolean; // true if any dimension scored 'fail'
+}
 ```
 
-**Entry:**
+Renders as a color-coded table (green = pass/resolved, amber = partial, red = fail/unresolved, gray = na/abandoned). A warning banner is shown if `hasFailures` is true.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `sessionId` | `string` | Session UUID |
-| `rating` | `number \| null` | 1–5 star rating |
-| `comment` | `string \| null` | Written comment |
-| `submittedAt` | `Date` | Submission timestamp |
-
----
-
-### `sendFeedbackBatch(config, sessionId, items): Promise<void>`
-
-Sends a single summary email for all per-message feedback from a session.  Displays a table with one row per assistant message and columns for Accuracy, Usefulness, and Tone.
+**`studentFeedback` shape:**
 
 ```typescript
-import { sendFeedbackBatch } from "@ai-tutor/email";
-
-await sendFeedbackBatch(
-  {
-    apiKey: process.env.RESEND_API_KEY,
-    to: process.env.PARENT_EMAIL,
-    from: process.env.EMAIL_FROM ?? "tutor@tutor.schmim.com",
-  },
-  sessionId,
-  [
-    { msgText: "Let's look at that equation.", category: "accuracy", sentiment: "up" },
-    { msgText: "Let's look at that equation.", category: "usefulness", sentiment: "up" },
-    { msgText: "Let's look at that equation.", category: "tone", sentiment: null },
-  ]
-);
+{
+  source: string;            // 'student' | 'timeout'
+  outcome: string | null;    // 'solved' | 'partial' | 'stuck'
+  experience: string | null; // 'positive' | 'neutral' | 'negative'
+  comment: string | null;
+  skipped: boolean;
+}
 ```
 
-**Items (`BatchFeedbackItem[]`):**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `msgText` | `string` | Short snippet of the assistant message being rated |
-| `category` | `string` | `"accuracy"` \| `"usefulness"` \| `"tone"` |
-| `sentiment` | `string \| null` | `"up"` \| `"down"` \| `null` (not selected) |
+Three rendering cases:
+- `source === 'timeout'` → "not collected (session ended by inactivity timeout)"
+- `skipped === true` → "skipped"
+- Otherwise → outcome, experience, and comment rendered as a key-value table
 
 ---
 
@@ -135,7 +107,6 @@ await sendFeedbackBatch(
 
 ```typescript
 import type { TranscriptEmailConfig, TranscriptEmailPayload } from "@ai-tutor/email";
-import type { FeedbackEmailConfig, FeedbackEntry, BatchFeedbackItem } from "@ai-tutor/email";
 ```
 
 Shared types (used internally and exported for consumers):
@@ -154,7 +125,7 @@ type ClientInfo = { ip?: string; geo?: Record<string, unknown>; userAgent?: stri
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `RESEND_API_KEY` | no | Resend API key. Email is silently skipped if missing. |
-| `PARENT_EMAIL` | no | Recipient for transcripts and feedback. Skipped if missing. |
+| `PARENT_EMAIL` | no | Recipient for transcripts. Skipped if missing. |
 | `EMAIL_FROM` | no | Sender address. Must match a verified Resend domain. |
 
 ## Setup

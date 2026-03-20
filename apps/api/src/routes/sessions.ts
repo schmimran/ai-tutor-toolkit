@@ -1,8 +1,13 @@
 import { Router } from "express";
-import { getSession as getDbSession, markSessionEnded } from "@ai-tutor/db";
+import {
+  getSession as getDbSession,
+  markSessionEnded,
+  getSessionFeedback,
+} from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
+import { runSessionEvaluation, buildEvaluationPayload } from "../lib/evaluation.js";
 
 export interface EmailConfig {
   apiKey: string | undefined;
@@ -49,6 +54,8 @@ export function createSessionsRouter(
 
       if (session && !session.emailSent && session.transcript.length > 0) {
         const summary = session.getSessionSummary();
+        const evalResult = await runSessionEvaluation(db, sessionId, summary.transcript);
+        const feedback = await getSessionFeedback(db, sessionId).catch(() => null);
         void sendTranscript(emailConfig, {
           transcript: summary.transcript,
           files: session.files,
@@ -58,6 +65,8 @@ export function createSessionsRouter(
           durationMs: summary.durationMs,
           sessionId,
           tokenUsage: summary.tokenUsage,
+          evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
+          studentFeedback: feedback ?? null,
         });
         session.markEmailSent();
       }

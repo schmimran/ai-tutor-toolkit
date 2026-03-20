@@ -19,6 +19,25 @@ export interface TranscriptEmailPayload {
   durationMs: number;
   sessionId?: string;
   tokenUsage?: { inputTokens: number; outputTokens: number };
+
+  /** Automated evaluation results.  Null if evaluation hasn't run yet. */
+  evaluation?: {
+    dimensions: Array<{
+      label: string;
+      score: string; // 'pass' | 'partial' | 'fail' | 'na' | 'resolved' | 'unresolved' | 'abandoned'
+      rationale: string;
+    }>;
+    hasFailures: boolean;
+  } | null;
+
+  /** Student feedback.  Null if not collected. */
+  studentFeedback?: {
+    source: string;            // 'student' | 'timeout'
+    outcome: string | null;    // 'solved' | 'partial' | 'stuck'
+    experience: string | null; // 'positive' | 'neutral' | 'negative'
+    comment: string | null;
+    skipped: boolean;
+  } | null;
 }
 
 /** Maximum total attachment size Resend accepts (40 MB in bytes). */
@@ -55,8 +74,112 @@ function formatGeo(geo: Record<string, unknown> | null | undefined): string {
   return parts.length > 0 ? parts.join(", ") : "unknown";
 }
 
+function scoreBadge(score: string): string {
+  const colorMap: Record<string, string> = {
+    pass: "#16a34a",
+    resolved: "#16a34a",
+    partial: "#ca8a04",
+    fail: "#dc2626",
+    unresolved: "#dc2626",
+    na: "#9ca3af",
+    abandoned: "#9ca3af",
+  };
+  const color = colorMap[score] ?? "#9ca3af";
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${color};color:#fff;font-size:0.8em;font-weight:bold;">${score}</span>`;
+}
+
+function buildEvaluationHtml(
+  evaluation: TranscriptEmailPayload["evaluation"]
+): string {
+  if (!evaluation) return "";
+
+  const warningHtml = evaluation.hasFailures
+    ? `<p style="color:#dc2626;font-weight:bold;">&#9888; This session had evaluation failures — see flagged dimensions below.</p>`
+    : "";
+
+  const rows = evaluation.dimensions
+    .map(
+      (d) => `
+    <tr>
+      <td style="padding:8px 10px;border:1px solid #ddd;">${d.label}</td>
+      <td style="padding:8px 10px;border:1px solid #ddd;text-align:center;">${scoreBadge(d.score)}</td>
+      <td style="padding:8px 10px;border:1px solid #ddd;font-size:0.9em;color:#444;">${d.rationale}</td>
+    </tr>`
+    )
+    .join("");
+
+  return `
+  <h2 style="font-size:1.1rem;margin-top:32px;">Automated Evaluation</h2>
+  ${warningHtml}
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="background:#f4f4f4;">
+        <th style="padding:8px 10px;border:1px solid #ddd;text-align:left;">Dimension</th>
+        <th style="padding:8px 10px;border:1px solid #ddd;text-align:center;width:100px;">Score</th>
+        <th style="padding:8px 10px;border:1px solid #ddd;text-align:left;">Rationale</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function buildStudentFeedbackHtml(
+  studentFeedback: TranscriptEmailPayload["studentFeedback"]
+): string {
+  if (!studentFeedback) return "";
+
+  const outcomeLabels: Record<string, string> = {
+    solved: "Yes, figured it out",
+    partial: "Mostly",
+    stuck: "No, still stuck",
+  };
+  const experienceLabels: Record<string, string> = {
+    positive: "Really helpful",
+    neutral: "Fine",
+    negative: "Not great",
+  };
+
+  let body: string;
+  if (studentFeedback.source === "timeout") {
+    body = "<p>Student feedback: not collected (session ended by inactivity timeout).</p>";
+  } else if (studentFeedback.skipped) {
+    body = "<p>Student feedback: skipped.</p>";
+  } else {
+    const outcomeLabel = studentFeedback.outcome
+      ? (outcomeLabels[studentFeedback.outcome] ?? studentFeedback.outcome)
+      : "—";
+    const experienceLabel = studentFeedback.experience
+      ? (experienceLabels[studentFeedback.experience] ?? studentFeedback.experience)
+      : "—";
+    const commentRow = studentFeedback.comment
+      ? `<tr><td style="padding:6px 0;color:#555;width:120px;">Comment</td><td>${studentFeedback.comment}</td></tr>`
+      : "";
+
+    body = `
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="padding:6px 0;color:#555;width:120px;">Outcome</td><td>${outcomeLabel}</td></tr>
+      <tr><td style="padding:6px 0;color:#555;">Experience</td><td>${experienceLabel}</td></tr>
+      ${commentRow}
+    </table>`;
+  }
+
+  return `
+  <h2 style="font-size:1.1rem;margin-top:32px;">Student Feedback</h2>
+  ${body}`;
+}
+
 function buildHtml(payload: TranscriptEmailPayload): string {
-  const { transcript, files, clientInfo, startedAt, durationMs, sessionId, tokenUsage } = payload;
+  const {
+    transcript,
+    files,
+    clientInfo,
+    startedAt,
+    durationMs,
+    sessionId,
+    tokenUsage,
+    evaluation,
+    studentFeedback,
+  } = payload;
 
   const exchangeCount = Math.floor(transcript.length / 2);
 
@@ -100,6 +223,8 @@ function buildHtml(payload: TranscriptEmailPayload): string {
   ${filesHtml}
   <h2 style="font-size:1.1rem;">Transcript</h2>
   ${transcriptHtml || "<p>No messages.</p>"}
+  ${buildEvaluationHtml(evaluation)}
+  ${buildStudentFeedbackHtml(studentFeedback)}
 </body>
 </html>`;
 }

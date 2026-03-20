@@ -1,6 +1,6 @@
 # @ai-tutor/db
 
-Supabase client and CRUD operations for sessions, messages, feedback, and disclaimer acceptances.  Used by `apps/api`.
+Supabase client and CRUD operations for sessions, messages, session feedback, session evaluations, and disclaimer acceptances.  Used by `apps/api`.
 
 ## Overview
 
@@ -96,33 +96,64 @@ Returns all messages for a session, ordered by `created_at` ascending.
 
 ---
 
-### Feedback
+### Session feedback
 
 ```typescript
-import { createFeedback, createFeedbackBatch, getFeedbackBySession } from "@ai-tutor/db";
+import { createSessionFeedback, getSessionFeedback } from "@ai-tutor/db";
 ```
 
-#### `createFeedback(client, insert): Promise<DbFeedback>`
+#### `createSessionFeedback(client, insert): Promise<DbSessionFeedback>`
 
-Inserts a single feedback row.
+Inserts a `session_feedback` row and returns it.
 
 ```typescript
-const fb = await createFeedback(db, {
+const fb = await createSessionFeedback(db, {
   session_id: sessionId,
-  message_id: messageId,
-  category: "accuracy",
-  rating: 5,
-  comment: "Very helpful!",
+  source: "student",
+  outcome: "solved",
+  experience: "positive",
+  comment: "Really helpful, thanks!",
 });
 ```
 
-#### `createFeedbackBatch(client, inserts): Promise<DbFeedback[]>`
+#### `getSessionFeedback(client, sessionId): Promise<DbSessionFeedback | null>`
 
-Inserts multiple feedback rows in a single DB round-trip.  Returns the created rows.  Returns `[]` if `inserts` is empty.
+Fetches the feedback row for a session.  Returns `null` if not found.  The UNIQUE constraint on `session_id` guarantees at most one row.
 
-#### `getFeedbackBySession(client, sessionId): Promise<DbFeedback[]>`
+---
 
-Returns all feedback for a session, ordered by `created_at` ascending.
+### Session evaluations
+
+```typescript
+import { createSessionEvaluation, getSessionEvaluation } from "@ai-tutor/db";
+```
+
+#### `createSessionEvaluation(client, insert): Promise<DbSessionEvaluation>`
+
+Inserts a `session_evaluations` row and returns it.
+
+```typescript
+const ev = await createSessionEvaluation(db, {
+  session_id: sessionId,
+  model: "claude-sonnet-4-6",
+  opening_sequence: "pass",
+  one_question: "pass",
+  asked_why: "partial",
+  worked_at_edge: "pass",
+  parallel_problems: "na",
+  step_feedback: "pass",
+  never_gave_answer: "pass",
+  clarity: "pass",
+  tone: "pass",
+  resolution: "resolved",
+  has_failures: false,
+  rationale: { asked_why: "Tutor asked twice but not consistently." },
+});
+```
+
+#### `getSessionEvaluation(client, sessionId): Promise<DbSessionEvaluation | null>`
+
+Fetches the evaluation row for a session.  Returns `null` if not found.  The UNIQUE constraint on `session_id` guarantees at most one row.
 
 ---
 
@@ -145,17 +176,7 @@ Backfills `session_id` on disclaimer acceptance rows that were recorded before t
 ## Types
 
 ```typescript
-import type {
-  DbSession,
-  DbSessionInsert,
-  DbSessionUpdate,
-  DbMessage,
-  DbMessageInsert,
-  DbFeedback,
-  DbFeedbackInsert,
-  DbDisclaimerAcceptance,
-  DbDisclaimerAcceptanceInsert,
-} from "@ai-tutor/db";
+import type { DbSession, DbMessage, DbSessionFeedback, DbSessionEvaluation } from "@ai-tutor/db";
 ```
 
 | Type | Description |
@@ -165,10 +186,10 @@ import type {
 | `DbSessionUpdate` | Partial update shape |
 | `DbMessage` | Full message row |
 | `DbMessageInsert` | Insert shape |
-| `DbFeedback` | Full feedback row |
-| `DbFeedbackInsert` | Insert shape (`message_id`, `category`, `rating`, `comment` all optional) |
-| `DbDisclaimerAcceptance` | Full disclaimer_acceptances row |
-| `DbDisclaimerAcceptanceInsert` | Insert shape (all fields optional) |
+| `DbSessionFeedback` | Full session_feedback row |
+| `DbSessionFeedbackInsert` | Insert shape |
+| `DbSessionEvaluation` | Full session_evaluations row |
+| `DbSessionEvaluationInsert` | Insert shape |
 
 ---
 
@@ -211,19 +232,64 @@ CREATE TABLE messages (
 );
 ```
 
-### feedback
+### feedback_legacy
+
+Archive table — renamed from `feedback` in migration 008.  Not actively written to.
 
 ```sql
-CREATE TABLE feedback (
+-- Originally created in migration 001; renamed in migration 008.
+CREATE TABLE feedback_legacy (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id  uuid NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   rating      integer CHECK (rating BETWEEN 1 AND 5),
   comment     text,
-  created_at  timestamptz DEFAULT now(),
-  -- migration 003
-  message_id  uuid REFERENCES messages(id) ON DELETE SET NULL,
-  -- migration 004
-  category    text
+  created_at  timestamptz DEFAULT now()
+  -- migration 003: message_id uuid REFERENCES messages(id) ON DELETE SET NULL
+  -- migration 004: category text
+);
+```
+
+### session_feedback
+
+One student-submitted feedback record per session.  Added in migration 008.
+
+```sql
+CREATE TABLE session_feedback (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id  uuid        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  source      text        NOT NULL CHECK (source IN ('student', 'timeout')),
+  outcome     text        CHECK (outcome IN ('solved', 'partial', 'stuck')),
+  experience  text        CHECK (experience IN ('positive', 'neutral', 'negative')),
+  comment     text,
+  skipped     boolean     NOT NULL DEFAULT false,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT session_feedback_unique_session UNIQUE (session_id)
+);
+```
+
+### session_evaluations
+
+One automated evaluation record per session.  Added in migration 008.
+
+```sql
+CREATE TABLE session_evaluations (
+  id                  uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id          uuid        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  model               text        NOT NULL,
+  opening_sequence    text        NOT NULL CHECK (opening_sequence    IN ('pass', 'partial', 'fail', 'na')),
+  one_question        text        NOT NULL CHECK (one_question        IN ('pass', 'partial', 'fail', 'na')),
+  asked_why           text        NOT NULL CHECK (asked_why           IN ('pass', 'partial', 'fail', 'na')),
+  worked_at_edge      text        NOT NULL CHECK (worked_at_edge      IN ('pass', 'partial', 'fail', 'na')),
+  parallel_problems   text        NOT NULL CHECK (parallel_problems   IN ('pass', 'partial', 'fail', 'na')),
+  step_feedback       text        NOT NULL CHECK (step_feedback       IN ('pass', 'partial', 'fail', 'na')),
+  never_gave_answer   text        NOT NULL CHECK (never_gave_answer   IN ('pass', 'partial', 'fail', 'na')),
+  clarity             text        NOT NULL CHECK (clarity             IN ('pass', 'partial', 'fail', 'na')),
+  tone                text        NOT NULL CHECK (tone                IN ('pass', 'partial', 'fail', 'na')),
+  resolution          text        NOT NULL CHECK (resolution          IN ('resolved', 'partial', 'unresolved', 'abandoned')),
+  has_failures        boolean     NOT NULL DEFAULT false,
+  rationale           jsonb       NOT NULL DEFAULT '{}',
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT session_evaluations_unique_session UNIQUE (session_id)
 );
 ```
 

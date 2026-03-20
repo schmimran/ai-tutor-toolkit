@@ -42,7 +42,7 @@ Event types:
 
 ### In-memory session store + database
 
-Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — sending an email transcript and marking the session ended in the DB.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.
+Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — running an automated evaluation, recording a `source: 'timeout'` feedback row if none exists, sending an email transcript (including evaluation and feedback), and marking the session ended in the DB.  When a session is explicitly ended via `DELETE /api/sessions/:id`, the same evaluation + feedback fetch happens before the transcript email is sent.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.
 
 The inactivity timeout (`INACTIVITY_MS`) is defined as a constant in `apps/api/src/index.ts` and served via `GET /api/config` as `inactivityMs` so the frontend stays in sync with the server-side sweep.  The frontend uses the same value to trigger its own auto-end flow after the same duration of client-side inactivity.
 
@@ -107,7 +107,9 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 | output_tokens | integer | Nullable. Output tokens for this API call. Null for user messages and legacy rows. Added in migration 005. |
 | created_at | timestamptz | Indexed with session_id |
 
-### feedback
+### feedback_legacy
+
+Archive table — renamed from `feedback` in migration 008.  Not actively written to.  Retained for historical data analysis only.
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -118,6 +120,44 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 | rating | integer | CHECK 1–5, nullable. Null means the category was not rated (N/A). |
 | comment | text | Nullable |
 | created_at | timestamptz | |
+
+### session_feedback
+
+One row per session.  Written when the student submits the end-of-session feedback overlay, or when the inactivity sweep ends the session without a student submission.  Added in migration 008.
+
+| Column | Type | Default | Notes |
+|--------|------|---------|-------|
+| id | uuid | gen_random_uuid() | PK |
+| session_id | uuid | | FK → sessions(id) ON DELETE CASCADE. UNIQUE — one record per session. |
+| source | text | | CHECK IN ('student', 'timeout'). 'student' = submitted by student; 'timeout' = auto-created by inactivity sweep. |
+| outcome | text | null | CHECK IN ('solved', 'partial', 'stuck'). Nullable — not collected on timeout. |
+| experience | text | null | CHECK IN ('positive', 'neutral', 'negative'). Nullable — not collected on timeout. |
+| comment | text | null | Nullable free-text comment. |
+| skipped | boolean | false | True when the student dismissed the overlay without submitting. |
+| created_at | timestamptz | now() | |
+
+### session_evaluations
+
+One row per session.  Written by an automated transcript evaluation job using the rubric in `templates/evaluation-checklist.md`.  Added in migration 008.
+
+| Column | Type | Default | Notes |
+|--------|------|---------|-------|
+| id | uuid | gen_random_uuid() | PK |
+| session_id | uuid | | FK → sessions(id) ON DELETE CASCADE. UNIQUE — one record per session. |
+| model | text | | Model ID used to run the evaluation. |
+| opening_sequence | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor opened with name + subject question. |
+| one_question | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor asked only one question at a time. |
+| asked_why | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor asked student to explain their reasoning. |
+| worked_at_edge | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor worked at the student's knowledge edge. |
+| parallel_problems | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor offered parallel problems when appropriate. |
+| step_feedback | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor gave feedback on each step. |
+| never_gave_answer | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor never gave the answer directly. |
+| clarity | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor responses were clear and appropriately concise. |
+| tone | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor maintained an encouraging, patient tone. |
+| resolution | text | | CHECK IN ('resolved', 'partial', 'unresolved', 'abandoned'). Overall session outcome. |
+| has_failures | boolean | false | Pre-computed flag: true if any rubric column is 'fail'. Indexed for fast filtering. |
+| rationale | jsonb | {} | Per-criterion rationale strings keyed by column name. |
+| created_at | timestamptz | now() | |
 
 ### disclaimer_acceptances
 
@@ -230,41 +270,23 @@ Get conversation transcript.  Prefers in-memory session; falls back to DB.
 
 ### POST /api/feedback
 
-Submit a single feedback record.
+Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email is sent on submission — feedback is included in the transcript email sent when the session ends.
 
 **Request**: `application/json`
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | sessionId | string (UUID) | yes | |
-| rating | integer | no | 1–5 |
-| comment | string | no | |
+| source | string | no | `'student'` (default) or `'timeout'` |
+| outcome | string | no | `'solved'` / `'partial'` / `'stuck'` |
+| experience | string | no | `'positive'` / `'neutral'` / `'negative'` |
+| comment | string | no | Free text |
+| skipped | boolean | no | `false` (default); `true` if student dismissed the overlay |
 
 **Response**: `application/json`
 
 ```json
-{ "ok": true, "id": "uuid" }
-```
-
----
-
-### POST /api/feedback/batch
-
-Submit all feedback for a session at once (used by the end-of-session feedback overlay).  Saves all records in a single DB round-trip and sends one summary email.
-
-**Request**: `application/json`
-
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| sessionId | string (UUID) | yes | |
-| items | array | yes | Non-empty array of `{ msgId, category, sentiment, rating }` |
-
-Each item: `msgId` (string), `msgText` (string — the assistant message text, used in the feedback email), `category` (`accuracy`/`usefulness`/`tone`), `sentiment` (`up`/`down`), `rating` (`5` for up, `1` for down).
-
-**Response**: `application/json`
-
-```json
-{ "ok": true, "count": 6 }
+{ "ok": true }
 ```
 
 ---
@@ -368,6 +390,7 @@ These apply to every Claude Code session in this repo.
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
 | `supabase/migrations/001_initial_schema.sql` | Initial DB schema (sessions, messages, feedback) |
 | `supabase/migrations/002_soft_session_end.sql` | Adds `ended_at` column to sessions; enables data retention |
+| `supabase/migrations/008_feedback_redesign.sql` | Renames `feedback` → `feedback_legacy`; creates `session_feedback` and `session_evaluations` |
 | `templates/tutor-prompt.md` | Parameterized tutor prompt (source of truth) |
 | `templates/evaluation-checklist.md` | Scoring rubric for test evaluation |
 | `examples/physics-geometry-9th-grade.md` | Real production prompt (reference) |
@@ -381,20 +404,23 @@ These apply to every Claude Code session in this repo.
 | `packages/core/src/prompt-loader.ts` | `loadSystemPrompt()` — loads prompt file from repo root |
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
 | `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments, token usage tracking (`TokenUsage` interface) |
+| `packages/core/src/evaluate-transcript.ts` | Automated transcript evaluation against ten tutoring dimensions |
+| `packages/core/src/evaluation-prompt.md` | Reference copy of the evaluation prompt (not loaded at runtime) |
 | `packages/db/src/client.ts` | `createSupabaseClient()` — Supabase initialization |
 | `packages/db/src/sessions.ts` | Session CRUD (create, get, update, markSessionEnded) |
 | `packages/db/src/messages.ts` | Message CRUD (create, list by session) |
-| `packages/db/src/feedback.ts` | Feedback CRUD (create, createBatch, list by session) |
+| `packages/db/src/session-feedback.ts` | `createSessionFeedback()`, `getSessionFeedback()` — session_feedback table CRUD |
+| `packages/db/src/session-evaluations.ts` | `createSessionEvaluation()`, `getSessionEvaluation()` — session_evaluations table CRUD |
 | `packages/db/src/disclaimer-acceptances.ts` | `createDisclaimerAcceptance()` — inserts a disclaimer acceptance row; `linkDisclaimerAcceptance()` — backfills session_id after session is created |
-| `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend; includes session ID and token usage |
-| `packages/email/src/feedback.ts` | `sendFeedback()` — feedback notification email via Resend; batch table uses category columns (Accuracy, Usefulness, Tone) with sentiment badges |
+| `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend; includes session ID, token usage, evaluation results, and student feedback |
 | `apps/api/src/index.ts` | Express server entry — routes, middleware, inactivity sweep |
 | `apps/api/src/routes/chat.ts` | `POST /api/chat` — streaming chat with file upload |
 | `apps/api/src/routes/sessions.ts` | `GET/DELETE /api/sessions/:id` |
 | `apps/api/src/routes/transcript.ts` | `GET /api/transcript/:id` |
-| `apps/api/src/routes/feedback.ts` | `POST /api/feedback` |
+| `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row |
 | `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records disclaimer acceptance with IP/geo/user-agent |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
+| `apps/api/src/lib/evaluation.ts` | `runSessionEvaluation()` — calls `evaluateTranscript`, saves to DB, returns result; `buildEvaluationPayload()` — maps result to email shape |
 | `apps/api/src/lib/session-store.ts` | In-memory session cache (`Map<id, Session>`) |
 | `apps/api/src/lib/stream.ts` | SSE helpers (`initSSE`, `sendEvent`, `sendHeartbeat`) |
 | `apps/api/src/lib/geo.ts` | `extractClientInfo()` — IP, geolocation, user-agent extraction |

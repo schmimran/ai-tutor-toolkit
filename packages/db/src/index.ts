@@ -7,18 +7,22 @@ export {
   getMessagesBySession,
 } from "./messages.js";
 
-export { createFeedback, createFeedbackBatch, getFeedbackBySession } from "./feedback.js";
+export { createSessionFeedback, getSessionFeedback } from "./session-feedback.js";
+
+export { createSessionEvaluation, getSessionEvaluation } from "./session-evaluations.js";
 
 export { createDisclaimerAcceptance, linkDisclaimerAcceptance } from "./disclaimer-acceptances.js";
 
 export type {
   DbSession,
   DbMessage,
-  DbFeedback,
   DbSessionInsert,
   DbMessageInsert,
-  DbFeedbackInsert,
   DbSessionUpdate,
   DbDisclaimerAcceptance,
   DbDisclaimerAcceptanceInsert,
+  DbSessionFeedback,
+  DbSessionFeedbackInsert,
+  DbSessionEvaluation,
+  DbSessionEvaluationInsert,
 } from "./types.js";

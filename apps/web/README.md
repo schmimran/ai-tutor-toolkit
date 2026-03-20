@@ -46,7 +46,7 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | Transcript viewer | Modal with copy-to-clipboard |
 | Session end detection | Sentinel-based: tutor includes `[END_SESSION_AVAILABLE]` to trigger wrap-up banner |
 | Inactivity timeout | Auto-ends session after 10 minutes idle; triggers transcript email |
-| Per-message feedback | Thumbs up/down per category (Accuracy, Usefulness, Tone) collected at session end |
+| Session feedback | Session-level outcome, experience, and comment collected at session end. |
 | New session | One-click reset with automatic prior session cleanup (`DELETE /api/sessions/:id`) |
 | Model indicator | Shows current model and extended thinking status (from `/api/config`) |
 | Disclaimer overlay | Shown on first visit; acceptance recorded via `POST /api/disclaimer/accept` |
@@ -58,9 +58,8 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | `GET /api/config` | On page load |
 | `POST /api/chat` | On each message send |
 | `GET /api/transcript/:sessionId` | When transcript modal is opened |
-| `POST /api/feedback/batch` | When end-of-session feedback is submitted |
-| `POST /api/disclaimer/accept` | When disclaimer overlay is accepted |
-| `DELETE /api/sessions/:sessionId` | On inactivity timeout, session end, or new session button |
+| `POST /api/feedback` | When end-of-session feedback is submitted or skipped. |
+| `DELETE /api/sessions/:sessionId` | On inactivity timeout or new session button |
 
 ## Design notes
 

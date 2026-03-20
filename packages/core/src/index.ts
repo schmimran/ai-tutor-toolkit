@@ -15,3 +15,6 @@ export type {
 
 export { createTutorClient } from "./tutor-client.js";
 export type { TutorClient } from "./tutor-client.js";
+
+export { evaluateTranscript } from "./evaluate-transcript.js";
+export type { EvaluationResult, DimensionScore } from "./evaluate-transcript.js";
