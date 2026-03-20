@@ -297,6 +297,11 @@
     btnEndSessionHeader.disabled = disabled || msgList.length === 0;
   }
 
+  // ── Session DELETE helper ─────────────────────────────────────────────────
+  function deleteSession(id) {
+    return fetch(`/api/sessions/${id}`, { method: 'DELETE' }).catch(() => {});
+  }
+
   // ── Inactivity timer ──────────────────────────────────────────────────────
   function resetInactivityTimer() {
     if (inactivityTimer) clearTimeout(inactivityTimer);
@@ -308,8 +313,7 @@
     if (sessionEnded || msgList.length === 0) return;
     sessionEnded = true;
     endBanner.classList.remove('active');
-    try { await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }); }
-    catch { /* ignore */ }
+    await deleteSession(sessionId);
     lockSession('Session ended due to inactivity. Your transcript has been emailed.');
   }
 
@@ -329,8 +333,7 @@
   }
 
   async function finalizeSessionEnd() {
-    try { await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }); }
-    catch { /* ignore */ }
+    await deleteSession(sessionId);
     lockSession('Session ended. Transcript has been emailed.');
   }
 
@@ -373,8 +376,7 @@
     } catch { /* silently ignore */ }
 
     wrappingUpOverlay.classList.add('active');
-    try { await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }); }
-    catch { /* ignore */ }
+    await deleteSession(sessionId);
     wrappingUpOverlay.classList.remove('active');
 
     await newSession();
@@ -427,15 +429,14 @@
     if (isStreaming) return;
     // End previous session if it had activity
     if (msgList.length > 0 && !sessionEnded) {
-      try { await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }); }
-      catch { /* ignore */ }
+      await deleteSession(sessionId);
     }
     if (inactivityTimer) clearTimeout(inactivityTimer);
 
     // Reset state
     sessionId       = crypto.randomUUID();
     msgList         = [];
-    attachments     = [];
+    clearAttachments();
     isStreaming     = false;
     endAvailable    = false;
     sessionEnded    = false;
@@ -452,8 +453,6 @@
     fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
     fbComment.value = '';
     inputRow.style.display = '';
-    fileStrip.innerHTML = '';
-    fileStrip.classList.remove('active');
     msgInput.value = '';
     msgInput.placeholder = 'What are you stuck on?';
     msgInput.disabled = false;
@@ -465,6 +464,12 @@
   }
 
   // ── File attachments ──────────────────────────────────────────────────────
+  function revokeAttachmentURL(attachment) {
+    if (attachment.file.type.startsWith('image/')) {
+      const img = attachment.chipEl.querySelector('img');
+      if (img) URL.revokeObjectURL(img.src);
+    }
+  }
   function addFiles(fileList) {
     for (const file of Array.from(fileList)) {
       if (attachments.length >= MAX_FILES) {
@@ -519,20 +524,12 @@
     const idx = attachments.findIndex(a => a.file === file);
     if (idx === -1) return;
     const [removed] = attachments.splice(idx, 1);
-    if (file.type.startsWith('image/')) {
-      const img = removed.chipEl.querySelector('img');
-      if (img) URL.revokeObjectURL(img.src);
-    }
+    revokeAttachmentURL(removed);
     renderStrip();
   }
 
   function clearAttachments() {
-    for (const a of attachments) {
-      if (a.file.type.startsWith('image/')) {
-        const img = a.chipEl.querySelector('img');
-        if (img) URL.revokeObjectURL(img.src);
-      }
-    }
+    for (const a of attachments) revokeAttachmentURL(a);
     attachments = [];
     renderStrip();
     fileInput.value = '';
@@ -633,7 +630,7 @@
   btnFbSkip.addEventListener('click',   () => submitFeedback(true));
 
   // ── Empty-state prompt chips ──────────────────────────────────────────────
-  document.getElementById('empty-state').addEventListener('click', e => {
+  emptyState.addEventListener('click', e => {
     const chip = e.target.closest('.empty-chip');
     if (!chip) return;
     msgInput.value = chip.dataset.fill;
