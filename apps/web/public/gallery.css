@@ -11,7 +11,46 @@
 }
 
 .gallery-pane.open {
-  width: 320px;
+  width: 320px; /* JS may override via inline style.width */
+}
+
+/* ── Gallery resize handle (desktop only) ───────────────────────────────── */
+.gallery-resizer {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+  display: none; /* shown by JS when gallery is open */
+}
+
+.gallery-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  transition: background 0.15s, width 0.15s;
+}
+
+.gallery-resizer:hover::after,
+.gallery-resizer.dragging::after {
+  width: 3px;
+  background: var(--accent);
+}
+
+.gallery-resizer.active {
+  display: block;
+}
+
+/* Disable width transition during drag */
+.gallery-pane.no-transition {
+  transition: none !important;
 }
 
 .gallery-header {
@@ -21,7 +60,7 @@
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  min-width: 320px;
+  min-width: 200px;
 }
 
 .gallery-title {
@@ -42,7 +81,7 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  min-width: 320px;
+  min-width: 200px;
   gap: 10px;
 }
 
@@ -124,7 +163,7 @@
   padding: 10px 14px 14px;
   overflow-y: auto;
   flex-shrink: 0;
-  min-width: 320px;
+  min-width: 200px;
   border-top: 1px solid var(--border);
   max-height: 160px;
 }
@@ -215,6 +254,10 @@
 
 /* ── Mobile: fixed-position drawer ──────────────────────────────────────── */
 @media (max-width: 768px) {
+  .gallery-resizer {
+    display: none !important;
+  }
+
   .gallery-pane {
     position: fixed;
     right: 0;

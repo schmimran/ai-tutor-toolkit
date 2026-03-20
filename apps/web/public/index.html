@@ -48,6 +48,7 @@
     <div class="header-right">
       <span id="model-badge" class="model-badge" style="display:none"></span>
       <span id="token-counter"></span>
+      <span id="inactivity-timer"></span>
       <button class="btn btn-sm" id="btn-gallery-toggle" title="Toggle uploads gallery" disabled>🖼</button>
       <button class="btn btn-sm" id="btn-transcript" disabled>Transcript</button>
       <button class="btn btn-sm" id="btn-end-session-header" disabled>End session</button>
@@ -121,6 +122,7 @@
     </div><!-- /.chat-column -->
 
     <div class="gallery-backdrop" id="gallery-backdrop"></div>
+    <div id="gallery-resizer" class="gallery-resizer" aria-hidden="true"></div>
 
     <!-- Gallery pane -->
     <aside id="gallery-pane" class="gallery-pane">

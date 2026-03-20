@@ -7,11 +7,15 @@
   var ZOOM_SCALE = 250; // background-size percentage for hover zoom
   var supportsHover = window.matchMedia('(hover: hover)').matches;
 
+  var GALLERY_WIDTH_KEY = 'gallery-pane-width';
+  var GALLERY_MIN_WIDTH = 200;
+  var GALLERY_MAX_WIDTH = 600;
+
   let galleryOpen = false;
 
   // DOM refs — resolved after DOMContentLoaded
   let galleryPane, galleryFocused, galleryThumbs, galleryBackdrop,
-      btnGalleryClose, btnGalleryToggle;
+      btnGalleryClose, btnGalleryToggle, galleryResizer;
 
   function isMobile() {
     return window.innerWidth <= 768;
@@ -20,13 +24,29 @@
   // ── Open / close ───────────────────────────────────────────────────────
   window.openGallery = function () {
     galleryPane.classList.add('open');
-    if (isMobile()) galleryBackdrop.classList.add('active');
+    if (isMobile()) {
+      galleryBackdrop.classList.add('active');
+    } else {
+      // Restore saved width on desktop
+      var saved = localStorage.getItem(GALLERY_WIDTH_KEY);
+      if (saved) {
+        var w = parseInt(saved, 10);
+        if (w >= GALLERY_MIN_WIDTH && w <= GALLERY_MAX_WIDTH) {
+          galleryPane.style.width = w + 'px';
+        }
+      }
+      if (galleryResizer) galleryResizer.classList.add('active');
+    }
     galleryOpen = true;
   };
 
   window.closeGallery = function () {
+    // Clear inline width so the CSS width:0 rule takes over and the
+    // close transition animates correctly.
+    galleryPane.style.width = '';
     galleryPane.classList.remove('open');
     galleryBackdrop.classList.remove('active');
+    if (galleryResizer) galleryResizer.classList.remove('active');
     galleryOpen = false;
   };
 
@@ -131,6 +151,77 @@
     if (galleryOpen) closeGallery();
   };
 
+  // ── Resize handle (desktop only) ─────────────────────────────────────
+  function setupResizer() {
+    if (!galleryResizer) return;
+
+    var startX = 0;
+    var startW = 0;
+
+    // The resizer sits to the LEFT of the gallery pane, so dragging left
+    // (negative delta) should GROW the gallery — hence the negation.
+    function applyDelta(clientX) {
+      var delta = startX - clientX;
+      var newW  = Math.min(
+        Math.max(startW + delta, GALLERY_MIN_WIDTH),
+        Math.min(GALLERY_MAX_WIDTH, Math.round(window.innerWidth * 0.5))
+      );
+      galleryPane.style.width = newW + 'px';
+    }
+
+    function onMouseMove(e) { applyDelta(e.clientX); }
+
+    function onMouseUp(e) {
+      applyDelta(e.clientX);
+      endDrag();
+    }
+
+    function onTouchMove(e) {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      applyDelta(e.touches[0].clientX);
+    }
+
+    function endDrag() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', endDrag);
+      galleryResizer.classList.remove('dragging');
+      galleryPane.classList.remove('no-transition');
+      document.body.style.cursor    = '';
+      document.body.style.userSelect = '';
+      var w = galleryPane.offsetWidth;
+      if (w >= GALLERY_MIN_WIDTH) {
+        try { localStorage.setItem(GALLERY_WIDTH_KEY, String(w)); } catch (e) { /* unavailable */ }
+      }
+    }
+
+    galleryResizer.addEventListener('mousedown', function (e) {
+      if (isMobile()) return;
+      e.preventDefault();
+      startX = e.clientX;
+      startW = galleryPane.offsetWidth;
+      galleryResizer.classList.add('dragging');
+      galleryPane.classList.add('no-transition');
+      document.body.style.cursor    = 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    galleryResizer.addEventListener('touchstart', function (e) {
+      if (isMobile() || e.touches.length !== 1) return;
+      e.preventDefault();
+      startX = e.touches[0].clientX;
+      startW = galleryPane.offsetWidth;
+      galleryResizer.classList.add('dragging');
+      galleryPane.classList.add('no-transition');
+      document.addEventListener('touchmove', onTouchMove, { passive: false });
+      document.addEventListener('touchend', endDrag);
+    }, { passive: false });
+  }
+
   // ── Minimal HTML escaper (gallery.js is a plain script with no deps) ─
   function escGallery(s) {
     return s
@@ -149,6 +240,7 @@
     galleryBackdrop  = document.getElementById('gallery-backdrop');
     btnGalleryClose  = document.getElementById('btn-gallery-close');
     btnGalleryToggle = document.getElementById('btn-gallery-toggle');
+    galleryResizer   = document.getElementById('gallery-resizer');
 
     if (btnGalleryClose)  btnGalleryClose.addEventListener('click', closeGallery);
     if (galleryBackdrop)  galleryBackdrop.addEventListener('click', closeGallery);
@@ -157,5 +249,6 @@
         if (isGalleryOpen()) closeGallery(); else openGallery();
       });
     }
+    setupResizer();
   });
 })();

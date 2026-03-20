@@ -29,6 +29,7 @@
   let endAvailable      = false;
   let sessionEnded      = false;
   let inactivityTimer   = null;
+  let countdownInterval = null;
   let appConfig         = { model: '', extendedThinking: false, inactivityMs: 600000 };
   let msgCounter        = 0;
   let fbSelections      = { outcome: null, experience: null };
@@ -71,7 +72,8 @@
   const btnCopyTx      = $('btn-copy-tx');
   const dragOverlay        = $('drag-overlay');
   const wrappingUpOverlay  = $('wrapping-up-overlay');
-  const toast          = $('toast');
+  const toast              = $('toast');
+  const inactivityTimerEl  = $('inactivity-timer');
 
   // ── Config ────────────────────────────────────────────────────────────────
   async function fetchConfig() {
@@ -384,16 +386,65 @@
     return fetch(`/api/sessions/${id}`, { method: 'DELETE' }).catch(() => {});
   }
 
+  // ── Inactivity countdown display ─────────────────────────────────────────
+  function startCountdownDisplay(totalMs) {
+    if (countdownInterval) clearInterval(countdownInterval);
+    inactivityTimerEl.classList.remove('warn', 'urgent');
+    inactivityTimerEl.style.display = '';
+
+    var deadline = Date.now() + totalMs;
+
+    function tick() {
+      var remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        inactivityTimerEl.textContent = '0:00';
+        inactivityTimerEl.classList.remove('warn');
+        inactivityTimerEl.classList.add('urgent');
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        return;
+      }
+      var totalSec = Math.ceil(remaining / 1000);
+      var mins     = Math.floor(totalSec / 60);
+      var secs     = totalSec % 60;
+      inactivityTimerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+
+      inactivityTimerEl.classList.remove('warn', 'urgent');
+      if (remaining <= 30000) {
+        inactivityTimerEl.classList.add('urgent');
+      } else if (remaining <= 120000) {
+        inactivityTimerEl.classList.add('warn');
+      }
+    }
+
+    tick();
+    countdownInterval = setInterval(tick, 1000);
+  }
+
+  function stopCountdownDisplay() {
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    inactivityTimerEl.textContent = '';
+    inactivityTimerEl.classList.remove('warn', 'urgent');
+    inactivityTimerEl.style.display = 'none';
+  }
+
   // ── Inactivity timer ──────────────────────────────────────────────────────
   function resetInactivityTimer() {
     if (inactivityTimer) clearTimeout(inactivityTimer);
     if (sessionEnded) return;
     inactivityTimer = setTimeout(onInactivityTimeout, appConfig.inactivityMs);
+    if (msgList.length > 0) {
+      startCountdownDisplay(appConfig.inactivityMs);
+    }
   }
 
   async function onInactivityTimeout() {
     if (sessionEnded || msgList.length === 0) return;
     sessionEnded = true;
+    stopCountdownDisplay();
     endBanner.classList.remove('active');
     await deleteSession(sessionId);
     lockSession('Session ended due to inactivity. Your transcript has been emailed.');
@@ -404,6 +455,7 @@
     if (sessionEnded) return;
     sessionEnded = true;
     if (inactivityTimer) clearTimeout(inactivityTimer);
+    stopCountdownDisplay();
     endBanner.classList.remove('active');
 
     const tutorMessages = msgList.filter(e => e.role === 'tutor');
@@ -514,6 +566,7 @@
       await deleteSession(sessionId);
     }
     if (inactivityTimer) clearTimeout(inactivityTimer);
+    stopCountdownDisplay();
 
     // Reset state
     sessionId       = crypto.randomUUID();
