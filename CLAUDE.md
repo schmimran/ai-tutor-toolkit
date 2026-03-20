@@ -138,25 +138,31 @@ One row per session.  Written when the student submits the end-of-session feedba
 
 ### session_evaluations
 
-One row per session.  Written by an automated transcript evaluation job using the rubric in `templates/evaluation-checklist.md`.  Added in migration 008.
+One row per session.  Written by an automated transcript evaluation job using the rubric in `packages/core/src/evaluation-prompt.md`.  Added in migration 008; v7 columns added in migration 009.
 
 | Column | Type | Default | Notes |
 |--------|------|---------|-------|
 | id | uuid | gen_random_uuid() | PK |
 | session_id | uuid | | FK → sessions(id) ON DELETE CASCADE. UNIQUE — one record per session. |
 | model | text | | Model ID used to run the evaluation. |
-| opening_sequence | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor opened with name + subject question. |
-| one_question | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor asked only one question at a time. |
-| asked_why | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor asked student to explain their reasoning. |
-| worked_at_edge | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor worked at the student's knowledge edge. |
-| parallel_problems | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor offered parallel problems when appropriate. |
-| step_feedback | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor gave feedback on each step. |
-| never_gave_answer | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor never gave the answer directly. |
-| clarity | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor responses were clear and appropriately concise. |
-| tone | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Rubric: tutor maintained an encouraging, patient tone. |
-| resolution | text | | CHECK IN ('resolved', 'partial', 'unresolved', 'abandoned'). Overall session outcome. |
-| has_failures | boolean | false | Pre-computed flag: true if any rubric column is 'fail'. Indexed for fast filtering. |
+| opening_sequence | text | null | Legacy v6. CHECK IN ('pass', 'partial', 'fail', 'na'). Replaced by understood_where_student_was in v7. |
+| one_question | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
+| asked_why | text | null | Legacy v6. CHECK IN ('pass', 'partial', 'fail', 'na'). Replaced by probe_reasoning in v7. |
+| worked_at_edge | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
+| parallel_problems | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
+| step_feedback | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
+| never_gave_answer | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
+| clarity | text | null | Legacy v6. CHECK IN ('pass', 'partial', 'fail', 'na'). Removed in v7. |
+| tone | text | null | Legacy v6. CHECK IN ('pass', 'partial', 'fail', 'na'). Replaced by adaptive_tone in v7. |
+| resolution | text | | CHECK IN ('resolved', 'partial', 'unresolved', 'abandoned'). Retained in v7. |
+| has_failures | boolean | false | Pre-computed flag. v7: true if never_gave_answer, probe_reasoning, or understood_where_student_was is 'fail', or if 3+ other dimensions are 'fail'. Indexed. |
 | rationale | jsonb | {} | Per-criterion rationale strings keyed by column name. |
+| mode_handling | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor correctly identify and follow the session mode? Added in migration 009. |
+| problem_confirmation | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor restate the problem before proceeding? Added in migration 009. |
+| probe_reasoning | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor ask why, not just what? Replaces asked_why. Added in migration 009. |
+| understood_where_student_was | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor establish how far the student had gotten? Replaces opening_sequence. Added in migration 009. |
+| followed_student_lead | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor follow when the student redirected? Added in migration 009. |
+| adaptive_tone | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor read student state and adjust? Replaces tone. Added in migration 009. |
 | created_at | timestamptz | now() | |
 
 ### disclaimer_acceptances
@@ -325,6 +331,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | EMAIL_FROM | no | tutor@tutor.schmim.com | email, api | Sender address |
 | CORS_ORIGIN | no | * | api | Allowed CORS origin |
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
+| EVALUATION_MODEL | no | claude-sonnet-4-6 | core | Model used for post-session transcript evaluation. Hardcoded in evaluate-transcript.ts — not an env var. |
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
@@ -391,6 +398,7 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/001_initial_schema.sql` | Initial DB schema (sessions, messages, feedback) |
 | `supabase/migrations/002_soft_session_end.sql` | Adds `ended_at` column to sessions; enables data retention |
 | `supabase/migrations/008_feedback_redesign.sql` | Renames `feedback` → `feedback_legacy`; creates `session_feedback` and `session_evaluations` |
+| `supabase/migrations/009_update_session_evaluations_v2.sql` | Adds v7 evaluation dimension columns to `session_evaluations`; backfills from legacy columns |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/evaluation-checklist.md` | Scoring rubric for test evaluation |
@@ -407,7 +415,7 @@ These apply to every Claude Code session in this repo.
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
 | `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments, token usage tracking (`TokenUsage` interface) |
 | `packages/core/src/evaluate-transcript.ts` | Automated transcript evaluation against ten tutoring dimensions |
-| `packages/core/src/evaluation-prompt.md` | Reference copy of the evaluation prompt (not loaded at runtime) |
+| `packages/core/src/evaluation-prompt.md` | Evaluation prompt for automated transcript scoring — v7 framework |
 | `packages/db/src/client.ts` | `createSupabaseClient()` — Supabase initialization |
 | `packages/db/src/sessions.ts` | Session CRUD (create, get, update, markSessionEnded) |
 | `packages/db/src/messages.ts` | Message CRUD (create, list by session) |
