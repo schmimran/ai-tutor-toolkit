@@ -25,6 +25,20 @@ export async function createSessionEvaluation(
   return assertRow(data, error, "createSessionEvaluation");
 }
 
+/** Insert or replace a session_evaluations row (upsert on session_id). */
+export async function upsertSessionEvaluation(
+  client: SupabaseClient,
+  insert: DbSessionEvaluationInsert
+): Promise<DbSessionEvaluation> {
+  const { data, error } = await client
+    .from("session_evaluations")
+    .upsert(insert, { onConflict: "session_id" })
+    .select()
+    .single();
+
+  return assertRow(data, error, "upsertSessionEvaluation");
+}
+
 /** Fetch the evaluation row for a session.  Returns null if not found. */
 export async function getSessionEvaluation(
   client: SupabaseClient,

@@ -399,6 +399,7 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/002_soft_session_end.sql` | Adds `ended_at` column to sessions; enables data retention |
 | `supabase/migrations/008_feedback_redesign.sql` | Renames `feedback` → `feedback_legacy`; creates `session_feedback` and `session_evaluations` |
 | `supabase/migrations/009_update_session_evaluations_v2.sql` | Adds v7 evaluation dimension columns to `session_evaluations`; backfills from legacy columns |
+| `supabase/migrations/010_relax_legacy_evaluation_columns.sql` | Drops NOT NULL on legacy v6 columns (`opening_sequence`, `asked_why`, `clarity`, `tone`) so v7 evaluations can insert without them |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/evaluation-checklist.md` | Scoring rubric for test evaluation |
