@@ -4,6 +4,9 @@
 //                  focusUpload, addToGallery, resetGallery
 
 (function () {
+  var ZOOM_SCALE = 250; // background-size percentage for hover zoom
+  var supportsHover = window.matchMedia('(hover: hover)').matches;
+
   let galleryOpen = false;
 
   // DOM refs — resolved after DOMContentLoaded
@@ -47,10 +50,35 @@
     if (!entry) return;
 
     if (entry.mimeType.startsWith('image/') && entry.blobUrl) {
+      const wrap = document.createElement('div');
+      wrap.className = 'gallery-zoom-wrap';
+
       const img = document.createElement('img');
       img.src = entry.blobUrl;
       img.alt = entry.name;
-      galleryFocused.appendChild(img);
+      wrap.appendChild(img);
+
+      if (supportsHover) {
+        wrap.addEventListener('mouseenter', function () {
+          wrap.style.backgroundImage = 'url(' + entry.blobUrl + ')';
+          wrap.style.backgroundSize = ZOOM_SCALE + '%';
+          wrap.classList.add('zooming');
+        });
+        wrap.addEventListener('mousemove', function (e) {
+          var rect = wrap.getBoundingClientRect();
+          var x = ((e.clientX - rect.left) / rect.width) * 100;
+          var y = ((e.clientY - rect.top) / rect.height) * 100;
+          wrap.style.backgroundPosition = x + '% ' + y + '%';
+        });
+        wrap.addEventListener('mouseleave', function () {
+          wrap.classList.remove('zooming');
+          wrap.style.backgroundImage = '';
+          wrap.style.backgroundSize = '';
+          wrap.style.backgroundPosition = '';
+        });
+      }
+
+      galleryFocused.appendChild(wrap);
 
       const label = document.createElement('div');
       label.className = 'gallery-filename';
