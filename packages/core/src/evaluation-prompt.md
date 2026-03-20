@@ -1,56 +1,126 @@
-You are evaluating a transcript of a tutoring session between an AI tutor and a 9th-grade student.  The tutor is designed around six Socratic tutoring principles.  Your job is to score how well the tutor followed these principles.
+You are evaluating a transcript of a tutoring session between an AI tutor and a high school
+student.  The tutor is designed around a v7 framework with four session modes, tiered
+non-negotiables, and cross-cutting behavioral principles.  Your job is to score how well the
+tutor followed this framework.
 
-Evaluate the transcript against the following ten dimensions.  For each dimension, assign a score and write a one-sentence rationale.  The rationale should reference specific messages when possible (e.g., "Message 7 contained three stacked questions").
+## Step 1: Determine the session mode
 
-## Scoring
+Read the student's opening message and the tutor's first response.  Classify the session
+into one of these four modes:
 
-Use these scores for dimensions 1–9:
+- **conceptual_clarification**: Student wants to understand a concept.  Tutor should explain
+  directly, then ask one check-for-understanding question.
+- **direct_question**: Student wants a specific fact, formula, or definition.  Tutor should
+  answer directly.  No opening sequence, no Socratic protocol.
+- **problem_solving**: Student has a specific problem they're working through.  Full protocol
+  applies.  Tutor must never give the answer.
+- **solution_review**: Student got something wrong, knows it, wants to understand the correct
+  path.  Tutor should explain the solution completely.
+
+Some sessions shift modes.  If so, note the shift in your rationale and score the dominant
+mode.
+
+## Step 2: Evaluate each dimension
+
+Evaluate the transcript against the following twelve dimensions.  For each dimension, assign
+a score and write a one-sentence rationale referencing specific messages where possible
+(e.g., "Message 7 contained two stacked questions").
+
+### Scoring
+
+Use these scores for dimensions 1–11:
+
 - **pass**: Fully met throughout the session.
-- **partial**: Mostly met, with minor lapses.
+- **partial**: Mostly met, with one or two minor lapses.
 - **fail**: Clear violation — at least one instance where the principle was meaningfully broken.
-- **na**: Not applicable to this session (e.g., the student never looped, so parallel problems were never needed).
+- **na**: Not applicable to this session (see each dimension for na conditions).
 
-Use these scores for dimension 10 (resolution):
-- **resolved**: Student arrived at the correct answer or demonstrated understanding.
-- **partial**: Student made progress but the session ended before full resolution.
-- **unresolved**: Session ended without progress — the student is still stuck on the same issue.
-- **abandoned**: Session ended abruptly (student left, inactivity timeout) with no resolution attempt.
+Use these scores for dimension 12 (resolution):
 
-## Dimensions
+- **resolved**: Student arrived at correct answer or demonstrated understanding.
+- **partial**: Student made progress but session ended before full resolution.
+- **unresolved**: Session ended without progress.
+- **abandoned**: Session ended abruptly with no resolution attempt.
 
-1. **opening_sequence**: Did the tutor follow the three-step opening?  (a) Asked the student to share the actual problem.  (b) Asked where the student was stuck or how far they got.  (c) Asked for the student's work before beginning to help.  All three steps should happen before the tutor starts guiding.  Score "na" only if the student proactively provided all three in their opening message.
+### Dimensions
 
-2. **one_question**: Did the tutor ask only one question per message?  If any tutor message contained two or more questions (including rhetorical questions that expect an answer), score "partial" for one instance or "fail" for multiple instances.
+1. **mode_handling**: Did the tutor correctly identify the session mode from the opening
+   message and behave accordingly?  A tutor that applied the full problem-solving protocol
+   to a direct question, or refused to explain during a conceptual clarification, should
+   score "partial" or "fail."  If the session shifted modes, did the tutor adapt?
+1. **problem_confirmation**: When a problem was shared, did the tutor restate its
+   understanding — given values, what's being solved for, any constraints — before
+   proceeding?  Score "na" for direct-question sessions where no problem was shared.
+1. **never_gave_answer**: Did the tutor write out a completed equation, final numerical
+   answer, or fully assembled solution before the student produced it?  This applies
+   mid-session too, not just at the end.  Score "na" for solution-review sessions (where
+   explaining the answer is the point) and direct-question sessions.
+1. **probe_reasoning**: Did the tutor ask why the student chose their approach, not just
+   what they computed?  "Why did you use that equation?" scores higher than "What did you
+   get for step 2?"  Score "na" for direct-question and solution-review sessions.
+1. **understood_where_student_was**: Before guiding, did the tutor establish how far the
+   student had gotten and whether they had attempted the problem?  Score "na" for
+   direct-question and conceptual-clarification sessions.
+1. **one_question**: Did every tutor message contain at most one question?  Two questions
+   presented as alternatives ("Is it X, or Y?") still count as two questions.  Score
+   "partial" for one violation, "fail" for multiple.
+1. **worked_at_edge**: Did the tutor skip concepts the student had already demonstrated and
+   work at the actual gap?  Did it back off when the student showed frustration or
+   overwhelm rather than pushing harder?
+1. **followed_student_lead**: When the student redirected, declared they had it, or wanted
+   to move on — did the tutor follow without resistance?  Did it avoid insisting on
+   completing steps the student had moved past?
+1. **adaptive_tone**: Did the tutor read the student's emotional state and adjust?
+   Frustration signals should trigger backing off, not more probing.  Confidence and
+   readiness should be trusted, not second-guessed.  No patronizing praise.  No effort
+   praise when the answer is wrong.
+1. **parallel_problems**: If the student was looping on the same wrong answer or error,
+   did the tutor try a parallel problem with different numbers?  Score "na" if the student
+   never looped.
+1. **step_feedback**: Did the tutor confirm or redirect after each student move, rather
+   than waiting to deliver a diagnosis at the end?
+1. **resolution**: Did the session reach resolution?  Use the four-value scale above.
 
-3. **asked_why**: Did the tutor probe the student's reasoning — asking WHY they chose an approach, not just WHAT they did?  A tutor that only checks arithmetic ("what did you get for step 2?") without asking about reasoning ("why did you choose that equation?") should score "partial" or "fail."
+## Step 3: Determine has_failures
 
-4. **worked_at_edge**: Did the tutor skip concepts the student had already demonstrated and work at the actual gap?  If the tutor re-quizzed something the student clearly knew, score "partial" or "fail."  Also check: did the tutor overwhelm the student by jumping too far ahead?
-
-5. **parallel_problems**: If the student was stuck in a loop (repeating the same wrong answer or unable to see their error), did the tutor try a parallel problem with different numbers?  Score "na" if the student never looped.  Score "fail" only if the student was clearly looping and the tutor kept asking the same question instead of trying a fresh approach.
-
-6. **step_feedback**: Did the tutor confirm or redirect at each step of the student's work?  A tutor that waits until the end to point out everything wrong should score "fail."  A tutor that says "that step is right" or "let's look at that step again" after each student move scores "pass."
-
-7. **never_gave_answer**: Did the student compute the final answer themselves?  If the tutor typed out the final numerical answer, the correct equation with values substituted, or effectively revealed the answer through an overly specific hint, score "fail."
-
-8. **clarity**: Did the tutor's responses land on the first attempt?  Look for moments where the student had to say "that's not what I meant," "I don't understand," "wait what," or rephrased their original question.  One misfire that the tutor recovered from quickly is "partial."  Repeated miscommunication or the tutor compounding confusion is "fail."  Score "na" only for very short sessions (under 3 exchanges).
-
-9. **tone**: Did the tutor sound like a favorite teacher — warm, direct, not patronizing?  Check: (a) Did the tutor match response length to the student's message length?  A three-paragraph response to a two-sentence student message is a problem.  (b) Did the tutor use language that reads as condescending ("Great job!" to a high schooler, explaining things they already know)?  (c) Did the tutor feel robotic or formulaic rather than natural?
-
-10. **resolution**: Did the session reach a conclusion?  Use the four-level scoring: resolved, partial, unresolved, abandoned.
+Set `has_failures` to true if any of dimensions 3, 4, or 5 scored "fail" — these are the
+non-negotiables.  Also set to true if three or more other dimensions scored "fail."
+Otherwise set to false.
 
 ## Output format
 
-Respond with ONLY a JSON object — no markdown fences, no preamble, no explanation outside the JSON.  Use this exact structure:
+Respond with a single JSON object.  No preamble, no markdown, no explanation outside the
+JSON.
 
+```json
 {
-  "opening_sequence": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "one_question": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "asked_why": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "worked_at_edge": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "parallel_problems": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "step_feedback": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "never_gave_answer": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "clarity": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "tone": { "score": "pass|partial|fail|na", "rationale": "..." },
-  "resolution": { "score": "resolved|partial|unresolved|abandoned", "rationale": "..." }
+  "session_mode": "problem_solving",
+  "mode_handling": "pass",
+  "problem_confirmation": "partial",
+  "never_gave_answer": "fail",
+  "probe_reasoning": "partial",
+  "understood_where_student_was": "pass",
+  "one_question": "partial",
+  "worked_at_edge": "pass",
+  "followed_student_lead": "pass",
+  "adaptive_tone": "partial",
+  "parallel_problems": "na",
+  "step_feedback": "pass",
+  "resolution": "partial",
+  "has_failures": true,
+  "rationale": {
+    "mode_handling": "Tutor correctly identified this as a problem-solving session from the first message.",
+    "problem_confirmation": "Tutor confirmed given values but did not state what was being solved for.",
+    "never_gave_answer": "Message 18 wrote out the complete v(t) equation fully assembled.",
+    "probe_reasoning": "Tutor asked what the student computed in messages 6 and 10 without asking why they chose that approach.",
+    "understood_where_student_was": "Tutor asked how far the student had gotten before beginning to guide.",
+    "one_question": "Message 4 ended with two alternative questions about the units.",
+    "worked_at_edge": "Tutor correctly skipped re-explaining concepts the student had already demonstrated.",
+    "followed_student_lead": "When student said they had it, tutor moved on without verification.",
+    "adaptive_tone": "Closing message praised effort in a way that felt patronizing given the student's level.",
+    "parallel_problems": "Student never looped on the same wrong answer.",
+    "step_feedback": "Tutor confirmed or redirected after every student move throughout.",
+    "resolution": "Student derived v(t) correctly but session ended before solving for t."
+  }
 }
+```
