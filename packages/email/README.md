@@ -58,7 +58,7 @@ await sendTranscript(
 |-------|------|-------------|
 | `transcript` | `TranscriptEntry[]` | `{ role: "Student" \| "Tutor", text: string }[]` |
 | `files` | `FileEntry[]` | Uploaded files (sent as attachments, max ~40 MB total) |
-| `clientInfo` | `ClientInfo \| null` | IP, geolocation, user agent |
+| `clientInfo` | `ClientInfo` | IP, geolocation, user agent |
 | `startedAt` | `Date` | Session start time |
 | `lastActivityAt` | `Date` | Session last activity time |
 | `durationMs` | `number` | Session duration in milliseconds |
@@ -68,6 +68,8 @@ await sendTranscript(
 | `studentFeedback` | `StudentFeedbackPayload \| null` | _(optional)_ Student feedback. Omit or pass `null` if not collected. |
 
 **`evaluation` shape:**
+
+Sends a single feedback summary email.
 
 ```typescript
 {

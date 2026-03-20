@@ -85,6 +85,8 @@ await createMessage(db, {
   role: "user",
   content: "I got v = 10 m/s",
   thinking: null,
+  input_tokens: null,
+  output_tokens: null,
 });
 ```
 
@@ -152,6 +154,22 @@ const ev = await createSessionEvaluation(db, {
 #### `getSessionEvaluation(client, sessionId): Promise<DbSessionEvaluation | null>`
 
 Fetches the evaluation row for a session.  Returns `null` if not found.  The UNIQUE constraint on `session_id` guarantees at most one row.
+
+---
+
+### Disclaimer acceptances
+
+```typescript
+import { createDisclaimerAcceptance, linkDisclaimerAcceptance } from "@ai-tutor/db";
+```
+
+#### `createDisclaimerAcceptance(client, insert): Promise<DbDisclaimerAcceptance>`
+
+Inserts a disclaimer acceptance record and returns the created row.
+
+#### `linkDisclaimerAcceptance(client, sessionId): Promise<void>`
+
+Backfills `session_id` on disclaimer acceptance rows that were recorded before the session row existed.  Called after `createSession()` on the first chat turn.  Matches on `client_session_id` and sets the real FK.  Safe to call when no matching rows exist.
 
 ---
 
@@ -303,14 +321,14 @@ CREATE TABLE disclaimer_acceptances (
 
 ## Setup
 
-Run the migration against your Supabase project before starting the API server:
+Run all migrations against your Supabase project before starting the API server.  Use the Supabase SQL Editor (paste each file in order) or the Supabase CLI:
 
 ```bash
-# Via Supabase SQL Editor (paste supabase/migrations/001_initial_schema.sql)
-# Or via Supabase CLI:
 supabase login
 supabase link --project-ref <your-project-ref>
 supabase db push
 ```
+
+Migrations must be applied in order: `001` through `007`.
 
 This package is not run directly — it is imported by `apps/api`.

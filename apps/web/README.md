@@ -11,7 +11,7 @@ Static web frontend for the AI Tutor.  No framework, no build step — a single 
 ```
 apps/web/
 ├── public/
-│   └── index.html   ← All HTML, CSS, and JavaScript in one file (~1,200 lines)
+│   └── index.html   ← All HTML, CSS, and JavaScript in one file
 ├── package.json
 └── README.md
 ```
@@ -34,6 +34,7 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 |---------|---------|
 | [KaTeX](https://katex.org/) | Render LaTeX math expressions in tutor responses |
 | [marked](https://marked.js.org/) | Render Markdown in tutor responses |
+| [Google Fonts](https://fonts.google.com/) | Nunito, Plus Jakarta Sans, JetBrains Mono typefaces |
 
 ## Features
 
@@ -48,6 +49,7 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | Session feedback | Session-level outcome, experience, and comment collected at session end. |
 | New session | One-click reset with automatic prior session cleanup (`DELETE /api/sessions/:id`) |
 | Model indicator | Shows current model and extended thinking status (from `/api/config`) |
+| Disclaimer overlay | Shown on first visit; acceptance recorded via `POST /api/disclaimer/accept` |
 
 ## API calls made by the frontend
 
@@ -61,9 +63,9 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 
 ## Design notes
 
-- Warm beige/brown color scheme; serif headings, sans-serif body, monospace code blocks
-- Two-column layout on desktop; single column on mobile
-- Student messages: light blue bubbles; tutor messages: white bubbles
+- Dark color scheme; purple (`#7c6af7`) and cyan (`#22d3ee`) accent colors
+- Single-column flex layout; responsive on mobile
+- Student messages: dark purple-tinted bubbles; tutor messages: dark teal-tinted bubbles
 - Session ID is a client-generated UUID (`crypto.randomUUID()`), stored in memory (not localStorage)
 
 ## Contributing
