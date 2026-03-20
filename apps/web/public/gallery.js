@@ -158,8 +158,10 @@
     var startX = 0;
     var startW = 0;
 
-    function onMouseMove(e) {
-      var delta = e.clientX - startX;
+    // The resizer sits to the LEFT of the gallery pane, so dragging left
+    // (negative delta) should GROW the gallery — hence the negation.
+    function applyDelta(clientX) {
+      var delta = startX - clientX;
       var newW  = Math.min(
         Math.max(startW + delta, GALLERY_MIN_WIDTH),
         Math.min(GALLERY_MAX_WIDTH, Math.round(window.innerWidth * 0.5))
@@ -167,19 +169,17 @@
       galleryPane.style.width = newW + 'px';
     }
 
+    function onMouseMove(e) { applyDelta(e.clientX); }
+
     function onMouseUp(e) {
-      onMouseMove(e);
+      applyDelta(e.clientX);
       endDrag();
     }
 
     function onTouchMove(e) {
       if (e.touches.length !== 1) return;
-      var delta = e.touches[0].clientX - startX;
-      var newW  = Math.min(
-        Math.max(startW + delta, GALLERY_MIN_WIDTH),
-        Math.min(GALLERY_MAX_WIDTH, Math.round(window.innerWidth * 0.5))
-      );
-      galleryPane.style.width = newW + 'px';
+      e.preventDefault();
+      applyDelta(e.touches[0].clientX);
     }
 
     function endDrag() {
@@ -217,7 +217,7 @@
       startW = galleryPane.offsetWidth;
       galleryResizer.classList.add('dragging');
       galleryPane.classList.add('no-transition');
-      document.addEventListener('touchmove', onTouchMove, { passive: true });
+      document.addEventListener('touchmove', onTouchMove, { passive: false });
       document.addEventListener('touchend', endDrag);
     }, { passive: false });
   }
