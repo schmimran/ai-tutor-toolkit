@@ -93,6 +93,7 @@ For parents comfortable in a terminal.  No web interface — you type your stude
 ```bash
 npm install
 export ANTHROPIC_API_KEY=sk-ant-...
+npm run build
 npm run cli
 ```
 
@@ -206,6 +207,7 @@ export EMAIL_FROM=tutor@tutor.yourdomain.com # must match your verified domain
 | `CORS_ORIGIN` | no | `*` | Allowed origin if you put the app behind a specific URL. |
 | `MODEL` | no | `claude-sonnet-4-6` | Claude model ID. |
 | `EXTENDED_THINKING` | no | `true` | Set to `false` to disable extended thinking (faster, lower cost, weaker tutoring quality). |
+| `SYSTEM_PROMPT_PATH` | no | `examples/physics-geometry-9th-grade.md` | Path to the system prompt file, relative to the repo root. |
 | `PORT` | no | `3000` | Port the server listens on. |
 
 ---

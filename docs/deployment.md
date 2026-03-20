@@ -48,15 +48,15 @@ On the configuration page:
 
 Scroll down to the **Environment Variables** section.  Add each variable below as a key/value pair.
 
-| Variable | Where to find the value | Mark as Secret? |
-|----------|-------------------------|-----------------|
-| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API Keys | **Yes** |
-| `SUPABASE_URL` | Supabase dashboard → Settings → API → Project URL | No |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase dashboard → Settings → API → service_role key | **Yes** |
-| `RESEND_API_KEY` | Resend dashboard → API Keys | **Yes** |
-| `PARENT_EMAIL` | Your email address (where transcripts will be sent) | No |
-| `EMAIL_FROM` | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |
-| `CORS_ORIGIN` | Your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`) | No |
+| Variable | Required | Where to find the value | Mark as Secret? |
+|----------|----------|-------------------------|-----------------|
+| `ANTHROPIC_API_KEY` | **yes** | [console.anthropic.com](https://console.anthropic.com) → API Keys | **Yes** |
+| `SUPABASE_URL` | **yes** | Supabase dashboard → Settings → API → Project URL | No |
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | Supabase dashboard → Settings → API → service_role key | **Yes** |
+| `RESEND_API_KEY` | no | Resend dashboard → API Keys | **Yes** |
+| `PARENT_EMAIL` | no | Your email address (where transcripts will be sent) | No |
+| `EMAIL_FROM` | no | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |
+| `CORS_ORIGIN` | no | Your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`) | No |
 
 You can skip `RESEND_API_KEY`, `PARENT_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.
 

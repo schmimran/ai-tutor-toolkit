@@ -21,29 +21,29 @@ import { loadConfig } from "@ai-tutor/core";
 const config = loadConfig();
 ```
 
-Reads environment variables and returns a typed config object.  Throws if `ANTHROPIC_API_KEY` is not set.
+Reads environment variables and returns a typed config object.
 
 **Returns:**
 
 ```typescript
 {
-  model: string;            // MODEL env var, default "claude-sonnet-4-6"
+  model: string;             // MODEL env var, default "claude-sonnet-4-6"
   extendedThinking: boolean; // EXTENDED_THINKING env var, default true
-  systemPromptPath: string;  // SYSTEM_PROMPT_PATH env var, default "templates/tutor-prompt.md"
-  port: number;             // PORT env var, default 3000
+  systemPromptPath: string;  // SYSTEM_PROMPT_PATH env var, default "examples/physics-geometry-9th-grade.md"
+  port: number;              // PORT env var, default 3000
 }
 ```
 
 ---
 
-### `loadSystemPrompt(path: string): Promise<string>`
+### `loadSystemPrompt(path: string): string`
 
 ```typescript
 import { loadSystemPrompt } from "@ai-tutor/core";
-const prompt = await loadSystemPrompt(config.systemPromptPath);
+const prompt = loadSystemPrompt(config.systemPromptPath);
 ```
 
-Loads a prompt file from the repo root.  Strips everything above the `## Begin prompt` marker (documentation/comments above that line are ignored).  Resolves the repo root by walking up the directory tree looking for a `package.json` with `"workspaces"`.
+Loads a prompt file from the repo root (synchronous).  Strips everything above the `## Begin prompt` marker (documentation/comments above that line are ignored).  Resolves the repo root by walking up the directory tree looking for a `package.json` with `"workspaces"`.  Exits the process if the file cannot be read.
 
 ---
 
@@ -56,15 +56,15 @@ const tutorClient = createTutorClient(config, systemPrompt);
 
 Returns an object with two methods:
 
-#### `sendMessage(session, userContent, transcriptText?): Promise<string>`
+#### `sendMessage(session, userContent, transcriptText): Promise<string>`
 
 Blocking version.  Sends a message and waits for the full response.  Adds both the user message and assistant response to the session.  Returns the response text.
 
 Used by the CLI (where streaming is unnecessary).
 
-#### `streamMessage(session, userContent, transcriptText?): AsyncGenerator<string>`
+#### `streamMessage(session, userContent, transcriptText): AsyncGenerator<string, TokenUsage>`
 
-Streaming version.  Yields text deltas one by one.  Thinking tokens are buffered internally and not yielded.  Adds the full user message and assistant response to the session after streaming completes.
+Streaming version.  Yields text deltas one by one.  Thinking tokens are buffered internally and not yielded.  Adds the full user message and assistant response to the session after streaming completes.  Returns per-call `TokenUsage` as the generator return value.
 
 Used by the API server for SSE responses.
 
@@ -73,8 +73,8 @@ Used by the API server for SSE responses.
 | Name | Type | Notes |
 |------|------|-------|
 | `session` | `Session` | Current session (message history appended in place) |
-| `userContent` | `string \| ContentBlock[]` | Student's message; can include image/PDF content blocks |
-| `transcriptText` | `string?` | Plain-text version for transcript (if different from userContent) |
+| `userContent` | `string \| ContentBlockParam[]` | Student's message; can include image/PDF content blocks |
+| `transcriptText` | `string` | Plain-text version for transcript |
 
 ---
 
@@ -137,21 +137,51 @@ Holds all state for one tutoring conversation.
 | `files` | `FileEntry[]` | Uploaded file buffers |
 | `startedAt` | `Date` | Session creation time |
 | `lastActivityAt` | `Date` | Last message time |
-| `clientInfo` | `ClientInfo \| null` | IP, geolocation, user agent |
+| `clientInfo` | `ClientInfo` | IP, geolocation, user agent |
 | `emailSent` | `boolean` | Whether transcript email has been sent |
+| `tokenUsage` | `TokenUsage` | Cumulative `{ inputTokens, outputTokens }` for this session |
 
 **Methods:**
 
 | Method | Description |
 |--------|-------------|
-| `addUserMessage(content, transcriptText?)` | Appends user message to history |
-| `addAssistantResponse(contentBlocks)` | Extracts text, appends to history with thinking blocks |
+| `addUserMessage(content, transcriptText)` | Appends user message to history |
+| `addAssistantResponse(contentBlocks)` | Extracts text, appends to history with thinking blocks; returns response text |
 | `addFile(filename, mimetype, buffer)` | Stores an uploaded file |
+| `addTokenUsage(input, output)` | Accumulates token counts from an API call |
 | `touchActivity()` | Updates `lastActivityAt` |
 | `setClientInfo(info)` | Stores IP/geo/user-agent |
 | `markEmailSent()` | Sets `emailSent = true` |
-| `getSessionSummary()` | Returns `{ transcript, files, clientInfo, startedAt, lastActivityAt, durationMs }` |
-| `reset()` | Clears message history and transcript; keeps clientInfo |
+| `getSessionSummary()` | Returns `{ transcript, filesMetadata, clientInfo, startedAt, lastActivityAt, durationMs, tokenUsage }` |
+| `reset()` | Clears message history, transcript, files, and token usage; keeps `clientInfo` |
+
+---
+
+## Exported types
+
+```typescript
+import type {
+  Config,
+  TutorClient,
+  TranscriptEntry,
+  FileEntry,
+  FileMetadata,
+  ClientInfo,
+  TokenUsage,
+  SessionSummary,
+} from "@ai-tutor/core";
+```
+
+| Type | Description |
+|------|-------------|
+| `Config` | Return type of `loadConfig()` |
+| `TutorClient` | Return type of `createTutorClient()` |
+| `TranscriptEntry` | `{ role: "Student" \| "Tutor"; text: string }` |
+| `FileEntry` | `{ filename: string; mimetype: string; buffer: Buffer }` |
+| `FileMetadata` | `{ filename: string; mimetype: string; size: number }` (used in `SessionSummary`) |
+| `ClientInfo` | `{ ip?: string; geo?: Record<string, unknown> \| null; userAgent?: string }` |
+| `TokenUsage` | `{ inputTokens: number; outputTokens: number }` |
+| `SessionSummary` | Return type of `session.getSessionSummary()` |
 
 ---
 
@@ -164,7 +194,7 @@ All configuration is via environment variables.  See the root README for the ful
 | `ANTHROPIC_API_KEY` | **yes** | — |
 | `MODEL` | no | `claude-sonnet-4-6` |
 | `EXTENDED_THINKING` | no | `true` |
-| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt.md` |
+| `SYSTEM_PROMPT_PATH` | no | `examples/physics-geometry-9th-grade.md` |
 | `PORT` | no | `3000` |
 
 ## Setup
