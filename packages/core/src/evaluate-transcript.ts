@@ -1,18 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { readFileSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { loadSystemPrompt } from "./prompt-loader.js";
 
 /** Load the evaluation prompt from the co-located .md file (single source of truth). */
-const EVALUATION_PROMPT = readFileSync(
-  resolve(__dirname, "../src/evaluation-prompt.md"),
-  "utf-8"
-);
+const EVALUATION_PROMPT = loadSystemPrompt("packages/core/src/evaluation-prompt.md");
 
 export interface EvaluationResult {
+  model: string;
   session_mode: string;
   mode_handling: string;
   problem_confirmation: string;
@@ -99,6 +92,7 @@ export async function evaluateTranscript(
   const has_failures = nonNegotiableFail || otherFailCount >= 3;
 
   return {
+    model,
     session_mode: parsed.session_mode as string,
     mode_handling: parsed.mode_handling as string,
     problem_confirmation: parsed.problem_confirmation as string,

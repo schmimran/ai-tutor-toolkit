@@ -40,7 +40,7 @@ export async function runSessionEvaluation(
     const result = await evaluateTranscript(transcript);
     await createSessionEvaluation(db, {
       session_id: sessionId,
-      model: "claude-sonnet-4-6",
+      model: result.model,
       mode_handling: result.mode_handling,
       problem_confirmation: result.problem_confirmation,
       never_gave_answer: result.never_gave_answer,
