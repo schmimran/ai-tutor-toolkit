@@ -146,6 +146,38 @@
       display: none;
     }
 
+    #inactivity-timer {
+      font-family: var(--font-sans);
+      font-size: 0.71rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--surface-alt);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      display: none;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #inactivity-timer.warn {
+      color: #f59e0b;
+      border-color: #78450a;
+      background: #1c1200;
+    }
+
+    #inactivity-timer.urgent {
+      color: var(--danger);
+      border-color: #7f1d1d;
+      background: #1c0606;
+      animation: timer-pulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes timer-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.55; }
+    }
+
     /* ── Main ──────────────────────────────────────────────────────────────── */
     main {
       flex: 1;
