@@ -21,7 +21,7 @@ All packages and apps live in one repo and share a single `node_modules/`.  Buil
 
 ### Plain HTML frontend — no build step
 
-`apps/web/public/index.html` is a single self-contained file.  Libraries (KaTeX, marked) are loaded from CDN.  There is no bundler, no transpilation, no framework.  The API server serves this file as a static asset.  Changes to the frontend are edit-and-refresh; no build command required.
+`apps/web/public/` is a set of plain files served as static assets: `index.html` (structure), `styles.css` (core styles), `app.js` (chat logic), `gallery.css` (gallery pane styles), `gallery.js` (gallery pane logic).  Libraries (KaTeX, marked) are loaded from CDN.  There is no bundler, no transpilation, no framework.  The API server serves these files as static assets.  Changes to the frontend are edit-and-refresh; no build command required.
 
 ### Separate API server
 
@@ -335,7 +335,7 @@ Both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are required for the API ser
 
 ## Frontend approach
 
-`apps/web/public/index.html` is the entire frontend — HTML, CSS, and JavaScript in one file.  No bundler.  No framework.  No compilation.
+`apps/web/public/` contains the entire frontend — split across `index.html` (structure), `styles.css` (core styles), `app.js` (chat logic), `gallery.css` (gallery pane styles), and `gallery.js` (gallery pane logic).  No bundler.  No framework.  No compilation.
 
 CDN libraries loaded at runtime:
 - **KaTeX** — renders LaTeX math (`$...$`, `$$...$$`)
@@ -427,7 +427,11 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/lib/validation.ts` | Shared validation constants (UUID regex) |
 | `apps/api/src/middleware/cors.ts` | CORS middleware (origin from `CORS_ORIGIN` env var) |
 | `apps/api/src/middleware/errors.ts` | Global Express error handler |
-| `apps/web/public/index.html` | Entire frontend — HTML, CSS, JS in one file |
+| `apps/web/public/index.html` | Frontend HTML structure; loads styles.css, gallery.css, app.js, gallery.js |
+| `apps/web/public/styles.css` | Core layout (flex-row main + chat-column) and all component CSS |
+| `apps/web/public/app.js` | Chat application logic; exposes `sessionUploads` global for gallery.js |
+| `apps/web/public/gallery.css` | Gallery pane styles, thumbnail strip, img-ref pills, mobile drawer |
+| `apps/web/public/gallery.js` | Gallery pane logic; exposes `openGallery`, `closeGallery`, `focusUpload`, `addToGallery`, `resetGallery` globals |
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
 | `apps/ios/README.md` | Placeholder — future iOS app (no code yet) |
 | `render.yaml` | Render.com deployment config |

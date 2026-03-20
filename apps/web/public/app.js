@@ -33,6 +33,9 @@
   let msgCounter        = 0;
   let fbSelections      = { outcome: null, experience: null };
 
+  let sessionUploads = []; // { id, name, mimeType, blobUrl, messageId }
+  let uploadCounter  = 0;
+
   const END_SENTINEL   = '[END_SESSION_AVAILABLE]';
   const MAX_FILES      = 5;
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -124,11 +127,35 @@
     bubble.textContent = text;
 
     if (files.length > 0) {
-      const note = document.createElement('div');
-      note.style.cssText = 'margin-top:6px;font-size:.77rem;color:var(--text-muted)';
-      note.textContent = `${files.length} attachment${files.length > 1 ? 's' : ''}: ` +
-        files.map(f => f.name).join(', ');
-      bubble.appendChild(note);
+      const thumbRow = document.createElement('div');
+      thumbRow.className = 'msg-thumbs';
+      for (const f of files) {
+        const entry = sessionUploads.find(u => u.name === f.name && u.messageId === id);
+        const el = document.createElement('div');
+        el.className = 'msg-thumb-item';
+        if (f.type.startsWith('image/') && entry?.blobUrl) {
+          const img = document.createElement('img');
+          img.src = entry.blobUrl;
+          img.alt = f.name;
+          el.appendChild(img);
+        } else {
+          const icon = document.createElement('span');
+          icon.className = 'msg-thumb-pdf';
+          icon.textContent = '📄';
+          const name = document.createElement('span');
+          name.className = 'msg-thumb-name';
+          name.textContent = f.name;
+          el.appendChild(icon);
+          el.appendChild(name);
+        }
+        if (entry) {
+          el.addEventListener('click', () => {
+            if (typeof focusUpload === 'function') focusUpload(entry.id);
+          });
+        }
+        thumbRow.appendChild(el);
+      }
+      bubble.appendChild(thumbRow);
     }
 
     div.appendChild(label);
@@ -169,17 +196,48 @@
     return entry;
   }
 
+  function parseImgRefs(text) {
+    return text.replace(/\[IMG:([^\]]+)\]/g, (_match, filename) => {
+      const trimmed = filename.trim();
+      const entry = sessionUploads.find(
+        u => u.name.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (entry) {
+        return `<span class="img-ref" data-upload-id="${escHtml(entry.id)}" title="View: ${escHtml(trimmed)}" tabindex="0">📎 ${escHtml(trimmed)}</span>`;
+      } else {
+        return `<span class="img-ref unmatched" title="${escHtml(trimmed)}">📎 ${escHtml(trimmed)}</span>`;
+      }
+    });
+  }
+
   function finalizeTutor(entry, rawText) {
     const hasSentinel = rawText.includes(END_SENTINEL);
     const clean = rawText.replace(END_SENTINEL, '').trim();
 
+    // Replace [IMG:...] markers before markdown parse
+    const withRefs = parseImgRefs(clean);
+
     // Render markdown (marked is defer-loaded; should be ready by first message)
     const html = (typeof marked !== 'undefined')
-      ? marked.parse(clean)
-      : `<p>${escHtml(clean)}</p>`;
+      ? marked.parse(withRefs)
+      : `<p>${escHtml(withRefs)}</p>`;
 
     entry.bubbleEl.innerHTML = html;
     renderKaTeX(entry.bubbleEl);
+
+    // Wire click handlers for image-reference pills
+    entry.bubbleEl.querySelectorAll('.img-ref[data-upload-id]').forEach(pill => {
+      pill.addEventListener('click', () => {
+        if (typeof focusUpload === 'function') focusUpload(pill.dataset.uploadId);
+      });
+    });
+
+    // Auto-focus the last referenced image
+    const refPills = entry.bubbleEl.querySelectorAll('.img-ref[data-upload-id]');
+    if (refPills.length > 0) {
+      const lastId = refPills[refPills.length - 1].dataset.uploadId;
+      if (typeof focusUpload === 'function') focusUpload(lastId);
+    }
 
     if (hasSentinel && !endAvailable && !sessionEnded) {
       endAvailable = true;
@@ -207,8 +265,32 @@
     setInputDisabled(true);
 
     const files = attachments.map(a => a.file);
+
+    // Pre-compute the message ID that appendUserMsg will assign (it uses ++msgCounter).
+    // Push uploads into sessionUploads with the correct messageId so appendUserMsg
+    // can find them when rendering thumbnails.
+    const nextMsgId = `m${msgCounter + 1}`;
+    for (const a of attachments) {
+      const blobUrl = a.file.type.startsWith('image/')
+        ? (a.chipEl.querySelector('img')?.src ?? null)
+        : null;
+      sessionUploads.push({
+        id: `upload-${uploadCounter++}`,
+        name: a.file.name,
+        mimeType: a.file.type,
+        blobUrl,
+        messageId: nextMsgId,
+      });
+      a.retained = true; // signal clearAttachments not to revoke this blob URL
+    }
+
     appendUserMsg(text, files);
     const tutorEntry = appendTutorPlaceholder();
+
+    // Add newly pushed uploads to gallery (after appendUserMsg so gallery is ready)
+    for (const upload of sessionUploads.filter(u => u.messageId === nextMsgId)) {
+      if (typeof addToGallery === 'function') addToGallery(upload);
+    }
 
     // Build multipart form
     const fd = new FormData();
@@ -436,6 +518,12 @@
     // Reset state
     sessionId       = crypto.randomUUID();
     msgList         = [];
+    for (const u of sessionUploads) {
+      if (u.blobUrl) URL.revokeObjectURL(u.blobUrl);
+    }
+    sessionUploads  = [];
+    uploadCounter   = 0;
+    if (typeof resetGallery === 'function') resetGallery();
     clearAttachments();
     isStreaming     = false;
     endAvailable    = false;
@@ -529,7 +617,9 @@
   }
 
   function clearAttachments() {
-    for (const a of attachments) revokeAttachmentURL(a);
+    for (const a of attachments) {
+      if (!a.retained) revokeAttachmentURL(a);
+    }
     attachments = [];
     renderStrip();
     fileInput.value = '';
