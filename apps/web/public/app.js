@@ -390,7 +390,7 @@
   function startCountdownDisplay(totalMs) {
     if (countdownInterval) clearInterval(countdownInterval);
     inactivityTimerEl.classList.remove('warn', 'urgent');
-    inactivityTimerEl.style.display = '';
+    inactivityTimerEl.style.display = 'inline';
 
     var deadline = Date.now() + totalMs;
 
