@@ -19,7 +19,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/gallery.css">
 
 </head>
 <body>
@@ -48,7 +47,6 @@
     <div class="header-right">
       <span id="model-badge" class="model-badge" style="display:none"></span>
       <span id="token-counter"></span>
-      <button class="btn btn-sm" id="btn-gallery-toggle" title="Toggle uploads gallery" disabled>🖼</button>
       <button class="btn btn-sm" id="btn-transcript" disabled>Transcript</button>
       <button class="btn btn-sm" id="btn-end-session-header" disabled>End session</button>
     </div>
@@ -56,21 +54,6 @@
 
   <!-- ── Main ───────────────────────────────────────────────────────────── -->
   <main>
-
-    <!-- Gallery pane -->
-    <aside id="gallery-pane" class="gallery-pane">
-      <div class="gallery-header">
-        <h2 class="gallery-title">Uploads</h2>
-        <button class="btn btn-icon btn-sm" id="btn-gallery-close" title="Close gallery">✕</button>
-      </div>
-      <div class="gallery-focused" id="gallery-focused">
-        <div class="gallery-empty-state">No uploads yet</div>
-      </div>
-      <div class="gallery-thumbs" id="gallery-thumbs"></div>
-    </aside>
-    <div class="gallery-backdrop" id="gallery-backdrop"></div>
-
-    <div class="chat-column">
     <div id="chat-container">
       <div id="chat-area">
         <div id="empty-state">
@@ -131,7 +114,6 @@
         <button class="btn btn-primary" id="btn-send">Send</button>
       </div>
     </div>
-    </div><!-- /.chat-column -->
   </main>
 
   <!-- ── Transcript modal ────────────────────────────────────────────────── -->
@@ -180,6 +162,5 @@
   </div>
 
   <script src="/app.js"></script>
-  <script src="/gallery.js"></script>
 </body>
 </html>

@@ -12,10 +12,8 @@ The frontend lives in `apps/web/public/` and is served as static files by `apps/
 apps/web/
 ├── public/
 │   ├── index.html   ← HTML structure and CDN references
-│   ├── styles.css   ← Core layout and component CSS
-│   ├── app.js       ← Chat application logic
-│   ├── gallery.css  ← Gallery pane styles (loaded after styles.css)
-│   └── gallery.js   ← Gallery pane logic (loaded after app.js)
+│   ├── styles.css   ← All CSS, extracted from index.html
+│   └── app.js       ← All JavaScript, extracted from index.html
 ├── package.json
 └── README.md
 ```
@@ -47,9 +45,6 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | Streaming chat | Responses stream token-by-token via SSE (`/api/chat`) |
 | Markdown + math | marked + KaTeX auto-render after each message |
 | File attachments | Images and PDFs via click or drag-and-drop (up to 5 files, 10 MB each) |
-| Chat bubble thumbnails | Uploaded images shown as 48×48 clickable thumbnails in user message bubbles; PDFs shown as a 📄 pill |
-| Image gallery pane | Collapsible left-side pane showing all uploads for the session; opens on thumbnail click or toggle button |
-| Tutor image references | When the tutor response contains `[IMG:filename.ext]`, it renders as a clickable pill that opens the gallery focused on that file |
 | Transcript viewer | Modal with copy-to-clipboard |
 | Session end detection | Sentinel-based: tutor includes `[END_SESSION_AVAILABLE]` to trigger wrap-up banner |
 | Inactivity timeout | Auto-ends session after 10 minutes idle; triggers transcript email |
@@ -68,37 +63,10 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | `POST /api/feedback` | When end-of-session feedback is submitted or skipped. |
 | `DELETE /api/sessions/:sessionId` | On inactivity timeout or new session button |
 
-## Gallery pane
-
-The gallery pane is a collapsible `<aside>` to the left of the chat column.  It opens when:
-- The student clicks a thumbnail in a chat bubble
-- The student clicks the 🖼 toggle button in the header
-- The tutor's response contains an `[IMG:filename.ext]` reference marker
-
-On viewports ≤ 768px it renders as a fixed-position slide-over drawer with a semi-transparent backdrop.
-
-`gallery.js` exposes these globals for `app.js` to call:
-- `openGallery()` / `closeGallery()` / `isGalleryOpen()`
-- `focusUpload(uploadId)` — focuses a specific upload in the viewer
-- `addToGallery(entry)` — adds a thumbnail to the strip
-- `resetGallery()` — clears all thumbnails (called on new session)
-
-`app.js` exposes `sessionUploads` as a global array that `gallery.js` reads to resolve upload IDs to entries.
-
-### `[IMG:filename]` reference protocol
-
-When the tutor model is instructed to reference an uploaded file, it should use the exact filename in the format `[IMG:filename.ext]`.  The frontend replaces this marker with a clickable pill:
-
-```html
-<span class="img-ref" data-upload-id="upload-0" title="View: homework.jpg">📎 homework.jpg</span>
-```
-
-Clicking the pill calls `focusUpload()` with the upload's ID and opens the gallery.  If the filename doesn't match any upload in `sessionUploads`, the pill renders as muted and non-interactive.
-
 ## Design notes
 
 - Dark color scheme; purple (`#7c6af7`) and cyan (`#22d3ee`) accent colors
-- Flex-row layout: gallery pane (0 width when closed, 320px when open) + chat column (flex: 1)
+- Single-column flex layout; responsive on mobile
 - Student messages: dark purple-tinted bubbles; tutor messages: dark teal-tinted bubbles
 - Session ID is a client-generated UUID (`crypto.randomUUID()`), stored in memory (not localStorage)
 
