@@ -9,7 +9,7 @@ export {
 
 export { createSessionFeedback, getSessionFeedback } from "./session-feedback.js";
 
-export { createSessionEvaluation, getSessionEvaluation } from "./session-evaluations.js";
+export { createSessionEvaluation, upsertSessionEvaluation, getSessionEvaluation } from "./session-evaluations.js";
 
 export { createDisclaimerAcceptance, linkDisclaimerAcceptance } from "./disclaimer-acceptances.js";
 
