@@ -339,23 +339,81 @@
       30%           { transform: translateY(-7px) scale(1.15); opacity: 1; }
     }
 
-    /* ── Feedback pill buttons ─────────────────────────────────────────────── */
-    .fb-btn {
+    /* ── Feedback card ─────────────────────────────────────────────────────── */
+    #fb-card {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px 16px;
+      max-width: 840px;
+      margin: 0 auto;
+      width: 100%;
+      animation: fb-slide-in 0.2s ease both;
+    }
+    #fb-card.active { display: flex; }
+    @keyframes fb-slide-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fb-card-title {
+      font-family: var(--font-heading);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .fb-card-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .fb-card-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      min-width: 130px;
+    }
+    .fb-card-options {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .fb-opt {
       background: var(--surface-alt);
       border: 1px solid var(--border-bright);
       border-radius: var(--radius-pill);
+      padding: 4px 12px;
       color: var(--text-muted);
       font-family: var(--font-sans);
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 5px 14px;
+      font-size: 0.82rem;
+      font-weight: 500;
       cursor: pointer;
       transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
       white-space: nowrap;
     }
-    .fb-btn:hover { background: var(--surface-raise); color: var(--text); border-color: var(--accent); }
-    .fb-btn.chosen { background: var(--accent-light); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent-glow); }
-
+    .fb-opt:hover  { background: var(--surface-raise); color: var(--text); border-color: var(--accent); }
+    .fb-opt.chosen { background: var(--accent-light); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent-glow); }
+    #fb-comment {
+      background: var(--surface-alt);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      color: var(--text);
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #fb-comment:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    #fb-comment::placeholder { color: var(--text-muted); font-style: italic; }
+    .fb-card-actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+    }
     .fb-skip {
       background: none;
       border: none;
@@ -368,80 +426,16 @@
     }
     .fb-skip:hover { color: var(--text); }
 
-    /* ── Feedback prompt popup ─────────────────────────────────────────────── */
-    #fb-prompt {
-      display: none;
-      position: absolute;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%) translateY(16px);
-      background: var(--surface);
-      border: 1px solid var(--border-bright);
-      border-radius: var(--radius);
-      padding: 14px 20px;
-      box-shadow: var(--shadow-md);
-      z-index: 30;
-      flex-direction: column;
-      gap: 10px;
-      align-items: center;
-      text-align: center;
-      min-width: 280px;
-      opacity: 0;
-      transition: opacity 0.2s, transform 0.2s;
+    /* ── Wrapping-up spinner ───────────────────────────────────────────────── */
+    #wrapping-up-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border-bright);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
-    #fb-prompt.active {
-      display: flex;
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-    .fb-prompt-text {
-      font-family: var(--font-heading);
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .fb-prompt-btns {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    /* ── Inline feedback pills ─────────────────────────────────────────────── */
-    .fb-inline {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-      margin-top: 8px;
-      animation: fb-fade-in 0.25s ease both;
-    }
-    @keyframes fb-fade-in {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── Feedback submit bar (replaces input row during feedback) ──────────── */
-    #fb-submit-bar {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 16px 14px;
-      max-width: 840px;
-      margin: 0 auto;
-      width: 100%;
-    }
-    #fb-submit-bar.active { display: flex; }
-    .fb-submit-hint {
-      font-size: 0.84rem;
-      color: var(--text-muted);
-      font-style: italic;
-    }
-    .fb-submit-btns {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Drag overlay ──────────────────────────────────────────────────────── */
     #drag-overlay {
@@ -904,13 +898,6 @@
         <div id="messages"></div>
       </div>
       <div id="drag-overlay">📎 Drop files here</div>
-      <div id="fb-prompt">
-        <p class="fb-prompt-text">Quick question — how'd the session go?</p>
-        <div class="fb-prompt-btns">
-          <button class="btn btn-primary btn-sm" id="btn-fb-yes">Sure, let's do it</button>
-          <button class="fb-skip" id="btn-fb-prompt-skip">Skip</button>
-        </div>
-      </div>
     </div>
 
     <!-- End-session banner -->
@@ -921,11 +908,28 @@
 
     <!-- Input wrapper -->
     <div id="input-wrapper">
-      <div id="fb-submit-bar">
-        <span class="fb-submit-hint">Tap responses that felt right, then submit.</span>
-        <div class="fb-submit-btns">
-          <button class="fb-skip" id="btn-fb-inline-skip">Skip</button>
-          <button class="btn btn-primary" id="btn-fb-inline-submit">Submit feedback</button>
+      <div id="fb-card">
+        <p class="fb-card-title">Quick feedback</p>
+        <div class="fb-card-row">
+          <span class="fb-card-label">Did you figure it out?</span>
+          <div class="fb-card-options" data-field="outcome">
+            <button class="fb-opt" data-val="solved">Yes</button>
+            <button class="fb-opt" data-val="partial">Mostly</button>
+            <button class="fb-opt" data-val="stuck">No</button>
+          </div>
+        </div>
+        <div class="fb-card-row">
+          <span class="fb-card-label">How was the tutor?</span>
+          <div class="fb-card-options" data-field="experience">
+            <button class="fb-opt" data-val="positive">Really helpful</button>
+            <button class="fb-opt" data-val="neutral">Fine</button>
+            <button class="fb-opt" data-val="negative">Not great</button>
+          </div>
+        </div>
+        <textarea id="fb-comment" placeholder="Was I helpful?" rows="2"></textarea>
+        <div class="fb-card-actions">
+          <button class="fb-skip" id="btn-fb-skip">Skip</button>
+          <button class="btn btn-primary" id="btn-fb-submit">Submit</button>
         </div>
       </div>
       <div id="file-strip"></div>
@@ -953,6 +957,14 @@
         <button class="btn btn-sm" id="btn-copy-tx">Copy to clipboard</button>
         <button class="btn btn-sm" id="btn-close-tx2">Close</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Wrapping-up overlay ─────────────────────────────────────────────── -->
+  <div class="modal-backdrop" id="wrapping-up-overlay">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;color:var(--text)">
+      <div id="wrapping-up-spinner"></div>
+      <p style="font-family:var(--font-heading);font-weight:700;font-size:1rem;margin:0">Wrapping up your session…</p>
     </div>
   </div>
 
@@ -1010,7 +1022,7 @@
   let inactivityTimer   = null;
   let appConfig         = { model: '', extendedThinking: false, inactivityMs: 600000 };
   let msgCounter        = 0;
-  let fbRatings         = new Map(); // Map<msgId, Map<category, 'up'|'down'>>
+  let fbSelections      = { outcome: null, experience: null };
 
   const END_SENTINEL   = '[END_SESSION_AVAILABLE]';
   const MAX_FILES      = 5;
@@ -1032,12 +1044,10 @@
   const endBanner      = $('end-banner');
   const btnEndSession       = $('btn-end-session');
   const btnEndSessionHeader = $('btn-end-session-header');
-  const fbPrompt           = $('fb-prompt');
-  const btnFbYes           = $('btn-fb-yes');
-  const btnFbPromptSkip    = $('btn-fb-prompt-skip');
-  const fbSubmitBar        = $('fb-submit-bar');
-  const btnFbInlineSubmit  = $('btn-fb-inline-submit');
-  const btnFbInlineSkip    = $('btn-fb-inline-skip');
+  const fbCard             = $('fb-card');
+  const btnFbSubmit        = $('btn-fb-submit');
+  const btnFbSkip          = $('btn-fb-skip');
+  const fbComment          = $('fb-comment');
   const inputRow           = $('input-row');
   const btnTranscript       = $('btn-transcript');
   const modelBadge     = $('model-badge');
@@ -1047,7 +1057,8 @@
   const btnCloseTx     = $('btn-close-tx');
   const btnCloseTx2    = $('btn-close-tx2');
   const btnCopyTx      = $('btn-copy-tx');
-  const dragOverlay    = $('drag-overlay');
+  const dragOverlay        = $('drag-overlay');
+  const wrappingUpOverlay  = $('wrapping-up-overlay');
   const toast          = $('toast');
 
   // ── Config ────────────────────────────────────────────────────────────────
@@ -1148,12 +1159,6 @@
     scrollBottom();
     return entry;
   }
-
-  const FB_CATEGORIES = [
-    { key: 'accuracy',   label: 'Accuracy' },
-    { key: 'usefulness', label: 'Helpful'  },
-    { key: 'tone',       label: 'Tone'     },
-  ];
 
   function finalizeTutor(entry, rawText) {
     const hasSentinel = rawText.includes(END_SENTINEL);
@@ -1308,7 +1313,7 @@
 
     const tutorMessages = msgList.filter(e => e.role === 'tutor');
     if (tutorMessages.length > 0) {
-      showFeedbackPrompt();
+      showFeedbackCard();
     } else {
       void finalizeSessionEnd();
     }
@@ -1329,83 +1334,41 @@
     showToast(message, 5000);
   }
 
-  // ── Feedback (inline) ─────────────────────────────────────────────────────
-  function showFeedbackPrompt() {
-    fbPrompt.classList.add('active');
-  }
-
-  function dismissFeedbackPrompt() {
-    fbPrompt.classList.remove('active');
-  }
-
-  function appendFeedbackPills(tutorMessages) {
-    fbRatings = new Map();
-
-    tutorMessages.forEach((entry, i) => {
-      const mid = entry.dbId ?? entry.id;
-      const tutorText = (entry.bubbleEl.textContent || '').trim();
-      fbRatings.set(mid, { snippet: tutorText, cats: new Map() });
-
-      const msgDiv = document.getElementById(entry.id);
-      if (!msgDiv) return;
-
-      const row = document.createElement('div');
-      row.className = 'fb-inline';
-      row.style.animationDelay = `${i * 60}ms`;
-
-      FB_CATEGORIES.forEach(c => {
-        const btn = document.createElement('button');
-        btn.className = 'fb-btn';
-        btn.dataset.mid = mid;
-        btn.dataset.cat = c.key;
-        btn.dataset.val = 'up';
-        btn.textContent = c.label;
-        row.appendChild(btn);
-      });
-
-      msgDiv.appendChild(row);
-    });
-
-    // Show submit bar, hide input row
-    fbSubmitBar.classList.add('active');
+  // ── Feedback card ──────────────────────────────────────────────────────────
+  function showFeedbackCard() {
+    fbSelections = { outcome: null, experience: null };
+    fbComment.value = '';
+    fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
     inputRow.style.display = 'none';
+    fbCard.classList.add('active');
   }
 
-  async function submitAllFeedback(skip) {
-    // Cleanup inline feedback UI
-    document.querySelectorAll('.fb-inline').forEach(el => el.remove());
-    fbSubmitBar.classList.remove('active');
+  async function submitFeedback(skip) {
+    fbCard.classList.remove('active');
     inputRow.style.display = '';
 
+    const body = { sessionId, source: 'student', skipped: skip };
     if (!skip) {
-      const items = [];
-      for (const [msgId, { snippet, cats }] of fbRatings) {
-        for (const cat of FB_CATEGORIES) {
-          const sentiment = cats.get(cat.key) ?? null;
-          items.push({
-            msgId,
-            msgText: snippet,
-            category: cat.key,
-            sentiment,
-            rating: sentiment === 'up' ? 5 : sentiment === 'down' ? 1 : null,
-          });
-        }
-      }
-      if (items.length > 0) {
-        try {
-          await fetch('/api/feedback/batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, items }),
-          });
-        } catch { /* fire-and-forget */ }
-      }
+      body.outcome = fbSelections.outcome;
+      body.experience = fbSelections.experience;
+      const comment = fbComment.value.trim();
+      if (comment) body.comment = comment;
     }
 
+    try {
+      await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } catch { /* silently ignore */ }
+
+    wrappingUpOverlay.classList.add('active');
     try { await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }); }
     catch { /* ignore */ }
-    showToast(skip ? 'Session ended.' : 'Feedback received — thanks!', 3000);
-    setTimeout(newSession, 1500);
+    wrappingUpOverlay.classList.remove('active');
+
+    await newSession();
   }
 
   // ── Transcript modal ──────────────────────────────────────────────────────
@@ -1468,7 +1431,7 @@
     endAvailable    = false;
     sessionEnded    = false;
     msgCounter      = 0;
-    fbRatings       = new Map();
+    fbSelections    = { outcome: null, experience: null };
     tokenCounter.style.display = 'none';
     tokenCounter.textContent = '';
 
@@ -1476,10 +1439,10 @@
     messagesEl.innerHTML = '';
     showEmpty();
     endBanner.classList.remove('active');
-    document.querySelectorAll('.fb-inline').forEach(el => el.remove());
-    fbSubmitBar.classList.remove('active');
+    fbCard.classList.remove('active');
+    fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
+    fbComment.value = '';
     inputRow.style.display = '';
-    fbPrompt.classList.remove('active');
     fileStrip.innerHTML = '';
     fileStrip.classList.remove('active');
     msgInput.value = '';
@@ -1640,36 +1603,25 @@
     if (e.target === modalTranscript) closeTranscript();
   });
 
-  // Feedback prompt buttons
-  btnFbYes.addEventListener('click', () => {
-    dismissFeedbackPrompt();
-    const tutorMessages = msgList.filter(e => e.role === 'tutor');
-    appendFeedbackPills(tutorMessages);
-  });
-
-  btnFbPromptSkip.addEventListener('click', () => {
-    dismissFeedbackPrompt();
-    void submitAllFeedback(true);
-  });
-
-  // Inline pill toggle delegation
-  messagesEl.addEventListener('click', e => {
-    const btn = e.target.closest('.fb-btn');
+  // Feedback card option toggle
+  fbCard.addEventListener('click', e => {
+    const btn = e.target.closest('.fb-opt');
     if (!btn) return;
-    const { mid, cat, val } = btn.dataset;
-    if (!fbRatings.has(mid)) fbRatings.set(mid, { snippet: '', cats: new Map() });
-    const current = fbRatings.get(mid).cats.get(cat);
-    if (current === val) {
-      fbRatings.get(mid).cats.delete(cat);
-      btn.classList.remove('chosen');
-    } else {
-      fbRatings.get(mid).cats.set(cat, val);
+    const group = btn.closest('.fb-card-options');
+    const field = group.dataset.field;
+    const val = btn.dataset.val;
+    const wasChosen = btn.classList.contains('chosen');
+    group.querySelectorAll('.fb-opt').forEach(b => b.classList.remove('chosen'));
+    if (!wasChosen) {
       btn.classList.add('chosen');
+      fbSelections[field] = val;
+    } else {
+      fbSelections[field] = null;
     }
   });
 
-  btnFbInlineSubmit.addEventListener('click', () => submitAllFeedback(false));
-  btnFbInlineSkip.addEventListener('click',   () => submitAllFeedback(true));
+  btnFbSubmit.addEventListener('click', () => submitFeedback(false));
+  btnFbSkip.addEventListener('click',   () => submitFeedback(true));
 
   // ── Empty-state prompt chips ──────────────────────────────────────────────
   document.getElementById('empty-state').addEventListener('click', e => {

@@ -78,6 +78,47 @@ Used by the API server for SSE responses.
 
 ---
 
+### `evaluateTranscript(transcript, config?)`
+
+```typescript
+import { evaluateTranscript } from "@ai-tutor/core";
+const result = await evaluateTranscript(session.transcript, { model: "claude-sonnet-4-6" });
+```
+
+Evaluates a session transcript against ten tutoring quality dimensions derived from the six Socratic tutoring principles.  Used for automated session evaluation after a session ends.
+
+Calls `claude-sonnet-4-6` (or the model in `config.model`) without extended thinking.  `max_tokens: 2000`.
+
+**Parameters:**
+
+| Name | Type | Notes |
+|------|------|-------|
+| `transcript` | `Array<{ role: string; text: string }>` | Session transcript entries (e.g., `session.transcript`) |
+| `config` | `{ model?: string }` | Optional. Defaults to `claude-sonnet-4-6` if omitted. |
+
+**Returns:** `EvaluationResult`
+
+```typescript
+{
+  model: string;                    // Model used for evaluation
+  opening_sequence: DimensionScore;
+  one_question: DimensionScore;
+  asked_why: DimensionScore;
+  worked_at_edge: DimensionScore;
+  parallel_problems: DimensionScore;
+  step_feedback: DimensionScore;
+  never_gave_answer: DimensionScore;
+  clarity: DimensionScore;
+  tone: DimensionScore;
+  resolution: DimensionScore;
+  has_failures: boolean;            // true if any dimension (except resolution) scored 'fail'
+}
+```
+
+Each `DimensionScore` is `{ score: string; rationale: string }`.  Scores for dimensions 1–9 are `'pass' | 'partial' | 'fail' | 'na'`.  Score for `resolution` is `'resolved' | 'partial' | 'unresolved' | 'abandoned'`.
+
+---
+
 ### `Session`
 
 ```typescript

@@ -6,7 +6,12 @@ import {
   loadSystemPrompt,
   createTutorClient,
 } from "@ai-tutor/core";
-import { createSupabaseClient, markSessionEnded } from "@ai-tutor/db";
+import {
+  createSupabaseClient,
+  markSessionEnded,
+  createSessionFeedback,
+  getSessionFeedback,
+} from "@ai-tutor/db";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/errors.js";
 import { createChatRouter } from "./routes/chat.js";
@@ -17,6 +22,7 @@ import { createConfigRouter } from "./routes/config.js";
 import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
+import { runSessionEvaluation, buildEvaluationPayload } from "./lib/evaluation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -48,7 +54,7 @@ app.use(express.static(path.join(__dirname, "../../web/public")));
 app.use("/api/chat", createChatRouter(tutorClient, db));
 app.use("/api/sessions", createSessionsRouter(db, emailConfig));
 app.use("/api/transcript", createTranscriptRouter(db));
-app.use("/api/feedback", createFeedbackRouter(db, emailConfig));
+app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS));
 app.use("/api/disclaimer", createDisclaimerRouter(db));
 
@@ -60,16 +66,32 @@ setInterval(() => {
     if (now - session.lastActivityAt.getTime() > INACTIVITY_MS) {
       if (!session.emailSent && session.transcript.length > 0) {
         const summary = session.getSessionSummary();
-        void sendTranscript(emailConfig, {
-          transcript: summary.transcript,
-          files: session.files,
-          clientInfo: summary.clientInfo,
-          startedAt: summary.startedAt,
-          lastActivityAt: summary.lastActivityAt,
-          durationMs: summary.durationMs,
-          sessionId,
-          tokenUsage: summary.tokenUsage,
-        });
+
+        void (async () => {
+          const evalResult = await runSessionEvaluation(db, sessionId, summary.transcript);
+
+          let feedback = await getSessionFeedback(db, sessionId).catch(() => null);
+          if (!feedback) {
+            feedback = await createSessionFeedback(db, {
+              session_id: sessionId,
+              source: "timeout",
+            }).catch(() => null);
+          }
+
+          void sendTranscript(emailConfig, {
+            transcript: summary.transcript,
+            files: session.files,
+            clientInfo: summary.clientInfo,
+            startedAt: summary.startedAt,
+            lastActivityAt: summary.lastActivityAt,
+            durationMs: summary.durationMs,
+            sessionId,
+            tokenUsage: summary.tokenUsage,
+            evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
+            studentFeedback: feedback ?? null,
+          });
+        })();
+
         session.markEmailSent();
       }
       removeSession(sessionId);

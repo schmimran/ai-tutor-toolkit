@@ -10,7 +10,7 @@ This is the only process that runs in production.  It:
 - Exposes REST/SSE endpoints under `/api/`
 - Holds the in-memory session store
 - Connects to Supabase (Postgres) for persistence
-- Sends emails via Resend when sessions end or feedback is submitted
+- Sends emails via Resend when sessions end (transcript + evaluation + feedback)
 - Runs an inactivity sweep every 60 seconds to reap idle sessions
 
 ## Dependencies
@@ -98,7 +98,7 @@ Returns `404` if not found.
 End a session.
 
 **Behavior:**
-1. If session is in memory, transcript exists, and email not yet sent → send transcript email
+1. If session is in memory, transcript exists, and email not yet sent → run automated evaluation, fetch student feedback, send transcript email (with evaluation and feedback included)
 2. Remove from in-memory store
 3. Set `ended_at` on the DB session row (soft delete — session data is retained for analysis)
 
@@ -131,23 +131,24 @@ Prefers in-memory session (most recent); falls back to DB if session was removed
 
 ### POST /api/feedback
 
-Submit session feedback.
+Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email is sent on submission — feedback is included in the transcript email sent when the session ends.
 
 **Request:** `application/json`
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `sessionId` | string (UUID) | yes | |
-| `rating` | integer | no | 1–5 |
-| `comment` | string | no | |
+| `source` | string | no | `'student'` (default) or `'timeout'` |
+| `outcome` | string | no | `'solved'` / `'partial'` / `'stuck'` |
+| `experience` | string | no | `'positive'` / `'neutral'` / `'negative'` |
+| `comment` | string | no | Free text |
+| `skipped` | boolean | no | `false` (default); `true` if student dismissed the overlay |
 
 **Response:**
 
 ```json
-{ "ok": true, "id": "uuid" }
+{ "ok": true }
 ```
-
-**Side effects:** Inserts into `feedback` table; sends feedback email (fire-and-forget).
 
 ---
 
@@ -225,6 +226,7 @@ apps/api/src/
 │   ├── cors.ts             ← CORS (origin from CORS_ORIGIN env var)
 │   └── errors.ts           ← Global error handler
 └── lib/
+    ├── evaluation.ts       ← runSessionEvaluation(), buildEvaluationPayload()
     ├── session-store.ts    ← In-memory Map<sessionId, Session>
     ├── stream.ts           ← SSE helpers (initSSE, sendEvent, sendHeartbeat)
     ├── geo.ts              ← extractClientInfo() — IP, geolocation, user-agent
