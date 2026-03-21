@@ -2,7 +2,7 @@ import { Router } from "express";
 import { createDisclaimerAcceptance } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { extractClientInfo } from "../lib/geo.js";
-import { UUID_RE } from "../lib/validation.js";
+import { UUID_RE, sanitizeEmail } from "../lib/validation.js";
 
 export function createDisclaimerRouter(db: SupabaseClient): Router {
   const router = Router();
@@ -12,13 +12,14 @@ export function createDisclaimerRouter(db: SupabaseClient): Router {
    *
    * Body (JSON):
    *   sessionId  — string (UUID, optional) — the client's current session ID
+   *   email      — string (optional) — email submitted through the access-wall overlay
    *
-   * Records disclaimer acceptance with IP, geo, and user-agent.
+   * Records disclaimer acceptance with IP, geo, user-agent, and email.
    * Always returns { ok: true } — DB errors are logged but never surfaced.
    */
   router.post("/accept", async (req, res, next) => {
     try {
-      const { sessionId } = req.body as { sessionId?: unknown };
+      const { sessionId, email } = req.body as { sessionId?: unknown; email?: unknown };
 
       const clientInfo = extractClientInfo(req);
 
@@ -26,6 +27,8 @@ export function createDisclaimerRouter(db: SupabaseClient): Router {
         typeof sessionId === "string" && UUID_RE.test(sessionId)
           ? sessionId
           : null;
+
+      const validEmail = sanitizeEmail(email);
 
       try {
         await createDisclaimerAcceptance(db, {
@@ -36,6 +39,7 @@ export function createDisclaimerRouter(db: SupabaseClient): Router {
           // the first /api/chat call creates the session row.
           session_id: null,
           client_session_id: validSessionId,
+          email: validEmail,
         });
       } catch (err) {
         console.error("[disclaimer] Could not persist acceptance:", err);

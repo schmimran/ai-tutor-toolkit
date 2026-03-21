@@ -92,6 +92,10 @@
           (appConfig.extendedThinking ? ' — extended thinking on' : '');
         modelBadge.style.display = '';
       }
+      if (appConfig.contactEmail) {
+        const note = $('disclaimer-contact-note');
+        if (note) note.textContent = `Don't have a code? Email ${appConfig.contactEmail} for access.`;
+      }
     } catch { /* no config available */ }
   }
 
@@ -782,28 +786,74 @@
     msgInput.setSelectionRange(msgInput.value.length, msgInput.value.length);
   });
 
-  // ── Disclaimer overlay ────────────────────────────────────────────────────
-  const disclaimerOverlay = $('disclaimer-overlay');
-  const btnDisclaimerOk   = $('btn-disclaimer-ok');
+  // ── Access wall overlay ───────────────────────────────────────────────────
+  const disclaimerOverlay   = $('disclaimer-overlay');
+  const btnDisclaimerOk     = $('btn-disclaimer-ok');
+  const accessPasscodeInput = $('access-passcode');
+  const accessEmailInput    = $('access-email');
+  const accessTermsInput    = $('access-terms');
+  const accessError         = $('access-error');
 
-  function dismissDisclaimer() {
-    localStorage.setItem('disclaimer-accepted', '1');
-    disclaimerOverlay.classList.remove('active');
-    // Fire-and-forget — never block the UI on this.
-    fetch('/api/disclaimer/accept', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    }).catch(() => { /* silently ignore network errors */ });
+  function showAccessError(msg) {
+    accessError.textContent = msg;
+    accessError.style.display = '';
+  }
+
+  function clearAccessError() {
+    accessError.textContent = '';
+    accessError.style.display = 'none';
+  }
+
+  async function dismissDisclaimer() {
+    const passcode = accessPasscodeInput.value.trim();
+    const email    = accessEmailInput.value.trim();
+    const terms    = accessTermsInput.checked;
+
+    if (!passcode) { showAccessError('Please enter the access code.'); return; }
+    if (!email || !email.includes('@')) { showAccessError('Please enter a valid email address.'); return; }
+    if (!terms) { showAccessError('Please accept the terms to continue.'); return; }
+
+    btnDisclaimerOk.disabled = true;
+    clearAccessError();
+
+    try {
+      const verifyRes  = await fetch('/api/access/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode }),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyData.ok) {
+        showAccessError('Incorrect access code. Contact the administrator for access.');
+        btnDisclaimerOk.disabled = false;
+        return;
+      }
+
+      // Fire-and-forget — record acceptance with email; never block the UI.
+      fetch('/api/disclaimer/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, email }),
+      }).catch(() => {});
+
+      sessionStorage.setItem('access-granted', '1');
+      disclaimerOverlay.classList.remove('active');
+    } catch {
+      showAccessError('Network error — please try again.');
+      btnDisclaimerOk.disabled = false;
+    }
   }
 
   btnDisclaimerOk.addEventListener('click', dismissDisclaimer);
+  accessPasscodeInput.addEventListener('keydown', e => { if (e.key === 'Enter') dismissDisclaimer(); });
+  accessEmailInput.addEventListener('keydown',    e => { if (e.key === 'Enter') dismissDisclaimer(); });
 
   // ── Init ──────────────────────────────────────────────────────────────────
   showEmpty();
   fetchConfig();
-  // Show disclaimer only on first visit
-  if (localStorage.getItem('disclaimer-accepted')) {
+  // Show access wall only once per browser session
+  if (sessionStorage.getItem('access-granted')) {
     disclaimerOverlay.classList.remove('active');
   }
   msgInput.focus();

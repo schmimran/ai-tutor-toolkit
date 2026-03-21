@@ -165,19 +165,31 @@
   <!-- ── Toast ───────────────────────────────────────────────────────────── -->
   <div id="toast"></div>
 
-  <!-- ── Disclaimer overlay ──────────────────────────────────────────────── -->
+  <!-- ── Access wall overlay ─────────────────────────────────────────────── -->
   <div class="modal-backdrop active" id="disclaimer-overlay">
     <div class="modal-card">
       <div class="disclaimer-body">
-        <p class="disclaimer-title">Before you start</p>
-        <ul class="disclaimer-items">
-          <li><strong>Early prototype.</strong> This tool is under active development and may be unreliable. Use at your own risk.</li>
-          <li><strong>No PII stored.</strong> We don't collect personal information about you. However, chat transcripts are retained for review — avoid entering names, emails, or other personal details.</li>
-          <li><strong>AI can make mistakes.</strong> Always verify important information with a teacher or trusted source.</li>
-        </ul>
+        <p class="disclaimer-title">Welcome to Axiom</p>
+        <p class="disclaimer-access-note" id="disclaimer-contact-note"></p>
+        <div class="disclaimer-field">
+          <label for="access-passcode" class="disclaimer-label">Access code</label>
+          <input type="password" inputmode="numeric" maxlength="5"
+                 id="access-passcode" class="disclaimer-input"
+                 placeholder="5-digit code" autocomplete="off">
+        </div>
+        <div class="disclaimer-field">
+          <label for="access-email" class="disclaimer-label">Your email</label>
+          <input type="email" id="access-email" class="disclaimer-input"
+                 placeholder="you@example.com" autocomplete="email">
+        </div>
+        <label class="disclaimer-checkbox-row">
+          <input type="checkbox" id="access-terms">
+          <span class="disclaimer-checkbox-label">I understand this is an early prototype. AI can make mistakes — always verify important information with a teacher or trusted source.</span>
+        </label>
+        <p class="disclaimer-error" id="access-error" style="display:none"></p>
       </div>
       <div class="disclaimer-foot">
-        <button class="btn btn-primary btn-sm" id="btn-disclaimer-ok">Got it</button>
+        <button class="btn btn-primary btn-sm" id="btn-disclaimer-ok">Get started</button>
       </div>
     </div>
   </div>

@@ -26,5 +26,9 @@ services:
         value: "true"
       - key: PORT
         value: "3000"
+      - key: ACCESS_PASSCODE
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
     healthCheckPath: /api/config
     autoDeploy: true

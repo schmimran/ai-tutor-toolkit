@@ -17,6 +17,7 @@ export function createConfigRouter(config: Config, inactivityMs: number): Router
       model: config.model,
       extendedThinking: config.extendedThinking,
       inactivityMs,
+      contactEmail: process.env.CONTACT_EMAIL ?? "wax.spirits8d@icloud.com",
     });
   });
 

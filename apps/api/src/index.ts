@@ -20,6 +20,7 @@ import { createTranscriptRouter } from "./routes/transcript.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createConfigRouter } from "./routes/config.js";
 import { createDisclaimerRouter } from "./routes/disclaimer.js";
+import { createAccessRouter } from "./routes/access.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { runSessionEvaluation, buildEvaluationPayload } from "./lib/evaluation.js";
@@ -50,6 +51,11 @@ app.use(express.json());
 // __dirname is apps/api/dist/ at runtime, so ../../web/public resolves to apps/web/public/.
 app.use(express.static(path.join(__dirname, "../../web/public")));
 
+// Serve maintenance page at /maintenance (without .html extension).
+app.get("/maintenance", (_req, res) => {
+  res.sendFile(path.join(__dirname, "../../web/public/maintenance.html"));
+});
+
 // Routes
 app.use("/api/chat", createChatRouter(tutorClient, db));
 app.use("/api/sessions", createSessionsRouter(db, emailConfig));
@@ -57,6 +63,7 @@ app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS));
 app.use("/api/disclaimer", createDisclaimerRouter(db));
+app.use("/api/access", createAccessRouter());
 
 app.use(errorHandler);
 
