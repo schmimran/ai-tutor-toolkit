@@ -49,7 +49,7 @@
     body {
       display: flex;
       flex-direction: column;
-      height: 100dvh;
+      height: var(--vh, 100dvh);
       overflow: hidden;
     }
 
@@ -730,6 +730,57 @@
       white-space: nowrap;
     }
     #toast.show { opacity: 1; }
+
+    /* ── Add-to-Home-Screen banner (iOS) ──────────────────────────────────── */
+    #a2hs-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 90;
+      background: var(--surface-alt);
+      border-top: 1px solid var(--border-bright);
+      padding: 12px 16px;
+      animation: a2hs-slide-up 0.3s ease-out;
+    }
+    .a2hs-content {
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .a2hs-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin: 0;
+    }
+    .a2hs-text strong { color: var(--text); }
+    .a2hs-share-icon {
+      vertical-align: middle;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    @keyframes a2hs-slide-up {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    /* ── Standalone mode (launched from home screen) ──────────────────────── */
+    @media (display-mode: standalone) {
+      body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+    }
 
     /* ── Responsive ────────────────────────────────────────────────────────── */
     @media (max-width: 600px) {

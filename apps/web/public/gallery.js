@@ -48,6 +48,9 @@
     galleryBackdrop.classList.remove('active');
     if (galleryResizer) galleryResizer.classList.remove('active');
     galleryOpen = false;
+    // Reset scroll position to prevent iOS Safari layout drift after
+    // the fixed-position backdrop is removed.
+    window.scrollTo(0, 0);
   };
 
   window.isGalleryOpen = function () {
