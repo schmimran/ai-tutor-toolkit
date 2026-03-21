@@ -46,6 +46,48 @@
       box-shadow: 0 0 48px var(--accent-glow);
     }
 
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .logo-wordmark {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+      gap: 1px;
+      text-align: left;
+    }
+
+    .logo-company {
+      font-family: var(--font-heading);
+      font-size: 1.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #7c6af7, #22d3ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-product {
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
     .emoji {
       font-size: 3rem;
       line-height: 1;
@@ -86,6 +128,23 @@
 </head>
 <body>
   <div class="card">
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="logo-grad" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#7c6af7"/>
+            <stop offset="100%" stop-color="#22d3ee"/>
+          </linearGradient>
+        </defs>
+        <line x1="4" y1="28" x2="16" y2="4" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="28" y1="28" x2="16" y2="4" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="9" y1="19" x2="23" y2="19" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <div class="logo-wordmark">
+        <span class="logo-company">Axiom</span>
+        <span class="logo-product">AI Tutor</span>
+      </div>
+    </div>
     <span class="emoji">🔧</span>
     <h1>We're <span class="accent">upgrading</span> your tutor.</h1>
     <p class="subtitle">
@@ -96,9 +155,15 @@
     </p>
     <hr class="divider">
     <p class="footer-note">
-      Questions? Email us at wax.spirits8d@icloud.com<br>
+      Questions? Email us at <span id="contact-email">wax.spirits8d@icloud.com</span><br>
       We promise we're real humans (mostly).
     </p>
   </div>
+  <script>
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(c => { if (c.contactEmail) document.getElementById('contact-email').textContent = c.contactEmail; })
+      .catch(() => {});
+  </script>
 </body>
 </html>
