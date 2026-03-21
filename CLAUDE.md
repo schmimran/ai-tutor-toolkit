@@ -176,6 +176,7 @@ One row per session.  Written by an automated transcript evaluation job using th
 | client_user_agent | text | Nullable |
 | session_id | uuid | FK → sessions(id) ON DELETE SET NULL. Nullable; backfilled after first /api/chat call via linkDisclaimerAcceptance(). Added in migration 006. |
 | client_session_id | text | Nullable. The client-generated session UUID stored at acceptance time (no FK constraint). Used to backfill session_id. Added in migration 007. |
+| email | text | Nullable. Email address submitted through the access-wall overlay. Added in migration 011. |
 
 ---
 
@@ -218,7 +219,7 @@ Get non-secret runtime config.
 **Response**: `application/json`
 
 ```json
-{ "model": "claude-sonnet-4-6", "extendedThinking": true, "inactivityMs": 600000 }
+{ "model": "claude-sonnet-4-6", "extendedThinking": true, "inactivityMs": 600000, "contactEmail": "wax.spirits8d@icloud.com" }
 ```
 
 ---
@@ -299,13 +300,14 @@ Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email 
 
 ### POST /api/disclaimer/accept
 
-Record that the user accepted the disclaimer overlay.
+Record that the user accepted the access-wall overlay.
 
 **Request**: `application/json`
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | sessionId | string (UUID) | no | Client's current session ID; links the acceptance to the session for analysis |
+| email | string | no | Email address submitted through the access-wall overlay; stored in disclaimer_acceptances.email |
 
 **Response**: `application/json`
 
@@ -314,6 +316,26 @@ Record that the user accepted the disclaimer overlay.
 ```
 
 Always returns `200 { ok: true }` — DB errors are caught and logged server-side, never surfaced to the client.  The client should call this fire-and-forget.
+
+---
+
+### POST /api/access/verify
+
+Validate the access-wall passcode.
+
+**Request**: `application/json`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| passcode | string | yes | The 5-digit code entered by the user |
+
+**Response**: `application/json`
+
+```json
+{ "ok": true }
+```
+
+Returns `{ ok: false }` if the passcode is wrong or if `ACCESS_PASSCODE` is not configured (fails closed).  Never exposes the real passcode.
 
 ---
 
@@ -335,6 +357,8 @@ All configuration comes from environment variables.  No `.env` files are committ
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
+| ACCESS_PASSCODE | **yes (API)** | — | api | 5-digit numeric passcode for the access wall; fails closed if unset |
+| CONTACT_EMAIL | no | wax.spirits8d@icloud.com | api | Contact email shown in access-wall overlay and returned by GET /api/config |
 
 Both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are required for the API server.  If either is absent, the server will not start.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
 
@@ -429,7 +453,8 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/sessions.ts` | `GET/DELETE /api/sessions/:id` |
 | `apps/api/src/routes/transcript.ts` | `GET /api/transcript/:id` |
 | `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row |
-| `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records disclaimer acceptance with IP/geo/user-agent |
+| `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records access-wall acceptance with IP/geo/user-agent/email |
+| `apps/api/src/routes/access.ts` | `POST /api/access/verify` — server-side passcode validation against ACCESS_PASSCODE env var |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
 | `apps/api/src/lib/evaluation.ts` | `runSessionEvaluation()` — calls `evaluateTranscript`, saves to DB, returns result; `buildEvaluationPayload()` — maps result to email shape |
 | `apps/api/src/lib/session-store.ts` | In-memory session cache (`Map<id, Session>`) |

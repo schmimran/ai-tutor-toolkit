@@ -132,6 +132,8 @@ export interface DbDisclaimerAcceptance {
   /** The client-generated session UUID stored at acceptance time (no FK).
    *  Used to backfill session_id after the sessions row is created. */
   client_session_id: string | null;
+  /** Email submitted through the access-wall overlay.  Added in migration 011. */
+  email: string | null;
 }
 
 export interface DbDisclaimerAcceptanceInsert {
@@ -140,4 +142,5 @@ export interface DbDisclaimerAcceptanceInsert {
   client_user_agent?: string | null;
   session_id?: string | null;
   client_session_id?: string | null;
+  email?: string | null;
 }

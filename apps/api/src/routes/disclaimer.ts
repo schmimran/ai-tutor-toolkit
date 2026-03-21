@@ -12,19 +12,25 @@ export function createDisclaimerRouter(db: SupabaseClient): Router {
    *
    * Body (JSON):
    *   sessionId  — string (UUID, optional) — the client's current session ID
+   *   email      — string (optional) — email submitted through the access-wall overlay
    *
-   * Records disclaimer acceptance with IP, geo, and user-agent.
+   * Records disclaimer acceptance with IP, geo, user-agent, and email.
    * Always returns { ok: true } — DB errors are logged but never surfaced.
    */
   router.post("/accept", async (req, res, next) => {
     try {
-      const { sessionId } = req.body as { sessionId?: unknown };
+      const { sessionId, email } = req.body as { sessionId?: unknown; email?: unknown };
 
       const clientInfo = extractClientInfo(req);
 
       const validSessionId =
         typeof sessionId === "string" && UUID_RE.test(sessionId)
           ? sessionId
+          : null;
+
+      const validEmail =
+        typeof email === "string" && email.includes("@") && email.length <= 254
+          ? email.trim()
           : null;
 
       try {
@@ -36,6 +42,7 @@ export function createDisclaimerRouter(db: SupabaseClient): Router {
           // the first /api/chat call creates the session row.
           session_id: null,
           client_session_id: validSessionId,
+          email: validEmail,
         });
       } catch (err) {
         console.error("[disclaimer] Could not persist acceptance:", err);

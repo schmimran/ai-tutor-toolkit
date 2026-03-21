@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axiom — Back Soon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0f1117;
+      --surface:      #1a1d27;
+      --surface-alt:  #252836;
+      --border:       #2e3247;
+      --text:         #e8eaf6;
+      --text-muted:   #6b7194;
+      --accent:       #7c6af7;
+      --accent-glow:  rgba(124, 106, 247, 0.2);
+      --font-heading: 'Nunito', sans-serif;
+      --font-sans:    'Plus Jakarta Sans', sans-serif;
+      --radius:       16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      max-width: 520px;
+      width: 100%;
+      padding: 48px 40px 40px;
+      text-align: center;
+      box-shadow: 0 0 48px var(--accent-glow);
+    }
+
+    .emoji {
+      font-size: 3rem;
+      line-height: 1;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin-bottom: 28px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 0 24px;
+    }
+
+    .footer-note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .accent { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="emoji">🔧</span>
+    <h1>We're <span class="accent">upgrading</span> your tutor.</h1>
+    <p class="subtitle">
+      Axiom is temporarily offline while we make it smarter, faster,
+      and hopefully less likely to confidently explain that water is
+      made of hydrogen and <em>also</em> hydrogen.<br><br>
+      Check back soon — it'll be worth it.
+    </p>
+    <hr class="divider">
+    <p class="footer-note">
+      Questions? Reach out to the team directly.<br>
+      We promise we're real humans (mostly).
+    </p>
+  </div>
+</body>
+</html>
