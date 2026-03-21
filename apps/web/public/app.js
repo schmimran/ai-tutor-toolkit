@@ -857,3 +857,51 @@
     disclaimerOverlay.classList.remove('active');
   }
   msgInput.focus();
+
+  // ── iOS viewport stability ────────────────────────────────────────────────
+  // Uses the visualViewport API to set a reliable --vh custom property that
+  // tracks the actual usable viewport height (accounts for iOS keyboard and
+  // dynamic toolbar). Also resets scroll position to prevent layout drift.
+  (function () {
+    if (!window.visualViewport) return;
+
+    function onViewportResize() {
+      document.documentElement.style.setProperty(
+        '--vh', window.visualViewport.height + 'px'
+      );
+      window.scrollTo(0, 0);
+    }
+
+    window.visualViewport.addEventListener('resize', onViewportResize);
+    onViewportResize();
+  })();
+
+  // ── iOS Add-to-Home-Screen prompt ─────────────────────────────────────────
+  (function () {
+    var isIOS = /iP(hone|od)/.test(navigator.userAgent) ||
+      (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+    var isStandalone = window.navigator.standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches;
+
+    if (!isIOS || isStandalone || localStorage.getItem('a2hs-dismissed')) return;
+
+    var banner = document.getElementById('a2hs-banner');
+    var btnClose = document.getElementById('btn-a2hs-close');
+    if (!banner || !btnClose) return;
+
+    function tryShow() {
+      var accessWall = document.getElementById('disclaimer-overlay');
+      if (accessWall && accessWall.classList.contains('active')) {
+        setTimeout(tryShow, 1000);
+        return;
+      }
+      banner.style.display = '';
+    }
+
+    setTimeout(tryShow, 2000);
+
+    btnClose.addEventListener('click', function () {
+      banner.style.display = 'none';
+      localStorage.setItem('a2hs-dismissed', '1');
+    });
+  })();

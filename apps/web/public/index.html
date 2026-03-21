@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Axiom AI Tutor</title>
+
+  <!-- PWA / iOS standalone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Axiom">
+  <meta name="theme-color" content="#0f1117">
+  <link rel="manifest" href="/manifest.json">
 
   <!-- KaTeX -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
@@ -191,6 +198,22 @@
       <div class="disclaimer-foot">
         <button class="btn btn-primary btn-sm" id="btn-disclaimer-ok">Get started</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Add to Home Screen banner (iOS) ─────────────────────────────────── -->
+  <div id="a2hs-banner" style="display:none">
+    <div class="a2hs-content">
+      <p class="a2hs-text">
+        Install this app: tap
+        <svg class="a2hs-share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+          <path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"/>
+          <polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+        </svg>
+        then <strong>Add to Home Screen</strong>
+      </p>
+      <button class="btn btn-sm" id="btn-a2hs-close">Got it</button>
     </div>
   </div>
 
