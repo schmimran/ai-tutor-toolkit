@@ -859,27 +859,38 @@
   msgInput.focus();
 
   // ── iOS viewport stability ────────────────────────────────────────────────
-  // Uses the visualViewport API to set a reliable --vh custom property that
-  // tracks the actual usable viewport height (accounts for iOS keyboard and
-  // dynamic toolbar). Also resets scroll position to prevent layout drift.
-  (function () {
-    if (!window.visualViewport) return;
+  var isIOS = /iP(hone|od)/.test(navigator.userAgent) ||
+    (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
 
-    function onViewportResize() {
+  // Syncs --vh custom property with the actual usable viewport height
+  // (accounts for iOS keyboard and dynamic toolbar) and resets scroll
+  // position to prevent layout drift.
+  function resetViewport() {
+    if (window.visualViewport) {
       document.documentElement.style.setProperty(
         '--vh', window.visualViewport.height + 'px'
       );
-      window.scrollTo(0, 0);
     }
+    window.scrollTo(0, 0);
+  }
 
-    window.visualViewport.addEventListener('resize', onViewportResize);
-    onViewportResize();
-  })();
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resetViewport);
+    resetViewport();
+  }
+
+  // Safari may leave the page scrolled after keyboard dismiss. A delayed
+  // reset on focusout corrects the layout once Safari finishes animating.
+  if (isIOS) {
+    document.addEventListener('focusout', function (e) {
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+        setTimeout(resetViewport, 120);
+      }
+    });
+  }
 
   // ── iOS Add-to-Home-Screen prompt ─────────────────────────────────────────
   (function () {
-    var isIOS = /iP(hone|od)/.test(navigator.userAgent) ||
-      (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
     var isStandalone = window.navigator.standalone === true ||
       window.matchMedia('(display-mode: standalone)').matches;
 
@@ -889,16 +900,17 @@
     var btnClose = document.getElementById('btn-a2hs-close');
     if (!banner || !btnClose) return;
 
-    function tryShow() {
+    var MAX_RETRIES = 30;
+    function tryShow(retries) {
       var accessWall = document.getElementById('disclaimer-overlay');
       if (accessWall && accessWall.classList.contains('active')) {
-        setTimeout(tryShow, 1000);
+        if (retries < MAX_RETRIES) setTimeout(function () { tryShow(retries + 1); }, 1000);
         return;
       }
       banner.style.display = '';
     }
 
-    setTimeout(tryShow, 2000);
+    setTimeout(function () { tryShow(0); }, 2000);
 
     btnClose.addEventListener('click', function () {
       banner.style.display = 'none';

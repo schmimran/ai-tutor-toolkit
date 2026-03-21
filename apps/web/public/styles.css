@@ -419,7 +419,7 @@
       border-radius: var(--radius-sm);
       padding: 8px 12px;
       font-family: var(--font-sans);
-      font-size: 0.85rem;
+      font-size: 16px;
       color: var(--text);
       width: 100%;
       box-sizing: border-box;
@@ -569,7 +569,7 @@
       border-radius: var(--radius);
       padding: 9px 13px;
       font-family: var(--font-sans);
-      font-size: 0.93rem;
+      font-size: 16px;
       line-height: 1.5;
       background: var(--surface-alt);
       color: var(--text);
@@ -932,7 +932,7 @@
       border-radius: var(--radius-sm);
       color: var(--text);
       font-family: var(--font-sans);
-      font-size: 0.9rem;
+      font-size: 16px;
       padding: 9px 12px;
       outline: none;
       transition: border-color 0.15s;
