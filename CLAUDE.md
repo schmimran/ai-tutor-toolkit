@@ -21,7 +21,7 @@ All packages and apps live in one repo and share a single `node_modules/`.  Buil
 
 ### Plain HTML frontend — no build step
 
-`apps/web/public/` is a set of plain files served as static assets: `index.html` (structure), `styles.css` (core styles), `app.js` (chat logic), `gallery.css` (gallery pane styles), `gallery.js` (gallery pane logic).  Libraries (KaTeX, marked) are loaded from CDN.  There is no bundler, no transpilation, no framework.  The API server serves these files as static assets.  Changes to the frontend are edit-and-refresh; no build command required.
+`apps/web/public/` is a set of plain files served as static assets: `index.html` (structure), `styles.css` (core styles), `app.js` (chat logic), `gallery.css` (gallery pane styles), `gallery.js` (gallery pane logic), `manifest.json` (PWA web app manifest), and `icons/` (PWA app icons).  Libraries (KaTeX, marked) are loaded from CDN.  There is no bundler, no transpilation, no framework.  The API server serves these files as static assets.  Changes to the frontend are edit-and-refresh; no build command required.
 
 ### Separate API server
 
@@ -468,6 +468,8 @@ These apply to every Claude Code session in this repo.
 | `apps/web/public/app.js` | Chat application logic; exposes `sessionUploads` global for gallery.js |
 | `apps/web/public/gallery.css` | Gallery pane styles, thumbnail strip, img-ref pills, mobile drawer |
 | `apps/web/public/gallery.js` | Gallery pane logic; exposes `openGallery`, `closeGallery`, `focusUpload`, `addToGallery`, `resetGallery` globals |
+| `apps/web/public/manifest.json` | PWA web app manifest — standalone display, theme colors, icon references |
+| `apps/web/public/icons/` | PWA app icons (192×192 and 512×512 PNGs) for home-screen and manifest |
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
 | `apps/ios/README.md` | Placeholder — future iOS app (no code yet) |
 | `render.yaml` | Render.com deployment config |
