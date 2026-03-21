@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { timingSafeEqual } from "crypto";
 
 export function createAccessRouter(): Router {
   const router = Router();
@@ -23,7 +24,10 @@ export function createAccessRouter(): Router {
       return;
     }
 
-    const ok = typeof passcode === "string" && passcode === expected;
+    const ok =
+      typeof passcode === "string" &&
+      passcode.length === expected.length &&
+      timingSafeEqual(Buffer.from(passcode), Buffer.from(expected));
     res.json({ ok });
   });
 

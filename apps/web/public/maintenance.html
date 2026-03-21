@@ -155,14 +155,14 @@
     </p>
     <hr class="divider">
     <p class="footer-note">
-      Questions? Email us at <span id="contact-email">wax.spirits8d@icloud.com</span><br>
+      Questions? <span id="contact-note">Reach out to the administrator.</span><br>
       We promise we're real humans (mostly).
     </p>
   </div>
   <script>
     fetch('/api/config')
       .then(r => r.json())
-      .then(c => { if (c.contactEmail) document.getElementById('contact-email').textContent = c.contactEmail; })
+      .then(c => { if (c.contactEmail) document.getElementById('contact-note').textContent = `Email us at ${c.contactEmail}`; })
       .catch(() => {});
   </script>
 </body>

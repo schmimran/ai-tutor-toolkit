@@ -2,7 +2,7 @@ import { Router } from "express";
 import { createDisclaimerAcceptance } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { extractClientInfo } from "../lib/geo.js";
-import { UUID_RE } from "../lib/validation.js";
+import { UUID_RE, sanitizeEmail } from "../lib/validation.js";
 
 export function createDisclaimerRouter(db: SupabaseClient): Router {
   const router = Router();
@@ -28,10 +28,7 @@ export function createDisclaimerRouter(db: SupabaseClient): Router {
           ? sessionId
           : null;
 
-      const validEmail =
-        typeof email === "string" && email.includes("@") && email.length <= 254
-          ? email.trim()
-          : null;
+      const validEmail = sanitizeEmail(email);
 
       try {
         await createDisclaimerAcceptance(db, {
