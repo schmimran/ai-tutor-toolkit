@@ -34,6 +34,12 @@
   let msgCounter        = 0;
   let fbSelections      = { outcome: null, experience: null };
 
+  // ── Model / prompt selection state ────────────────────────────────────────
+  let selectedModel   = ''; // active model ID (persisted in localStorage)
+  let selectedPrompt  = ''; // active prompt name (persisted in localStorage)
+  let pendingSwitch   = null; // { type: 'model'|'prompt', value: string } — waiting for confirmation
+  let activePicker    = null; // 'model' | 'prompt' — which picker is open
+
   let sessionUploads = []; // { id, name, mimeType, blobUrl, messageId }
   let uploadCounter  = 0;
 
@@ -63,8 +69,16 @@
   const fbComment          = $('fb-comment');
   const inputRow           = $('input-row');
   const btnTranscript       = $('btn-transcript');
+  const promptBadge    = $('prompt-badge');
   const modelBadge     = $('model-badge');
   const tokenCounter   = $('token-counter');
+  const configPicker        = $('config-picker');
+  const configPickerList    = $('config-picker-list');
+  const switchConfigOverlay = $('switch-config-overlay');
+  const switchConfigTitle   = $('switch-config-title');
+  const btnSwitchConfirm    = $('btn-switch-confirm');
+  const btnSwitchCancel     = $('btn-switch-cancel');
+  const btnSwitchCancelX    = $('btn-switch-cancel-x');
   const modalTranscript = $('modal-transcript');
   const txBody         = $('tx-body');
   const btnCloseTx     = $('btn-close-tx');
@@ -81,22 +95,42 @@
       const res = await fetch('/api/config');
       if (!res.ok) return;
       appConfig = await res.json();
-      if (appConfig.model) {
-        // Strip date suffix and "claude-" prefix for compact display
-        let label = appConfig.model
-          .replace(/^claude-/, '')
-          .replace(/-\d{8}$/, '');
-        modelBadge.textContent = label;
-        modelBadge.classList.toggle('extended', !!appConfig.extendedThinking);
-        modelBadge.title = appConfig.model +
-          (appConfig.extendedThinking ? ' — extended thinking on' : '');
-        modelBadge.style.display = '';
-      }
+
+      // Restore persisted selection or fall back to server default.
+      const storedModel  = localStorage.getItem('selectedModel');
+      const storedPrompt = localStorage.getItem('selectedPrompt');
+      selectedModel  = (storedModel  && appConfig.availableModels?.includes(storedModel))
+        ? storedModel  : (appConfig.model  || '');
+      selectedPrompt = (storedPrompt && appConfig.availablePrompts?.includes(storedPrompt))
+        ? storedPrompt : (appConfig.defaultPrompt || '');
+
+      updateModelBadge();
+      updatePromptBadge();
+
       if (appConfig.contactEmail) {
         const note = $('disclaimer-contact-note');
         if (note) note.textContent = `Don't have a code? Email ${appConfig.contactEmail} for access.`;
       }
     } catch { /* no config available */ }
+  }
+
+  function updateModelBadge() {
+    if (!selectedModel) return;
+    const label = selectedModel.replace(/^claude-/, '').replace(/-\d{8}$/, '');
+    modelBadge.textContent = label;
+    const isHaiku = selectedModel.includes('haiku');
+    modelBadge.classList.toggle('extended', !!appConfig.extendedThinking && !isHaiku);
+    modelBadge.title = selectedModel + (appConfig.extendedThinking && !isHaiku ? ' — extended thinking on' : '');
+    modelBadge.style.display = '';
+  }
+
+  function updatePromptBadge() {
+    if (!selectedPrompt) return;
+    // Strip "tutor-prompt-" prefix for compact display (e.g. "v7").
+    const label = selectedPrompt.replace(/^tutor-prompt-/, '');
+    promptBadge.textContent = label;
+    promptBadge.title = selectedPrompt;
+    promptBadge.style.display = '';
   }
 
   // ── Header button state ───────────────────────────────────────────────────
@@ -302,6 +336,8 @@
     const fd = new FormData();
     fd.append('sessionId', sessionId);
     fd.append('message', text);
+    if (selectedModel)  fd.append('model', selectedModel);
+    if (selectedPrompt) fd.append('promptName', selectedPrompt);
     for (const f of files) fd.append('files', f);
 
     // Clear input
@@ -385,9 +421,126 @@
     btnEndSessionHeader.disabled = disabled || msgList.length === 0;
   }
 
-  // ── Session DELETE helper ─────────────────────────────────────────────────
+  // ── Session DELETE helpers ────────────────────────────────────────────────
   function deleteSession(id) {
     return fetch(`/api/sessions/${id}`, { method: 'DELETE' }).catch(() => {});
+  }
+
+  function discardSession(id) {
+    return fetch(`/api/sessions/${id}?discard=true`, { method: 'DELETE' }).catch(() => {});
+  }
+
+  // ── Config picker (model / prompt) ────────────────────────────────────────
+  function openConfigPicker(type, anchorEl) {
+    activePicker = type;
+    configPickerList.innerHTML = '';
+
+    const options = type === 'model'
+      ? (appConfig.availableModels || [])
+      : (appConfig.availablePrompts || []);
+    const current = type === 'model' ? selectedModel : selectedPrompt;
+
+    for (const value of options) {
+      const li = document.createElement('li');
+      li.className = 'config-picker-item' + (value === current ? ' active' : '');
+      li.textContent = type === 'model'
+        ? value.replace(/^claude-/, '').replace(/-\d{8}$/, '')
+        : value.replace(/^tutor-prompt-/, '');
+      li.dataset.value = value;
+      li.addEventListener('click', () => onPickerSelect(type, value));
+      configPickerList.appendChild(li);
+    }
+
+    // Position picker below the anchor badge.
+    const rect = anchorEl.getBoundingClientRect();
+    configPicker.style.top  = (rect.bottom + window.scrollY + 6) + 'px';
+    configPicker.style.left = rect.left + 'px';
+    configPicker.style.display = '';
+  }
+
+  function closeConfigPicker() {
+    configPicker.style.display = 'none';
+    activePicker = null;
+  }
+
+  function onPickerSelect(type, value) {
+    closeConfigPicker();
+    const current = type === 'model' ? selectedModel : selectedPrompt;
+    if (value === current) return;
+
+    if (msgList.length > 0 && !sessionEnded) {
+      // Session in progress — need confirmation before switching.
+      pendingSwitch = { type, value };
+      switchConfigTitle.textContent = type === 'model' ? 'Switch model?' : 'Switch prompt?';
+      switchConfigOverlay.classList.add('active');
+    } else {
+      // No active session — apply immediately.
+      applySwitch(type, value);
+    }
+  }
+
+  function applySwitch(type, value) {
+    if (type === 'model') {
+      selectedModel = value;
+      localStorage.setItem('selectedModel', value);
+      updateModelBadge();
+    } else {
+      selectedPrompt = value;
+      localStorage.setItem('selectedPrompt', value);
+      updatePromptBadge();
+    }
+    pendingSwitch = null;
+  }
+
+  async function confirmSwitch() {
+    switchConfigOverlay.classList.remove('active');
+    if (!pendingSwitch) return;
+    const { type, value } = pendingSwitch;
+
+    // Discard the current session silently (no eval, no email).
+    if (msgList.length > 0 && !sessionEnded) {
+      void discardSession(sessionId);
+    }
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    stopCountdownDisplay();
+
+    // Reset all session state.
+    sessionId       = crypto.randomUUID();
+    msgList         = [];
+    for (const u of sessionUploads) {
+      if (u.blobUrl) URL.revokeObjectURL(u.blobUrl);
+    }
+    sessionUploads  = [];
+    uploadCounter   = 0;
+    if (typeof resetGallery === 'function') resetGallery();
+    clearAttachments();
+    isStreaming     = false;
+    endAvailable    = false;
+    sessionEnded    = false;
+    msgCounter      = 0;
+    fbSelections    = { outcome: null, experience: null };
+    tokenCounter.style.display = 'none';
+    tokenCounter.textContent = '';
+
+    // Reset UI to fresh state.
+    messagesEl.innerHTML = '';
+    showEmpty();
+    endBanner.classList.remove('active');
+    fbCard.classList.remove('active');
+    fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
+    fbComment.value = '';
+    inputRow.style.display = '';
+    msgInput.value = '';
+    msgInput.placeholder = 'What are you stuck on?';
+    msgInput.disabled = false;
+    btnSend.disabled = false;
+    btnAttach.disabled = false;
+    updateHeaderButtons();
+    resizeInput();
+
+    // Apply the switch.
+    applySwitch(type, value);
+    msgInput.focus();
   }
 
   // ── Inactivity countdown display ─────────────────────────────────────────
@@ -775,6 +928,31 @@
 
   btnFbSubmit.addEventListener('click', () => submitFeedback(false));
   btnFbSkip.addEventListener('click',   () => submitFeedback(true));
+
+  // ── Model / prompt picker ─────────────────────────────────────────────────
+  modelBadge.addEventListener('click', e => {
+    e.stopPropagation();
+    if (activePicker === 'model') { closeConfigPicker(); return; }
+    openConfigPicker('model', modelBadge);
+  });
+
+  promptBadge.addEventListener('click', e => {
+    e.stopPropagation();
+    if (activePicker === 'prompt') { closeConfigPicker(); return; }
+    openConfigPicker('prompt', promptBadge);
+  });
+
+  document.addEventListener('click', e => {
+    if (configPicker.style.display !== 'none' &&
+        !configPicker.contains(e.target) &&
+        e.target !== modelBadge && e.target !== promptBadge) {
+      closeConfigPicker();
+    }
+  });
+
+  btnSwitchConfirm.addEventListener('click', confirmSwitch);
+  btnSwitchCancel.addEventListener('click',  () => { switchConfigOverlay.classList.remove('active'); pendingSwitch = null; });
+  btnSwitchCancelX.addEventListener('click', () => { switchConfigOverlay.classList.remove('active'); pendingSwitch = null; });
 
   // ── Empty-state prompt chips ──────────────────────────────────────────────
   emptyState.addEventListener('click', e => {

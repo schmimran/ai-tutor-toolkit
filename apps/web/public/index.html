@@ -54,7 +54,8 @@
       </span>
     </span>
     <div class="header-right">
-      <span id="model-badge" class="model-badge" style="display:none"></span>
+      <span id="prompt-badge" class="prompt-badge" style="display:none" title="Active prompt — click to switch"></span>
+      <span id="model-badge" class="model-badge" style="display:none" title="Active model — click to switch"></span>
       <span id="token-counter"></span>
       <span id="inactivity-timer"></span>
       <button class="btn btn-sm" id="btn-gallery-toggle" title="Toggle uploads gallery" disabled>🖼</button>
@@ -215,6 +216,28 @@
         then <strong>Add to Home Screen</strong>
       </p>
       <button class="btn btn-sm" id="btn-a2hs-close">Got it</button>
+    </div>
+  </div>
+
+  <!-- ── Config picker popup ────────────────────────────────────────────────── -->
+  <div id="config-picker" class="config-picker" style="display:none" role="listbox">
+    <ul id="config-picker-list"></ul>
+  </div>
+
+  <!-- ── Switch-config confirmation overlay ────────────────────────────────── -->
+  <div class="modal-backdrop" id="switch-config-overlay">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="switch-config-title">Switch?</h2>
+        <button class="btn btn-icon" id="btn-switch-cancel-x">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="switch-config-message" style="color:var(--text-muted);font-size:.9rem;margin:0">Switching will end your current session. Your conversation will not be saved or evaluated, and no email will be sent.</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-sm" id="btn-switch-cancel">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="btn-switch-confirm">Switch</button>
+      </div>
     </div>
   </div>
 

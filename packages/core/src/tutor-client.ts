@@ -4,6 +4,18 @@ import type { Session, TokenUsage } from "./session.js";
 
 type UserContent = string | Anthropic.ContentBlockParam[];
 
+export interface StreamOptions {
+  /** Override the model for this call. If omitted, uses config.model. */
+  modelOverride?: string;
+  /** Override the system prompt for this call. If omitted, uses the client's system prompt. */
+  systemPromptOverride?: string;
+}
+
+/** Haiku models do not support extended thinking. */
+function isHaiku(modelId: string): boolean {
+  return modelId.includes("haiku");
+}
+
 /**
  * Build the base request parameters common to both streaming and non-streaming
  * API calls.
@@ -11,17 +23,22 @@ type UserContent = string | Anthropic.ContentBlockParam[];
 function buildParams(
   config: Config,
   systemPrompt: string,
-  session: Session
+  session: Session,
+  opts?: StreamOptions
 ): Omit<Anthropic.MessageCreateParams, "stream"> {
+  const model = opts?.modelOverride ?? config.model;
+  const prompt = opts?.systemPromptOverride ?? systemPrompt;
+  const extendedThinking = config.extendedThinking && !isHaiku(model);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: Record<string, any> = {
-    model: config.model,
+    model,
     max_tokens: 16000,
-    system: systemPrompt,
+    system: prompt,
     messages: session.messages,
   };
 
-  if (config.extendedThinking) {
+  if (extendedThinking) {
     params["thinking"] = {
       type: "enabled",
       budget_tokens: 10000,
@@ -51,13 +68,14 @@ export function createTutorClient(config: Config, systemPrompt: string) {
   async function sendMessage(
     session: Session,
     userContent: UserContent,
-    transcriptText: string
+    transcriptText: string,
+    opts?: StreamOptions
   ): Promise<string> {
     session.addUserMessage(userContent, transcriptText);
     session.touchActivity();
 
     const response = await client.messages.create({
-      ...buildParams(config, systemPrompt, session),
+      ...buildParams(config, systemPrompt, session, opts),
       stream: false,
     } as Anthropic.MessageCreateParamsNonStreaming);
 
@@ -81,13 +99,14 @@ export function createTutorClient(config: Config, systemPrompt: string) {
   async function* streamMessage(
     session: Session,
     userContent: UserContent,
-    transcriptText: string
+    transcriptText: string,
+    opts?: StreamOptions
   ): AsyncGenerator<string, TokenUsage> {
     session.addUserMessage(userContent, transcriptText);
     session.touchActivity();
 
     const stream = client.messages.stream(
-      buildParams(config, systemPrompt, session) as Anthropic.MessageCreateParamsStreaming
+      buildParams(config, systemPrompt, session, opts) as Anthropic.MessageCreateParamsStreaming
     );
 
     for await (const event of stream) {

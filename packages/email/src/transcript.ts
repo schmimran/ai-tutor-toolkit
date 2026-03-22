@@ -20,6 +20,11 @@ export interface TranscriptEmailPayload {
   sessionId?: string;
   tokenUsage?: { inputTokens: number; outputTokens: number };
 
+  /** Claude model ID used for this session (e.g. "claude-sonnet-4-6"). */
+  model?: string;
+  /** Tutor prompt name used for this session (e.g. "tutor-prompt-v7"). */
+  promptName?: string;
+
   /** Automated evaluation results.  Null if evaluation hasn't run yet. */
   evaluation?: {
     dimensions: Array<{
@@ -179,6 +184,8 @@ function buildHtml(payload: TranscriptEmailPayload): string {
     tokenUsage,
     evaluation,
     studentFeedback,
+    model,
+    promptName,
   } = payload;
 
   const exchangeCount = Math.floor(transcript.length / 2);
@@ -211,6 +218,8 @@ function buildHtml(payload: TranscriptEmailPayload): string {
   <h1 style="font-size:1.4rem;border-bottom:2px solid #4f46e5;padding-bottom:8px;">Tutor Session Summary</h1>
   <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
     <tr><td style="padding:6px 0;color:#555;width:160px;">Session ID</td><td style="font-size:0.85em;">${sessionId ?? "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Model</td><td>${model ?? "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Prompt</td><td>${promptName ?? "unknown"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Started</td><td>${formatDate(startedAt)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Duration</td><td>${formatDuration(durationMs)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Exchanges</td><td>${exchangeCount}</td></tr>

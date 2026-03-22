@@ -1,14 +1,26 @@
 import { Router } from "express";
 import type { Config } from "@ai-tutor/core";
 
-export function createConfigRouter(config: Config, inactivityMs: number): Router {
+const AVAILABLE_MODELS = [
+  "claude-haiku-4-5-20251001",
+  "claude-sonnet-4-6",
+  "claude-opus-4-6",
+];
+
+export function createConfigRouter(
+  config: Config,
+  inactivityMs: number,
+  promptMap: Map<string, string>,
+  defaultPromptName: string
+): Router {
   const router = Router();
 
   /**
    * GET /api/config
    *
    * Returns non-secret configuration the frontend needs to render correctly
-   * (model name, whether extended thinking is active, inactivity timeout).
+   * (model name, whether extended thinking is active, inactivity timeout,
+   * available models/prompts for the picker UI).
    *
    * Never includes API keys or service-role credentials.
    */
@@ -18,6 +30,9 @@ export function createConfigRouter(config: Config, inactivityMs: number): Router
       extendedThinking: config.extendedThinking,
       inactivityMs,
       contactEmail: process.env.CONTACT_EMAIL ?? "wax.spirits8d@icloud.com",
+      availableModels: AVAILABLE_MODELS,
+      availablePrompts: [...promptMap.keys()],
+      defaultPrompt: defaultPromptName,
     });
   });
 

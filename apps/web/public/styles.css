@@ -117,7 +117,8 @@
       flex-wrap: wrap;
     }
 
-    .model-badge {
+    .model-badge,
+    .prompt-badge {
       font-family: var(--font-sans);
       font-size: 0.71rem;
       font-weight: 500;
@@ -127,10 +128,55 @@
       border-radius: var(--radius-pill);
       border: 1px solid var(--border);
       white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .model-badge:hover,
+    .prompt-badge:hover {
+      border-color: var(--accent);
+      color: var(--text);
     }
     .model-badge.extended::after {
       content: ' · thinking';
       color: var(--accent);
+    }
+
+    /* ── Config picker dropdown ─────────────────────────────────────────── */
+    .config-picker {
+      position: fixed;
+      z-index: 300;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      min-width: 160px;
+      padding: 4px 0;
+      overflow: hidden;
+    }
+    .config-picker ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .config-picker-item {
+      padding: 8px 16px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    .config-picker-item:hover {
+      background: var(--surface-alt);
+      color: var(--text);
+    }
+    .config-picker-item.active {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .config-picker-item.active::after {
+      content: ' ✓';
     }
 
     #token-counter {
