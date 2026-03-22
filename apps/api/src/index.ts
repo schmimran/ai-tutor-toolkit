@@ -1,6 +1,7 @@
 import express from "express";
 import { fileURLToPath } from "url";
 import path from "path";
+import fs from "fs";
 import {
   loadConfig,
   loadSystemPrompt,
@@ -28,9 +29,31 @@ import { runSessionEvaluation, buildEvaluationPayload } from "./lib/evaluation.j
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const config = loadConfig();
-const systemPrompt = loadSystemPrompt(config.systemPromptPath);
-const tutorClient = createTutorClient(config, systemPrompt);
 const db = createSupabaseClient();
+
+// ── Prompt discovery ──────────────────────────────────────────────────────────
+// Scan templates/ for all tutor-prompt-*.md files and build a name→content map.
+// The map is passed to the chat router so sessions can use a per-session prompt.
+const templatesDir = path.join(__dirname, "../../../../templates");
+const promptMap = new Map<string, string>();
+
+for (const file of fs.readdirSync(templatesDir)) {
+  if (file.startsWith("tutor-prompt-") && file.endsWith(".md")) {
+    const name = file.replace(/\.md$/, "");
+    promptMap.set(name, fs.readFileSync(path.join(templatesDir, file), "utf-8"));
+  }
+}
+
+// Derive default prompt name from config.systemPromptPath (basename without extension).
+const defaultPromptName = path.basename(config.systemPromptPath, ".md");
+
+// Fall back to loading via loadSystemPrompt if the default prompt wasn't found in templates/.
+if (!promptMap.has(defaultPromptName)) {
+  promptMap.set(defaultPromptName, loadSystemPrompt(config.systemPromptPath));
+}
+
+// Build the tutor client using the default system prompt.
+const tutorClient = createTutorClient(config, promptMap.get(defaultPromptName)!);
 
 const emailConfig = {
   apiKey: process.env.RESEND_API_KEY,
@@ -57,11 +80,11 @@ app.get("/maintenance", (_req, res) => {
 });
 
 // Routes
-app.use("/api/chat", createChatRouter(tutorClient, db));
+app.use("/api/chat", createChatRouter(tutorClient, db, promptMap, defaultPromptName, config.model));
 app.use("/api/sessions", createSessionsRouter(db, emailConfig));
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
-app.use("/api/config", createConfigRouter(config, INACTIVITY_MS));
+app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
 app.use("/api/disclaimer", createDisclaimerRouter(db));
 app.use("/api/access", createAccessRouter());
 
@@ -96,6 +119,8 @@ setInterval(() => {
             tokenUsage: summary.tokenUsage,
             evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
             studentFeedback: feedback ?? null,
+            model: session.model ?? config.model,
+            promptName: session.promptName ?? defaultPromptName,
           });
         })();
 
@@ -116,4 +141,5 @@ app.listen(config.port, () => {
   console.log(
     `[api] Extended thinking: ${config.extendedThinking ? "on" : "off"}`
   );
+  console.log(`[api] Available prompts: ${[...promptMap.keys()].join(", ")}`);
 });

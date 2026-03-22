@@ -74,6 +74,10 @@ export class Session {
   clientInfo: ClientInfo = {};
   emailSent = false;
   tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
+  /** Claude model ID used for this session. Set on first message. */
+  model: string | null = null;
+  /** Tutor prompt name used for this session (e.g. "tutor-prompt-v7"). Set on first message. */
+  promptName: string | null = null;
 
   /**
    * Record a user message.

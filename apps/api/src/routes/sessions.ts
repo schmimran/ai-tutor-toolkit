@@ -43,16 +43,20 @@ export function createSessionsRouter(
   /**
    * DELETE /api/sessions/:sessionId
    *
-   * Ends a session: sends the transcript email (if not already sent), removes
-   * the in-memory session, and marks the session as ended in the database
-   * (sets ended_at); session data is retained for analysis.
+   * Normal flow: runs evaluation, sends the transcript email (if not already
+   * sent), removes the in-memory session, and marks ended_at in the database.
+   *
+   * With ?discard=true: skips evaluation and email entirely — just removes
+   * from memory and marks ended_at.  Used when the user switches model/prompt
+   * mid-session and the transcript should be discarded.
    */
   router.delete("/:sessionId", async (req, res, next) => {
     try {
       const { sessionId } = req.params;
+      const discard = req.query["discard"] === "true";
       const session = getSession(sessionId);
 
-      if (session && !session.emailSent && session.transcript.length > 0) {
+      if (!discard && session && !session.emailSent && session.transcript.length > 0) {
         const summary = session.getSessionSummary();
         const evalResult = await runSessionEvaluation(db, sessionId, summary.transcript);
         const feedback = await getSessionFeedback(db, sessionId).catch(() => null);
@@ -67,6 +71,8 @@ export function createSessionsRouter(
           tokenUsage: summary.tokenUsage,
           evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
           studentFeedback: feedback ?? null,
+          model: session.model ?? undefined,
+          promptName: session.promptName ?? undefined,
         });
         session.markEmailSent();
       }

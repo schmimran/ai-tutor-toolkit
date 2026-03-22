@@ -22,6 +22,13 @@ const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
 ]);
 
+/** Allowed model IDs — must match the list in routes/config.ts. */
+const ALLOWED_MODELS = new Set([
+  "claude-haiku-4-5-20251001",
+  "claude-sonnet-4-6",
+  "claude-opus-4-6",
+]);
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 5 },
@@ -82,7 +89,10 @@ function buildUserContent(
 
 export function createChatRouter(
   tutorClient: TutorClient,
-  db: SupabaseClient
+  db: SupabaseClient,
+  promptMap: Map<string, string>,
+  defaultPromptName: string,
+  defaultModel: string
 ): Router {
   const router = Router();
 
@@ -90,9 +100,11 @@ export function createChatRouter(
    * POST /api/chat
    *
    * Body (multipart/form-data):
-   *   sessionId  — client-generated UUID
-   *   message    — student's text message
-   *   files[]    — optional image or PDF attachments (max 5, 10 MB each)
+   *   sessionId   — client-generated UUID
+   *   message     — student's text message
+   *   model       — optional model override (validated against ALLOWED_MODELS)
+   *   promptName  — optional prompt name override (validated against promptMap)
+   *   files[]     — optional image or PDF attachments (max 5, 10 MB each)
    *
    * Response: SSE stream
    *   { type: "text_delta", text: "..." }   — one per token
@@ -104,9 +116,11 @@ export function createChatRouter(
     upload.array("files"),
     async (req, res, next) => {
       try {
-        const { sessionId, message } = req.body as {
+        const { sessionId, message, model: modelReq, promptName: promptNameReq } = req.body as {
           sessionId?: string;
           message?: string;
+          model?: string;
+          promptName?: string;
         };
 
         if (!sessionId || !message?.trim()) {
@@ -117,9 +131,19 @@ export function createChatRouter(
         const files = (req.files as Express.Multer.File[]) ?? [];
         const session = getOrCreateSession(sessionId);
 
-        // Capture client info on the first message of the session.
+        // Capture client info and model/prompt on the first message of the session.
         if (session.transcript.length === 0) {
           session.setClientInfo(extractClientInfo(req));
+
+          // Validate and set model for this session.
+          session.model =
+            modelReq && ALLOWED_MODELS.has(modelReq) ? modelReq : defaultModel;
+
+          // Validate and set prompt for this session.
+          session.promptName =
+            promptNameReq && promptMap.has(promptNameReq)
+              ? promptNameReq
+              : defaultPromptName;
 
           // Upsert the session row in the database.
           try {
@@ -129,6 +153,8 @@ export function createChatRouter(
               client_geo: session.clientInfo.geo ?? null,
               client_user_agent: session.clientInfo.userAgent ?? null,
               email_sent: false,
+              model: session.model,
+              prompt_name: session.promptName,
             });
             // Backfill session_id on any disclaimer acceptance rows recorded
             // before this session row existed.
@@ -151,9 +177,20 @@ export function createChatRouter(
 
         initSSE(res);
 
+        // Resolve the system prompt and model for this session.
+        const systemPromptOverride = session.promptName
+          ? promptMap.get(session.promptName)
+          : undefined;
+        const modelOverride = session.model ?? undefined;
+
         // Manual iteration captures the generator's return value (per-call TokenUsage).
         let fullText = "";
-        const gen = tutorClient.streamMessage(session, userContent, transcriptText);
+        const gen = tutorClient.streamMessage(
+          session,
+          userContent,
+          transcriptText,
+          { modelOverride, systemPromptOverride }
+        );
         let step = await gen.next();
         while (!step.done) {
           fullText += step.value as string;

@@ -93,6 +93,8 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 | email_sent | boolean | false | Prevents duplicate emails |
 | total_input_tokens | integer | 0 | Cumulative input tokens across all turns. Updated after each assistant message. Added in migration 005. |
 | total_output_tokens | integer | 0 | Cumulative output tokens across all turns. Updated after each assistant message. Added in migration 005. |
+| model | text | null | Claude model ID used for this session (e.g. "claude-sonnet-4-6"). Set on first message. Added in migration 012. |
+| prompt_name | text | null | Tutor prompt filename stem used for this session (e.g. "tutor-prompt-v7"). Set on first message. Added in migration 012. |
 
 ### messages
 
@@ -219,7 +221,15 @@ Get non-secret runtime config.
 **Response**: `application/json`
 
 ```json
-{ "model": "claude-sonnet-4-6", "extendedThinking": true, "inactivityMs": 600000, "contactEmail": "wax.spirits8d@icloud.com" }
+{
+  "model": "claude-sonnet-4-6",
+  "extendedThinking": true,
+  "inactivityMs": 600000,
+  "contactEmail": "wax.spirits8d@icloud.com",
+  "availableModels": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-6"],
+  "availablePrompts": ["tutor-prompt-v7", "tutor-prompt-v6"],
+  "defaultPrompt": "tutor-prompt-v7"
+}
 ```
 
 ---
@@ -249,6 +259,12 @@ Returns `404` if not found.
 ### DELETE /api/sessions/:sessionId
 
 End a session.  Sends transcript email if transcript exists and email not yet sent.  Removes the in-memory session and sets `ended_at` on the DB row.  Session data (messages, feedback) is **retained** for analysis.
+
+**Query parameters**
+
+| Param | Value | Notes |
+|-------|-------|-------|
+| discard | `true` | Skip evaluation and email entirely; just remove from memory and set `ended_at`. Used when the user switches model/prompt mid-session and the transcript should be discarded. |
 
 **Response**: `application/json`
 
