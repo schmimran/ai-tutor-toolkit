@@ -34,7 +34,7 @@ const db = createSupabaseClient();
 // ── Prompt discovery ──────────────────────────────────────────────────────────
 // Scan templates/ for all tutor-prompt-*.md files and build a name→content map.
 // The map is passed to the chat router so sessions can use a per-session prompt.
-const templatesDir = path.join(__dirname, "../../../../templates");
+const templatesDir = path.join(__dirname, "../../../templates");
 const promptMap = new Map<string, string>();
 
 for (const file of fs.readdirSync(templatesDir)) {
