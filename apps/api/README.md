@@ -64,7 +64,15 @@ Get non-secret runtime config.
 **Response:**
 
 ```json
-{ "model": "claude-sonnet-4-6", "extendedThinking": true, "inactivityMs": 600000 }
+{
+  "model": "claude-sonnet-4-6",
+  "extendedThinking": true,
+  "inactivityMs": 600000,
+  "contactEmail": "wax.spirits8d@icloud.com",
+  "availableModels": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-6"],
+  "availablePrompts": ["tutor-prompt-v7", "tutor-prompt-v6"],
+  "defaultPrompt": "tutor-prompt-v7"
+}
 ```
 
 ---
@@ -97,10 +105,17 @@ Returns `404` if not found.
 
 End a session.
 
+**Query parameters:**
+
+| Param | Value | Notes |
+|-------|-------|-------|
+| `discard` | `true` | Skip evaluation and email entirely; just remove from memory and set `ended_at`.  Used when the user switches model/prompt mid-session and the transcript should be discarded. |
+
 **Behavior:**
-1. If session is in memory, transcript exists, and email not yet sent → run automated evaluation, fetch student feedback, send transcript email (with evaluation and feedback included)
-2. Remove from in-memory store
-3. Set `ended_at` on the DB session row (soft delete — session data is retained for analysis)
+1. If `?discard=true`: skip evaluation and email, remove from memory, set `ended_at` in DB
+2. Otherwise: if session is in memory, transcript exists, and email not yet sent → run automated evaluation, fetch student feedback, send transcript email (with evaluation and feedback included)
+3. Remove from in-memory store
+4. Set `ended_at` on the DB session row (soft delete — session data is retained for analysis)
 
 **Response:**
 
@@ -152,37 +167,6 @@ Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email 
 
 ---
 
-### POST /api/feedback/batch
-
-Submit all per-message feedback for a session at once.  Used by the end-of-session feedback overlay.  Saves all records in a single DB round-trip and sends one summary email.
-
-**Request:** `application/json`
-
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `sessionId` | string (UUID) | yes | |
-| `items` | array | yes | Non-empty array of feedback items |
-
-Each item in `items`:
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `msgId` | string (UUID) | The assistant message being rated |
-| `msgText` | string | The assistant message text being rated (used in feedback email) |
-| `category` | string | `"accuracy"` \| `"usefulness"` \| `"tone"` |
-| `sentiment` | string | `"up"` \| `"down"` |
-| `rating` | integer | `5` for up, `1` for down |
-
-**Response:**
-
-```json
-{ "ok": true, "count": 6 }
-```
-
-**Side effects:** Inserts all rows into `feedback` table in one round-trip; sends a batch feedback summary email (fire-and-forget).
-
----
-
 ### POST /api/disclaimer/accept
 
 Record that the user accepted the disclaimer overlay.
@@ -203,6 +187,26 @@ Always returns `200 { ok: true }`.  DB errors are caught and logged — never su
 
 ---
 
+### POST /api/access/verify
+
+Validate the access-wall passcode.
+
+**Request:** `application/json`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `passcode` | string | yes | The 5-digit code entered by the user |
+
+**Response:**
+
+```json
+{ "ok": true }
+```
+
+Returns `{ ok: false }` if the passcode is wrong or if `ACCESS_PASSCODE` is not configured (fails closed).  Never exposes the real passcode.
+
+---
+
 ## Configuration
 
 | Variable | Required | Default | Description |
@@ -217,6 +221,8 @@ Always returns `200 { ok: true }`.  DB errors are caught and logged — never su
 | `MODEL` | no | `claude-sonnet-4-6` | Claude model ID |
 | `EXTENDED_THINKING` | no | `true` | Set `"false"` to disable |
 | `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt-v7.md` | Path from repo root |
+| `ACCESS_PASSCODE` | **yes** | — | 5-digit passcode for the access wall; fails closed if unset |
+| `CONTACT_EMAIL` | no | `wax.spirits8d@icloud.com` | Contact email shown in access-wall overlay |
 | `PORT` | no | `3000` | HTTP listen port |
 
 ## Setup
@@ -252,7 +258,8 @@ apps/api/src/
 │   ├── sessions.ts         ← GET/DELETE /api/sessions/:id
 │   ├── transcript.ts       ← GET /api/transcript/:id
 │   ├── feedback.ts         ← POST /api/feedback
-│   └── disclaimer.ts       ← POST /api/disclaimer/accept
+│   ├── disclaimer.ts       ← POST /api/disclaimer/accept
+│   └── access.ts           ← POST /api/access/verify
 ├── middleware/
 │   ├── cors.ts             ← CORS (origin from CORS_ORIGIN env var)
 │   └── errors.ts           ← Global error handler

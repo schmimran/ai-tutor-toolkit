@@ -1,6 +1,6 @@
 # AI Tutor Toolkit
 
-A homework tutor for your student, built on the same principles as Khan Academy's Khanmigo.  One parent built this for his 9th grader because he wanted something that would actually teach — not just hand over answers.  It has gone through five rounds of real-world testing with a real student.  This is the result.
+A homework tutor for your student, built on the same principles as Khan Academy's Khanmigo.  One parent built this for his 9th grader because he wanted something that would actually teach — not just hand over answers.  It has gone through multiple rounds of real-world testing with a real student.  This is the result.
 
 ---
 
@@ -46,7 +46,7 @@ This is the fastest path.  It uses the Claude website directly — no server to 
 
 That's it.  Hand your student the project link.  They'll see a clean chat interface.  You can watch the conversation in the project history.
 
-**What you don't get with this option:** session history saved to a database, email transcripts sent to you automatically, or per-response feedback ratings.  For those, use Option B.
+**What you don't get with this option:** session history saved to a database, email transcripts sent to you automatically, or end-of-session feedback collection.  For those, use Option B.
 
 ---
 
@@ -54,40 +54,64 @@ That's it.  Hand your student the project link.  They'll see a clean chat interf
 
 This runs the full application on your computer (or on a server — see [Deploying on Render](#deploying-on-render) below).  It gives you a chat interface at a web address, plus session history, email transcripts, and feedback tracking.
 
+The web app requires three services to run: **Anthropic** (AI), **Supabase** (database), and an **access passcode** you choose.  Email transcripts via **Resend** are optional.
+
 **Before you start:**  You'll need [Node.js](https://nodejs.org) version 20 or later installed.  If you're not sure whether you have it, open a terminal and run `node --version`.  If you see a version number starting with 20 or higher, you're set.
 
-1. Download this repo.  If you have git installed:
-   ```bash
-   git clone https://github.com/schmimran/ai-tutor-toolkit.git
-   cd ai-tutor-toolkit
-   ```
-   Or download the zip from GitHub and unzip it.
+**Step 1: Download and install**
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+git clone https://github.com/schmimran/ai-tutor-toolkit.git
+cd ai-tutor-toolkit
+npm install
+```
 
-3. Export your API key:
-   ```bash
-   export ANTHROPIC_API_KEY=sk-ant-...
-   ```
+Or download the zip from GitHub and unzip it.
 
-4. Build and start the server:
-   ```bash
-   npm run build
-   npm run api
-   ```
+**Step 2: Set up Anthropic**
 
-5. Open `http://localhost:3000` in your browser.  Your student gets a chat interface.  Your API key stays on your computer — it's never sent to the browser.
+1. Go to [console.anthropic.com](https://console.anthropic.com) and create an account.
+2. Click **API Keys → Create Key**.
+3. Copy the key.  You won't see it again.
+4. Check [Anthropic's pricing page](https://www.anthropic.com/pricing) so you know what a session will cost.
 
-To also set up session history and email transcripts, continue to [Setting up the full experience](#setting-up-the-full-experience).
+**Step 3: Set up Supabase**
+
+The web app stores session transcripts, messages, and feedback in a database so nothing is lost if the server restarts.  Supabase provides a free hosted Postgres database.
+
+Follow the instructions in [Setting up Supabase](#setting-up-supabase) below, then come back here.
+
+**Step 4: Choose an access passcode**
+
+The web app has an access wall — anyone visiting the URL must enter a passcode before they can use the tutor.  Pick a 5-digit code and share it with your student.
+
+**Step 5: Export environment variables**
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+export SUPABASE_URL=https://your-project-ref.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=eyJ...
+export ACCESS_PASSCODE=12345  # your 5-digit code
+```
+
+**Step 6: Build and start**
+
+```bash
+npm run build
+npm run api
+```
+
+**Step 7: Open and verify**
+
+Open `http://localhost:3000` in your browser.  You'll see the access wall — enter your passcode.  Your student gets a chat interface.  Your API key stays on your computer — it's never sent to the browser.
+
+To get email transcripts sent to you when sessions end, continue to [Optional: email transcripts](#optional-email-transcripts).
 
 ---
 
 ### Option C: CLI (terminal)
 
-For parents comfortable in a terminal.  No web interface — you type your student's messages at a prompt and see the tutor's responses in the terminal.
+For parents comfortable in a terminal.  No web interface — you type your student's messages at a prompt and see the tutor's responses in the terminal.  Does not require Supabase or an access passcode.
 
 ```bash
 npm install
@@ -100,28 +124,9 @@ Type `export` to print the transcript.  Type `quit` to exit.
 
 ---
 
-## Setting up the full experience
+## Setting up Supabase
 
-The web app works with just an Anthropic API key.  To get session history saved to a database, email transcripts, and feedback tracking, you'll need to set up two additional services: **Supabase** (a free database) and **Resend** (email delivery).  Both have free tiers that are more than enough for a single student.
-
----
-
-### Anthropic — AI access
-
-1. Go to [console.anthropic.com](https://console.anthropic.com) and create an account.
-2. Click **API Keys → Create Key**.
-3. Copy the key.  You won't see it again.
-4. Check [Anthropic's pricing page](https://www.anthropic.com/pricing) so you know what a session will cost.
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
----
-
-### Supabase — database
-
-Supabase is a free hosted database.  The tutor uses it to store session transcripts, messages, and feedback ratings so nothing is lost if the server restarts.
+Supabase is a free hosted database.  The web app requires it — the server will not start without it.
 
 **Step 1: Create a project**
 
@@ -148,6 +153,11 @@ In your Supabase project dashboard, open **SQL Editor** (in the left sidebar).  
 5. `supabase/migrations/005_token_tracking.sql`
 6. `supabase/migrations/006_disclaimer_acceptances.sql`
 7. `supabase/migrations/007_disclaimer_client_session_id.sql`
+8. `supabase/migrations/008_feedback_redesign.sql`
+9. `supabase/migrations/009_update_session_evaluations_v2.sql`
+10. `supabase/migrations/010_relax_legacy_evaluation_columns.sql`
+11. `supabase/migrations/011_disclaimer_email.sql`
+12. `supabase/migrations/012_session_model_prompt.sql`
 
 Run them in order.  Each one builds on the previous.
 
@@ -160,9 +170,9 @@ export SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 ---
 
-### Resend — email
+## Optional: email transcripts
 
-Resend sends you two types of emails: a transcript summary when a session ends, and a notification when your student submits feedback.  If you skip this setup, the app works fine — emails are silently skipped.
+Resend sends you a transcript email when a session ends, including the full conversation, an automated evaluation, and any student feedback.  If you skip this setup, the app works fine — emails are silently skipped.
 
 **Step 1: Create an account**
 
@@ -198,11 +208,13 @@ export EMAIL_FROM=tutor@tutor.yourdomain.com # must match your verified domain
 | Variable | Required | Default | What it does |
 |----------|----------|---------|--------------|
 | `ANTHROPIC_API_KEY` | **yes** | — | Your Anthropic API key. |
-| `SUPABASE_URL` | **yes (web app)** | — | Your Supabase project URL. |
+| `SUPABASE_URL` | **yes (web app)** | — | Your Supabase project URL.  Server will not start without it. |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes (web app)** | — | Supabase service role key.  Keep secret. |
+| `ACCESS_PASSCODE` | **yes (web app)** | — | 5-digit passcode for the access wall.  Share with your student. |
 | `RESEND_API_KEY` | no | — | Resend API key.  Emails skipped if absent. |
-| `PARENT_EMAIL` | no | — | Where transcript and feedback emails are sent. |
+| `PARENT_EMAIL` | no | — | Where transcript emails are sent. |
 | `EMAIL_FROM` | no | `tutor@tutor.schmim.com` | Sender address.  Must match a verified Resend domain. |
+| `CONTACT_EMAIL` | no | `wax.spirits8d@icloud.com` | Contact email shown in the access-wall overlay. |
 | `CORS_ORIGIN` | no | `*` | Allowed origin if you put the app behind a specific URL. |
 | `MODEL` | no | `claude-sonnet-4-6` | Claude model ID. |
 | `EXTENDED_THINKING` | no | `true` | Set to `false` to disable extended thinking (faster, lower cost, weaker tutoring quality). |
@@ -219,17 +231,23 @@ See [docs/deployment.md](docs/deployment.md) for the full step-by-step walkthrou
 
 ---
 
+## Behind the scenes
+
+Everything below is for developers, contributors, or anyone curious about how the tutor was built and how to test it.
+
+---
+
 ## How the tutor was built
 
-This isn't a prompt someone typed into ChatGPT once and published.  The tutor went through five rounds of iteration, each one involving real test sessions, evaluation against a scoring rubric, and targeted changes based on what broke.
+This isn't a prompt someone typed into ChatGPT once and published.  The tutor went through multiple rounds of iteration, each one involving real test sessions, evaluation against a scoring rubric, and targeted changes based on what broke.
 
 The biggest lesson: examples drive model behavior more than rules.  Every version of the prompt that used annotated examples of good and bad tutor judgment outperformed versions that used rule lists or decision trees.  When a stated principle conflicted with a demonstrated example, the model followed the example every time.
 
 Full details are in the methodology docs:
 
-- [docs/methodology.md](docs/methodology.md) — the eight-phase process for building a tutor from scratch
-- [docs/model-selection.md](docs/model-selection.md) — why Sonnet with extended thinking, and what we tested against
-- [docs/lessons-learned.md](docs/lessons-learned.md) — key findings from five real iterations
+- [docs/methodology.md](docs/methodology.md) — how to build and iterate on a tutor prompt
+- [docs/model-selection.md](docs/model-selection.md) — model comparison and why Sonnet with extended thinking
+- [docs/lessons-learned.md](docs/lessons-learned.md) — key findings from building and testing this tutor
 
 ---
 
@@ -251,7 +269,7 @@ See [tests/README.md](tests/README.md) for instructions on how to run a simulate
 
 ## Key findings
 
-These emerged from five iterations and eight test runs across four distinct scenarios:
+These emerged from multiple iterations and test runs across distinct scenarios:
 
 - **Principles-based prompts outperform procedural ones.**  Decision trees and branching logic make the model rigid.  Short principles with annotated examples let the model use judgment.
 - **The model follows examples over stated rules.**  If your example shows "walk me through your steps" but your principle says "ask why," the model will ask "walk me through your steps."  Always align your examples with your principles.
@@ -268,7 +286,7 @@ These emerged from five iterations and eight test runs across four distinct scen
 Command-line interface with extended thinking, transcript export, and configurable system prompt.
 
 ### Phase 2: Web UI ✅
-Express server with a single-page chat interface, file uploads, transcript export, session management, end-of-session email summaries (with session ID and token usage) sent to the parent via Resend, a live cumulative token counter in the header, a first-visit disclaimer overlay, and a full-page feedback review overlay that collects per-response ratings (Accuracy, Helpful, Tone) at session end.  Session data is retained in the database for analysis.
+Express server with a single-page chat interface, file uploads, transcript export, session management, end-of-session email summaries (with session ID and token usage) sent to the parent via Resend, a live cumulative token counter in the header, an access-wall overlay with passcode entry, and an end-of-session feedback overlay that collects outcome, experience, and optional comment.  Session data is retained in the database for analysis.
 
 ### Phase 3: Documentation and deployment ✅
 CLAUDE.md, package READMEs, deployment config (render.yaml, docs/deployment.md).
@@ -289,7 +307,7 @@ A native mobile tutor interface.
 
 ## Project structure
 
-If you're a developer looking at the code, here's how the repo is organized.  Everything runs as a single Node.js service (`apps/api`) that also serves the web frontend as a static file.
+Everything runs as a single Node.js service (`apps/api`) that also serves the web frontend as a static file.
 
 ```
 ai-tutor-toolkit/
@@ -297,6 +315,7 @@ ai-tutor-toolkit/
 ├── tsconfig.base.json                    ← Shared TypeScript config
 ├── render.yaml                           ← Render.com deployment config
 ├── CLAUDE.md                             ← Agent context (for AI contributors)
+├── env.sh.template                       ← Template for local environment variable setup
 │
 ├── packages/                             ← Shared libraries
 │   ├── core/                             ← @ai-tutor/core — tutor logic, Anthropic SDK wrapper
@@ -309,6 +328,7 @@ ai-tutor-toolkit/
 │   └── cli/                              ← @ai-tutor/cli — Terminal REPL
 │
 ├── supabase/
+│   ├── config.toml                       ← Supabase CLI local development config
 │   └── migrations/
 │       ├── 001_initial_schema.sql        ← DB schema (sessions, messages, feedback)
 │       ├── 002_soft_session_end.sql      ← Adds ended_at; retains data after session end
@@ -316,7 +336,12 @@ ai-tutor-toolkit/
 │       ├── 004_feedback_category.sql     ← One row per feedback category per message
 │       ├── 005_token_tracking.sql        ← Token usage columns on sessions and messages
 │       ├── 006_disclaimer_acceptances.sql ← Disclaimer acceptance records
-│       └── 007_disclaimer_client_session_id.sql ← Deferred FK backfill support
+│       ├── 007_disclaimer_client_session_id.sql ← Deferred FK backfill support
+│       ├── 008_feedback_redesign.sql     ← Renames feedback → feedback_legacy; creates session_feedback and session_evaluations
+│       ├── 009_update_session_evaluations_v2.sql ← v7 evaluation dimension columns
+│       ├── 010_relax_legacy_evaluation_columns.sql ← Drops NOT NULL on legacy v6 columns
+│       ├── 011_disclaimer_email.sql      ← Adds email column to disclaimer_acceptances
+│       └── 012_session_model_prompt.sql  ← Adds model and prompt_name to sessions
 │
 ├── templates/
 │   ├── tutor-prompt-v7.md               ← Production tutor prompt (current)
@@ -331,9 +356,9 @@ ai-tutor-toolkit/
 │   └── *.md                              ← Student character briefs
 │
 └── docs/
-    ├── methodology.md                    ← Prompt development methodology (pending v7 rewrite)
-    ├── model-selection.md               ← Model selection analysis (pending v7 rewrite)
-    ├── lessons-learned.md               ← Key findings (pending v7 rewrite)
+    ├── methodology.md                    ← Prompt development methodology
+    ├── model-selection.md               ← Model selection analysis
+    ├── lessons-learned.md               ← Key findings
     ├── deployment.md                    ← Render and local deployment instructions
     └── archive/                         ← Archived v1 documentation
 ```

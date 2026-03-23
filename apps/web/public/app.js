@@ -43,6 +43,7 @@
   let sessionUploads = []; // { id, name, mimeType, blobUrl, messageId }
   let uploadCounter  = 0;
 
+  // Sentinel emitted by tutor prompt when the problem is fully resolved.
   const END_SENTINEL   = '[END_SESSION_AVAILABLE]';
   const MAX_FILES      = 5;
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -492,19 +493,8 @@
     pendingSwitch = null;
   }
 
-  async function confirmSwitch() {
-    switchConfigOverlay.classList.remove('active');
-    if (!pendingSwitch) return;
-    const { type, value } = pendingSwitch;
-
-    // Discard the current session silently (no eval, no email).
-    if (msgList.length > 0 && !sessionEnded) {
-      void discardSession(sessionId);
-    }
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    stopCountdownDisplay();
-
-    // Reset all session state.
+  /** Reset all session state and UI to a fresh-session starting point. */
+  function resetSessionState() {
     sessionId       = crypto.randomUUID();
     msgList         = [];
     for (const u of sessionUploads) {
@@ -522,7 +512,6 @@
     tokenCounter.style.display = 'none';
     tokenCounter.textContent = '';
 
-    // Reset UI to fresh state.
     messagesEl.innerHTML = '';
     showEmpty();
     endBanner.classList.remove('active');
@@ -537,6 +526,21 @@
     btnAttach.disabled = false;
     updateHeaderButtons();
     resizeInput();
+  }
+
+  async function confirmSwitch() {
+    switchConfigOverlay.classList.remove('active');
+    if (!pendingSwitch) return;
+    const { type, value } = pendingSwitch;
+
+    // Discard the current session silently (no eval, no email).
+    if (msgList.length > 0 && !sessionEnded) {
+      void discardSession(sessionId);
+    }
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    stopCountdownDisplay();
+
+    resetSessionState();
 
     // Apply the switch.
     applySwitch(type, value);
@@ -725,39 +729,7 @@
     if (inactivityTimer) clearTimeout(inactivityTimer);
     stopCountdownDisplay();
 
-    // Reset state
-    sessionId       = crypto.randomUUID();
-    msgList         = [];
-    for (const u of sessionUploads) {
-      if (u.blobUrl) URL.revokeObjectURL(u.blobUrl);
-    }
-    sessionUploads  = [];
-    uploadCounter   = 0;
-    if (typeof resetGallery === 'function') resetGallery();
-    clearAttachments();
-    isStreaming     = false;
-    endAvailable    = false;
-    sessionEnded    = false;
-    msgCounter      = 0;
-    fbSelections    = { outcome: null, experience: null };
-    tokenCounter.style.display = 'none';
-    tokenCounter.textContent = '';
-
-    // Reset UI
-    messagesEl.innerHTML = '';
-    showEmpty();
-    endBanner.classList.remove('active');
-    fbCard.classList.remove('active');
-    fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
-    fbComment.value = '';
-    inputRow.style.display = '';
-    msgInput.value = '';
-    msgInput.placeholder = 'What are you stuck on?';
-    msgInput.disabled = false;
-    btnSend.disabled = false;
-    btnAttach.disabled = false;
-    updateHeaderButtons();
-    resizeInput();
+    resetSessionState();
     msgInput.focus();
   }
 

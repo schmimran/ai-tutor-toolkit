@@ -22,12 +22,7 @@ const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
 ]);
 
-/** Allowed model IDs — must match the list in routes/config.ts. */
-const ALLOWED_MODELS = new Set([
-  "claude-haiku-4-5-20251001",
-  "claude-sonnet-4-6",
-  "claude-opus-4-6",
-]);
+import { ALLOWED_MODELS } from "../lib/validation.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
