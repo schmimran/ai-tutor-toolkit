@@ -1,11 +1,6 @@
 import { Router } from "express";
 import type { Config } from "@ai-tutor/core";
-
-const AVAILABLE_MODELS = [
-  "claude-haiku-4-5-20251001",
-  "claude-sonnet-4-6",
-  "claude-opus-4-6",
-];
+import { ALLOWED_MODELS } from "../lib/validation.js";
 
 export function createConfigRouter(
   config: Config,
@@ -30,7 +25,7 @@ export function createConfigRouter(
       extendedThinking: config.extendedThinking,
       inactivityMs,
       contactEmail: process.env.CONTACT_EMAIL ?? "wax.spirits8d@icloud.com",
-      availableModels: AVAILABLE_MODELS,
+      availableModels: [...ALLOWED_MODELS],
       availablePrompts: [...promptMap.keys()],
       defaultPrompt: defaultPromptName,
     });

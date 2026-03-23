@@ -23,7 +23,7 @@
       --banner-border: #1a4a30;
       --font-heading:  'Nunito', sans-serif;
       --font-sans:     'Plus Jakarta Sans', sans-serif;
-      --font-serif:    'Nunito', sans-serif;
+      --radius-md:     12px;
       --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
       --radius:        16px;
       --radius-sm:     10px;
@@ -273,12 +273,6 @@
       text-align: center;
     }
 
-    #empty-state .empty-prompt {
-      font-family: var(--font-heading);
-      font-size: 1.1rem;
-      color: var(--text-muted);
-    }
-
     /* ── Messages list ─────────────────────────────────────────────────────── */
     #messages {
       display: none; /* toggled by JS */
@@ -342,7 +336,7 @@
     .msg-bubble h1,
     .msg-bubble h2,
     .msg-bubble h3,
-    .msg-bubble h4               { font-family: var(--font-serif); margin: 0.9em 0 0.35em; }
+    .msg-bubble h4               { font-family: var(--font-heading); margin: 0.9em 0 0.35em; }
     .msg-bubble h1:first-child,
     .msg-bubble h2:first-child,
     .msg-bubble h3:first-child   { margin-top: 0; }

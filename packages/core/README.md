@@ -85,7 +85,7 @@ import { evaluateTranscript } from "@ai-tutor/core";
 const result = await evaluateTranscript(session.transcript, { model: "claude-sonnet-4-6" });
 ```
 
-Evaluates a session transcript against ten tutoring quality dimensions derived from the six Socratic tutoring principles.  Used for automated session evaluation after a session ends.
+Evaluates a session transcript against a multi-dimensional tutoring quality rubric (v7).  Used for automated session evaluation after a session ends.
 
 Calls `claude-sonnet-4-6` (or the model in `config.model`) without extended thinking.  `max_tokens: 2000`.
 
@@ -100,22 +100,28 @@ Calls `claude-sonnet-4-6` (or the model in `config.model`) without extended thin
 
 ```typescript
 {
-  model: string;                    // Model used for evaluation
-  opening_sequence: DimensionScore;
-  one_question: DimensionScore;
-  asked_why: DimensionScore;
-  worked_at_edge: DimensionScore;
-  parallel_problems: DimensionScore;
-  step_feedback: DimensionScore;
-  never_gave_answer: DimensionScore;
-  clarity: DimensionScore;
-  tone: DimensionScore;
-  resolution: DimensionScore;
-  has_failures: boolean;            // true if any dimension (except resolution) scored 'fail'
+  model: string;                         // Model used for evaluation
+  session_mode: string;                  // Detected mode: "problem-solving", "conceptual", "direct", "review"
+  mode_handling: string;                 // Did the tutor correctly identify and follow the session mode?
+  problem_confirmation: string;          // Did the tutor restate the problem before proceeding?
+  never_gave_answer: string;             // NON-NEGOTIABLE — did the tutor withhold the final answer?
+  probe_reasoning: string;               // NON-NEGOTIABLE — did the tutor ask why, not just what?
+  understood_where_student_was: string;  // NON-NEGOTIABLE — did the tutor establish how far the student had gotten?
+  one_question: string;                  // One question at a time?
+  worked_at_edge: string;                // Worked at the student's actual gap?
+  followed_student_lead: string;         // Followed when the student redirected?
+  adaptive_tone: string;                 // Read student state and adjusted?
+  parallel_problems: string;             // Used parallel problems when appropriate?
+  step_feedback: string;                 // Confirmed or redirected at each step?
+  resolution: string;                    // 'resolved' | 'partial' | 'unresolved' | 'abandoned'
+  has_failures: boolean;                 // See below
+  rationale: Record<string, string>;     // Per-dimension rationale keyed by column name
 }
 ```
 
-Each `DimensionScore` is `{ score: string; rationale: string }`.  Scores for dimensions 1–9 are `'pass' | 'partial' | 'fail' | 'na'`.  Score for `resolution` is `'resolved' | 'partial' | 'unresolved' | 'abandoned'`.
+All scored dimensions use `'pass' | 'partial' | 'fail' | 'na'` except `resolution` which uses `'resolved' | 'partial' | 'unresolved' | 'abandoned'`.
+
+`has_failures` is `true` if any of the three non-negotiable dimensions (`never_gave_answer`, `probe_reasoning`, `understood_where_student_was`) scores `'fail'`, or if 3 or more of the remaining dimensions score `'fail'`.
 
 ---
 

@@ -56,6 +56,11 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `RESEND_API_KEY` | no | Resend dashboard → API Keys | **Yes** |
 | `PARENT_EMAIL` | no | Your email address (where transcripts will be sent) | No |
 | `EMAIL_FROM` | no | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |
+| `ACCESS_PASSCODE` | **yes** | A 5-digit code you choose; share with your student | **Yes** |
+| `CONTACT_EMAIL` | no | Contact email shown in the access-wall overlay | No |
+| `MODEL` | no | Default: `claude-sonnet-4-6` | No |
+| `EXTENDED_THINKING` | no | Default: `true`; set `false` to disable | No |
+| `SYSTEM_PROMPT_PATH` | no | Default: `templates/tutor-prompt-v7.md` | No |
 | `CORS_ORIGIN` | no | Your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`) | No |
 
 You can skip `RESEND_API_KEY`, `PARENT_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.
@@ -87,7 +92,7 @@ Once the deploy finishes, click the URL at the top of your service page (it look
 To confirm the server is healthy, visit `https://your-app-url.onrender.com/api/config`.  You should see a JSON response like:
 
 ```json
-{"model":"claude-sonnet-4-6","extendedThinking":true,"inactivityMs":600000}
+{"model":"claude-sonnet-4-6","extendedThinking":true,"inactivityMs":600000,"contactEmail":"...","availableModels":[...],"availablePrompts":[...],"defaultPrompt":"tutor-prompt-v7"}
 ```
 
 ### Ongoing
@@ -152,7 +157,7 @@ Open `http://localhost:3000` in your browser.
 Visit `http://localhost:3000/api/config`.  You should see:
 
 ```json
-{"model":"claude-sonnet-4-6","extendedThinking":true,"inactivityMs":600000}
+{"model":"claude-sonnet-4-6","extendedThinking":true,"inactivityMs":600000,"contactEmail":"...","availableModels":[...],"availablePrompts":[...],"defaultPrompt":"tutor-prompt-v7"}
 ```
 
 ### Other commands

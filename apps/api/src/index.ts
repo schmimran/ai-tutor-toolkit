@@ -74,11 +74,6 @@ app.use(express.json());
 // __dirname is apps/api/dist/ at runtime, so ../../web/public resolves to apps/web/public/.
 app.use(express.static(path.join(__dirname, "../../web/public")));
 
-// Serve maintenance page at /maintenance (without .html extension).
-app.get("/maintenance", (_req, res) => {
-  res.sendFile(path.join(__dirname, "../../web/public/maintenance.html"));
-});
-
 // Routes
 app.use("/api/chat", createChatRouter(tutorClient, db, promptMap, defaultPromptName, config.model));
 app.use("/api/sessions", createSessionsRouter(db, emailConfig));
