@@ -77,7 +77,7 @@ Rules:
 
 ## Database schema reference
 
-Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run server-side with the service role key.
+Managed via `supabase/migrations/000_schema.sql`.  No RLS.  All queries run server-side with the service role key.
 
 ### sessions
 
@@ -86,15 +86,15 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 | id | uuid | gen_random_uuid() | PK |
 | started_at | timestamptz | now() | |
 | last_activity_at | timestamptz | now() | Indexed |
-| ended_at | timestamptz | null | Set on session end; indexed. Added in migration 002. |
+| ended_at | timestamptz | null | Set on session end; indexed. |
 | client_ip | text | null | |
 | client_geo | jsonb | null | From geoip-lite |
 | client_user_agent | text | null | |
 | email_sent | boolean | false | Prevents duplicate emails |
-| total_input_tokens | integer | 0 | Cumulative input tokens across all turns. Updated after each assistant message. Added in migration 005. |
-| total_output_tokens | integer | 0 | Cumulative output tokens across all turns. Updated after each assistant message. Added in migration 005. |
-| model | text | null | Claude model ID used for this session (e.g. "claude-sonnet-4-6"). Set on first message. Added in migration 012. |
-| prompt_name | text | null | Tutor prompt filename stem used for this session (e.g. "tutor-prompt-v7"). Set on first message. Added in migration 012. |
+| total_input_tokens | integer | 0 | Cumulative input tokens across all turns. Updated after each assistant message. |
+| total_output_tokens | integer | 0 | Cumulative output tokens across all turns. Updated after each assistant message. |
+| model | text | null | Claude model ID used for this session (e.g. "claude-sonnet-4-6"). Set on first message. |
+| prompt_name | text | null | Tutor prompt filename stem used for this session (e.g. "tutor-prompt-v7"). Set on first message. |
 
 ### messages
 
@@ -105,33 +105,19 @@ Managed via migrations in `supabase/migrations/`.  No RLS.  All queries run serv
 | role | text | CHECK IN ('user', 'assistant') |
 | content | text | Plain text of the message |
 | thinking | text | Serialized thinking blocks (null if extended thinking off) |
-| input_tokens | integer | Nullable. Input tokens for this API call. Null for user messages and legacy rows. Added in migration 005. |
-| output_tokens | integer | Nullable. Output tokens for this API call. Null for user messages and legacy rows. Added in migration 005. |
+| input_tokens | integer | Nullable. Input tokens for this API call. Null for user messages. |
+| output_tokens | integer | Nullable. Output tokens for this API call. Null for user messages. |
 | created_at | timestamptz | Indexed with session_id |
-
-### feedback_legacy
-
-Archive table — renamed from `feedback` in migration 008.  Not actively written to.  Retained for historical data analysis only.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| session_id | uuid | FK → sessions(id) ON DELETE CASCADE |
-| message_id | uuid | FK → messages(id) ON DELETE SET NULL. Nullable; links per-message feedback to the assistant turn being rated. Added in migration 003. |
-| category | text | "accuracy" \| "usefulness" \| "tone". One row per category per message. Nullable for legacy rows. Added in migration 004. |
-| rating | integer | CHECK 1–5, nullable. Null means the category was not rated (N/A). |
-| comment | text | Nullable |
-| created_at | timestamptz | |
 
 ### session_feedback
 
-One row per session.  Written when the student submits the end-of-session feedback overlay, or when the inactivity sweep ends the session without a student submission.  Added in migration 008.
+One row per session.  Written when the student submits the end-of-session feedback overlay, or when the inactivity sweep ends the session without a student submission.
 
 | Column | Type | Default | Notes |
 |--------|------|---------|-------|
 | id | uuid | gen_random_uuid() | PK |
-| session_id | uuid | | FK → sessions(id) ON DELETE CASCADE. UNIQUE — one record per session. |
-| source | text | | CHECK IN ('student', 'timeout'). 'student' = submitted by student; 'timeout' = auto-created by inactivity sweep. |
+| session_id | uuid | | FK → sessions(id) ON DELETE CASCADE. UNIQUE. |
+| source | text | | CHECK IN ('student', 'timeout'). |
 | outcome | text | null | CHECK IN ('solved', 'partial', 'stuck'). Nullable — not collected on timeout. |
 | experience | text | null | CHECK IN ('positive', 'neutral', 'negative'). Nullable — not collected on timeout. |
 | comment | text | null | Nullable free-text comment. |
@@ -140,31 +126,27 @@ One row per session.  Written when the student submits the end-of-session feedba
 
 ### session_evaluations
 
-One row per session.  Written by an automated transcript evaluation job using the rubric in `packages/core/src/evaluation-prompt.md`.  Added in migration 008; v7 columns added in migration 009.
+One row per session.  Written by an automated transcript evaluation job using the rubric in `packages/core/src/evaluation-prompt.md`.
 
 | Column | Type | Default | Notes |
 |--------|------|---------|-------|
 | id | uuid | gen_random_uuid() | PK |
 | session_id | uuid | | FK → sessions(id) ON DELETE CASCADE. UNIQUE — one record per session. |
 | model | text | | Model ID used to run the evaluation. |
-| opening_sequence | text | null | Legacy v6. CHECK IN ('pass', 'partial', 'fail', 'na'). Replaced by understood_where_student_was in v7. |
-| one_question | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
-| asked_why | text | null | Legacy v6. CHECK IN ('pass', 'partial', 'fail', 'na'). Replaced by probe_reasoning in v7. |
-| worked_at_edge | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
-| parallel_problems | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
-| step_feedback | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
-| never_gave_answer | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Retained in v7. |
-| clarity | text | null | Legacy v6. CHECK IN ('pass', 'partial', 'fail', 'na'). Removed in v7. |
-| tone | text | null | Legacy v6. CHECK IN ('pass', 'partial', 'fail', 'na'). Replaced by adaptive_tone in v7. |
-| resolution | text | | CHECK IN ('resolved', 'partial', 'unresolved', 'abandoned'). Retained in v7. |
-| has_failures | boolean | false | Pre-computed flag. v7: true if never_gave_answer, probe_reasoning, or understood_where_student_was is 'fail', or if 3+ other dimensions are 'fail'. Indexed. |
+| mode_handling | text | null | CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor correctly identify and follow the session mode? |
+| problem_confirmation | text | null | CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor restate the problem before proceeding? |
+| never_gave_answer | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). NON-NEGOTIABLE. |
+| probe_reasoning | text | null | CHECK IN ('pass', 'partial', 'fail', 'na'). NON-NEGOTIABLE. Did the tutor ask why, not just what? |
+| understood_where_student_was | text | null | CHECK IN ('pass', 'partial', 'fail', 'na'). NON-NEGOTIABLE. Did the tutor establish how far the student had gotten? |
+| one_question | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). One question per message? |
+| worked_at_edge | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Working at the student's actual gap? |
+| followed_student_lead | text | null | CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor follow when the student redirected? |
+| adaptive_tone | text | null | CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor read student state and adjust? |
+| parallel_problems | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Tried a parallel problem when looping? |
+| step_feedback | text | | CHECK IN ('pass', 'partial', 'fail', 'na'). Feedback at each step? |
+| resolution | text | | CHECK IN ('resolved', 'partial', 'unresolved', 'abandoned'). |
+| has_failures | boolean | false | Pre-computed flag: true if any non-negotiable dimension is 'fail', or if 3+ other dimensions are 'fail'. Indexed. |
 | rationale | jsonb | {} | Per-criterion rationale strings keyed by column name. |
-| mode_handling | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor correctly identify and follow the session mode? Added in migration 009. |
-| problem_confirmation | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor restate the problem before proceeding? Added in migration 009. |
-| probe_reasoning | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor ask why, not just what? Replaces asked_why. Added in migration 009. |
-| understood_where_student_was | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor establish how far the student had gotten? Replaces opening_sequence. Added in migration 009. |
-| followed_student_lead | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor follow when the student redirected? Added in migration 009. |
-| adaptive_tone | text | null | v7. CHECK IN ('pass', 'partial', 'fail', 'na'). Did the tutor read student state and adjust? Replaces tone. Added in migration 009. |
 | created_at | timestamptz | now() | |
 
 ### disclaimer_acceptances
@@ -176,9 +158,9 @@ One row per session.  Written by an automated transcript evaluation job using th
 | client_ip | text | Nullable |
 | client_geo | jsonb | Nullable. From geoip-lite |
 | client_user_agent | text | Nullable |
-| session_id | uuid | FK → sessions(id) ON DELETE SET NULL. Nullable; backfilled after first /api/chat call via linkDisclaimerAcceptance(). Added in migration 006. |
-| client_session_id | text | Nullable. The client-generated session UUID stored at acceptance time (no FK constraint). Used to backfill session_id. Added in migration 007. |
-| email | text | Nullable. Email address submitted through the access-wall overlay. Added in migration 011. |
+| session_id | uuid | FK → sessions(id) ON DELETE SET NULL. Nullable; backfilled after first /api/chat call via linkDisclaimerAcceptance(). |
+| client_session_id | text | Nullable. The client-generated session UUID stored at acceptance time (no FK constraint). Used to backfill session_id. |
+| email | text | Nullable. Email address submitted through the access-wall overlay. |
 
 ---
 
@@ -369,7 +351,6 @@ All configuration comes from environment variables.  No `.env` files are committ
 | EMAIL_FROM | no | tutor@tutor.schmim.com | email, api | Sender address |
 | CORS_ORIGIN | no | * | api | Allowed CORS origin |
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
-| EVALUATION_MODEL | no | claude-sonnet-4-6 | core | Model used for post-session transcript evaluation. Hardcoded in evaluate-transcript.ts — not an env var. |
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
@@ -377,6 +358,8 @@ All configuration comes from environment variables.  No `.env` files are committ
 | CONTACT_EMAIL | no | wax.spirits8d@icloud.com | api | Contact email shown in access-wall overlay and returned by GET /api/config |
 
 Both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are required for the API server.  If either is absent, the server will not start.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
+
+The evaluation model (`claude-sonnet-4-6`) is hardcoded in `packages/core/src/evaluate-transcript.ts`, not configurable via environment variable.
 
 ---
 
@@ -425,18 +408,7 @@ These apply to every Claude Code session in this repo.
 |------|---------|
 | `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev` |
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
-| `supabase/migrations/001_initial_schema.sql` | Initial DB schema (sessions, messages, feedback) |
-| `supabase/migrations/002_soft_session_end.sql` | Adds `ended_at` column to sessions; enables data retention |
-| `supabase/migrations/003_feedback_message_id.sql` | Adds `message_id` FK to feedback table |
-| `supabase/migrations/004_feedback_category.sql` | Adds `category` column to feedback table |
-| `supabase/migrations/005_token_tracking.sql` | Adds token usage columns to sessions and messages |
-| `supabase/migrations/006_disclaimer_acceptances.sql` | Creates `disclaimer_acceptances` table |
-| `supabase/migrations/007_disclaimer_client_session_id.sql` | Adds `client_session_id` to disclaimer_acceptances |
-| `supabase/migrations/008_feedback_redesign.sql` | Renames `feedback` → `feedback_legacy`; creates `session_feedback` and `session_evaluations` |
-| `supabase/migrations/009_update_session_evaluations_v2.sql` | Adds v7 evaluation dimension columns to `session_evaluations`; backfills from legacy columns |
-| `supabase/migrations/010_relax_legacy_evaluation_columns.sql` | Drops NOT NULL on legacy v6 columns (`opening_sequence`, `asked_why`, `clarity`, `tone`) so v7 evaluations can insert without them |
-| `supabase/migrations/011_disclaimer_email.sql` | Adds `email` column to disclaimer_acceptances |
-| `supabase/migrations/012_session_model_prompt.sql` | Adds `model` and `prompt_name` columns to sessions |
+| `supabase/migrations/000_schema.sql` | Consolidated database schema (sessions, messages, session_feedback, session_evaluations, disclaimer_acceptances) |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/evaluation-checklist.md` | Manual scoring rubric for test evaluation (v6-era; automated evaluation now uses `packages/core/src/evaluation-prompt.md`) |
@@ -490,4 +462,5 @@ These apply to every Claude Code session in this repo.
 | `render.yaml` | Render.com deployment config |
 | `supabase/config.toml` | Supabase CLI local development config |
 | `env.sh.template` | Template for local environment variable setup |
+| `scripts/backfill-evaluations.ts` | Backfills session evaluations for sessions without evaluation rows |
 | `reports/` | Audit reports and analysis artifacts |
