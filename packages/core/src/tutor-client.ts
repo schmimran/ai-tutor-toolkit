@@ -30,22 +30,15 @@ function buildParams(
   const prompt = opts?.systemPromptOverride ?? systemPrompt;
   const extendedThinking = config.extendedThinking && !isHaiku(model);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const params: Record<string, any> = {
+  return {
     model,
     max_tokens: 16000,
     system: prompt,
-    messages: session.messages,
-  };
-
-  if (extendedThinking) {
-    params["thinking"] = {
-      type: "enabled",
-      budget_tokens: 10000,
-    };
-  }
-
-  return params as Omit<Anthropic.MessageCreateParams, "stream">;
+    messages: session.messages as Anthropic.MessageParam[],
+    ...(extendedThinking && {
+      thinking: { type: "enabled" as const, budget_tokens: 10000 },
+    }),
+  } satisfies Omit<Anthropic.MessageCreateParams, "stream">;
 }
 
 /**
