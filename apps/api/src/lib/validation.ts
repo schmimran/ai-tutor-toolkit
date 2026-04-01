@@ -15,8 +15,9 @@ export const ALLOWED_MODELS = new Set([
  * like bare "@" or missing local/domain parts.
  */
 export function sanitizeEmail(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > 254) return null;
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
+  if (trimmed.length > 254) return null;
   const atIndex = trimmed.indexOf("@");
   if (atIndex < 1 || atIndex === trimmed.length - 1) return null;
   return trimmed;
