@@ -1,5 +1,5 @@
 /**
- * Database row types — manually maintained to match the full migration set in supabase/migrations/.
+ * Database row types — manually maintained to match supabase/migrations/000_schema.sql.
  *
  * Do not add auth-related tables here.  RLS policies are not applied in this
  * project; the service-role key is used for all server-side queries.
@@ -18,9 +18,9 @@ export interface DbSession {
   total_input_tokens: number;
   /** Cumulative output tokens across all turns in this session. */
   total_output_tokens: number;
-  /** Claude model ID used for this session (e.g. "claude-sonnet-4-6"). Added in migration 012. */
+  /** Claude model ID used for this session (e.g. "claude-sonnet-4-6"). Set on first message. */
   model: string | null;
-  /** Tutor prompt name used for this session (e.g. "tutor-prompt-v7"). Added in migration 012. */
+  /** Tutor prompt filename stem used for this session (e.g. "tutor-prompt-v7"). Set on first message. */
   prompt_name: string | null;
 }
 
@@ -33,9 +33,9 @@ export interface DbMessage {
   content: string;
   /** Serialized thinking blocks for analysis.  Null when extended thinking is off. */
   thinking: string | null;
-  /** Input tokens consumed by this API call.  Null for user messages and legacy rows. */
+  /** Input tokens consumed by this API call.  Null for user messages. */
   input_tokens: number | null;
-  /** Output tokens produced by this API call.  Null for user messages and legacy rows. */
+  /** Output tokens produced by this API call.  Null for user messages. */
   output_tokens: number | null;
   created_at: string;
 }
@@ -124,7 +124,7 @@ export interface DbDisclaimerAcceptance {
   /** The client-generated session UUID stored at acceptance time (no FK).
    *  Used to backfill session_id after the sessions row is created. */
   client_session_id: string | null;
-  /** Email submitted through the access-wall overlay.  Added in migration 011. */
+  /** Email submitted through the access-wall overlay. */
   email: string | null;
 }
 
