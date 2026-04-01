@@ -20,8 +20,8 @@ Before you start, make sure you have:
 - A GitHub account, with this repo forked or pushed to a repository you control
 - A [Render account](https://render.com) (free to sign up)
 - An Anthropic API key — get one at [console.anthropic.com](https://console.anthropic.com)
-- A Supabase project with all migrations applied — see the [Supabase setup section](../README.md#supabase--database) in the main README
-- A Resend account with a verified sending domain — see the [Resend setup section](../README.md#resend--email) in the main README (optional, but required for email transcripts)
+- A Supabase project with all migrations applied — see the [Supabase setup section](../README.md#setting-up-supabase) in the main README
+- A Resend account with a verified sending domain — see the [email transcripts section](../README.md#optional-email-transcripts) in the main README (optional, but required for email transcripts)
 
 ### Step 1: Create a Web Service
 
@@ -131,6 +131,9 @@ export ANTHROPIC_API_KEY=sk-ant-...
 # Required for the API server (session history, email transcripts)
 export SUPABASE_URL=https://your-project-ref.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# Required — 5-digit passcode for the access wall; share with your student
+export ACCESS_PASSCODE=12345
 
 # Optional — emails are silently skipped if absent
 export RESEND_API_KEY=re_...
