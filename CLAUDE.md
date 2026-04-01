@@ -427,26 +427,34 @@ These apply to every Claude Code session in this repo.
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
 | `supabase/migrations/001_initial_schema.sql` | Initial DB schema (sessions, messages, feedback) |
 | `supabase/migrations/002_soft_session_end.sql` | Adds `ended_at` column to sessions; enables data retention |
+| `supabase/migrations/003_feedback_message_id.sql` | Adds `message_id` FK to feedback table |
+| `supabase/migrations/004_feedback_category.sql` | Adds `category` column to feedback table |
+| `supabase/migrations/005_token_tracking.sql` | Adds token usage columns to sessions and messages |
+| `supabase/migrations/006_disclaimer_acceptances.sql` | Creates `disclaimer_acceptances` table |
+| `supabase/migrations/007_disclaimer_client_session_id.sql` | Adds `client_session_id` to disclaimer_acceptances |
 | `supabase/migrations/008_feedback_redesign.sql` | Renames `feedback` → `feedback_legacy`; creates `session_feedback` and `session_evaluations` |
 | `supabase/migrations/009_update_session_evaluations_v2.sql` | Adds v7 evaluation dimension columns to `session_evaluations`; backfills from legacy columns |
 | `supabase/migrations/010_relax_legacy_evaluation_columns.sql` | Drops NOT NULL on legacy v6 columns (`opening_sequence`, `asked_why`, `clarity`, `tone`) so v7 evaluations can insert without them |
+| `supabase/migrations/011_disclaimer_email.sql` | Adds `email` column to disclaimer_acceptances |
+| `supabase/migrations/012_session_model_prompt.sql` | Adds `model` and `prompt_name` columns to sessions |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
-| `templates/evaluation-checklist.md` | Scoring rubric for test evaluation |
+| `templates/evaluation-checklist.md` | Manual scoring rubric for test evaluation (v6-era; automated evaluation now uses `packages/core/src/evaluation-prompt.md`) |
 | `examples/physics-geometry-9th-grade-v6.md` | Physics & geometry example prompt v6 — retained as rollback reference |
 | `tests/README.md` | Test harness usage guide |
 | `tests/*.md` | Character briefs for simulating student sessions |
-| `docs/methodology.md` | Prompt development methodology — pending rewrite for v7 (archived version at `docs/archive/methodology-v1.md`) |
-| `docs/model-selection.md` | Model selection analysis — pending rewrite for v7 (archived version at `docs/archive/model-selection-v1.md`) |
-| `docs/lessons-learned.md` | Key findings — pending rewrite for v7 (archived version at `docs/archive/lessons-learned-v1.md`) |
+| `docs/methodology.md` | Prompt development methodology — v7 (archived v1 version at `docs/archive/methodology-v1.md`) |
+| `docs/model-selection.md` | Model selection analysis — v7 (archived v1 version at `docs/archive/model-selection-v1.md`) |
+| `docs/lessons-learned.md` | Key findings — v7 (archived v1 version at `docs/archive/lessons-learned-v1.md`) |
 | `docs/archive/` | Archived versions of superseded docs |
 | `docs/deployment.md` | Render, AWS, and local deployment instructions |
 | `packages/core/src/config.ts` | `loadConfig()` — reads and validates all env vars |
 | `packages/core/src/prompt-loader.ts` | `loadSystemPrompt()` — loads prompt file from repo root |
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
 | `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments, token usage tracking (`TokenUsage` interface) |
-| `packages/core/src/evaluate-transcript.ts` | Automated transcript evaluation against ten tutoring dimensions |
+| `packages/core/src/evaluate-transcript.ts` | Automated transcript evaluation against twelve tutoring dimensions (v7) |
 | `packages/core/src/evaluation-prompt.md` | Evaluation prompt for automated transcript scoring — v7 framework |
+| `packages/db/src/assert.ts` | `assertRow()` — shared Supabase query result assertion helper |
 | `packages/db/src/client.ts` | `createSupabaseClient()` — Supabase initialization |
 | `packages/db/src/sessions.ts` | Session CRUD (create, get, update, markSessionEnded) |
 | `packages/db/src/messages.ts` | Message CRUD (create, list by session) |
@@ -462,7 +470,7 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records access-wall acceptance with IP/geo/user-agent/email |
 | `apps/api/src/routes/access.ts` | `POST /api/access/verify` — server-side passcode validation against ACCESS_PASSCODE env var |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
-| `apps/api/src/lib/evaluation.ts` | `runSessionEvaluation()` — calls `evaluateTranscript`, saves to DB, returns result; `buildEvaluationPayload()` — maps result to email shape |
+| `apps/api/src/lib/evaluation.ts` | `runSessionEvaluation()` — calls `evaluateTranscript`, saves to DB, returns result; `buildEvaluationPayload()` — maps result to email shape; `buildTranscriptEmailPayload()` — assembles full email payload from session data |
 | `apps/api/src/lib/session-store.ts` | In-memory session cache (`Map<id, Session>`) |
 | `apps/api/src/lib/stream.ts` | SSE helpers (`initSSE`, `sendEvent`, `sendHeartbeat`) |
 | `apps/api/src/lib/geo.ts` | `extractClientInfo()` — IP, geolocation, user-agent extraction |
@@ -474,6 +482,7 @@ These apply to every Claude Code session in this repo.
 | `apps/web/public/app.js` | Chat application logic; exposes `sessionUploads` global for gallery.js |
 | `apps/web/public/gallery.css` | Gallery pane styles, thumbnail strip, img-ref pills, mobile drawer |
 | `apps/web/public/gallery.js` | Gallery pane logic; exposes `openGallery`, `closeGallery`, `focusUpload`, `addToGallery`, `resetGallery` globals |
+| `apps/web/public/maintenance.html` | Static maintenance page; served manually when the app is down for planned maintenance |
 | `apps/web/public/manifest.json` | PWA web app manifest — standalone display, theme colors, icon references |
 | `apps/web/public/icons/` | PWA app icons (192×192 and 512×512 PNGs) for home-screen and manifest |
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
