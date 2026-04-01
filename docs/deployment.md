@@ -20,8 +20,8 @@ Before you start, make sure you have:
 - A GitHub account, with this repo forked or pushed to a repository you control
 - A [Render account](https://render.com) (free to sign up)
 - An Anthropic API key — get one at [console.anthropic.com](https://console.anthropic.com)
-- A Supabase project with all migrations applied — see the [Supabase setup section](../README.md#supabase--database) in the main README
-- A Resend account with a verified sending domain — see the [Resend setup section](../README.md#resend--email) in the main README (optional, but required for email transcripts)
+- A Supabase project with all migrations applied — see the [Supabase setup section](../README.md#setting-up-supabase) in the main README
+- A Resend account with a verified sending domain — see the [email transcripts section](../README.md#optional-email-transcripts) in the main README (optional, but required for email transcripts)
 
 ### Step 1: Create a Web Service
 
@@ -132,6 +132,9 @@ export ANTHROPIC_API_KEY=sk-ant-...
 export SUPABASE_URL=https://your-project-ref.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
+# Required — 5-digit passcode for the access wall; share with your student
+export ACCESS_PASSCODE=12345
+
 # Optional — emails are silently skipped if absent
 export RESEND_API_KEY=re_...
 export PARENT_EMAIL=you@yourdomain.com
@@ -175,3 +178,61 @@ npm run cli
 The `tests/` folder contains character briefs for simulated student sessions.  See [tests/README.md](../tests/README.md) for how to use them.
 
 There are no automated unit or integration tests in this repo.
+
+---
+
+## Session lifecycle
+
+Understanding how a tutoring session moves through the system:
+
+1. **Client generates a UUID.**  The browser creates a session ID via `crypto.randomUUID()` and stores it in memory (not localStorage).
+
+2. **First chat message.**  `POST /api/chat` creates the in-memory `Session` object and a `sessions` row in Supabase.  Client IP, geolocation, and user-agent are captured.  The disclaimer acceptance record (if any) is linked to this session via `linkDisclaimerAcceptance()`.
+
+3. **Each turn.**  The student sends a message, the tutor streams a response via SSE.  After each turn:
+   - User and assistant messages are persisted to the `messages` table
+   - `last_activity_at` and cumulative token counts are updated on the session row
+   - The in-memory session retains the full message history (including thinking blocks) for context continuity
+
+4. **Session ends.**  This happens in one of two ways:
+   - **Explicit end:** The student clicks "New session" or closes the tab → frontend calls `DELETE /api/sessions/:id`
+   - **Inactivity timeout:** The server's 60-second sweep detects no activity for 10 minutes and reaps the session
+
+5. **On end (unless `?discard=true`):**
+   - An automated evaluation runs against the transcript (12 dimensions, scored pass/partial/fail/na)
+   - Student feedback is fetched (or a `source: 'timeout'` placeholder is created)
+   - A transcript email is sent to the parent (includes conversation, evaluation, feedback, and token usage)
+   - `email_sent` is set to `true` to prevent duplicate sends
+
+6. **Cleanup.**  The in-memory session is removed.  `ended_at` is set on the database row.  Session data (messages, feedback, evaluation) is **retained** for analysis — nothing is deleted.
+
+---
+
+## Troubleshooting
+
+### API server won't start
+
+- **Missing env vars:** The server requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANTHROPIC_API_KEY`.  It also requires `ACCESS_PASSCODE` (fails closed if unset).  Check that all four are exported in your shell.
+- **Port in use:** Another process is on port 3000.  Either stop it or set `export PORT=3001`.
+- **Build not run:** TypeScript must be compiled before starting.  Run `npm run build` first, then `npm run api`.
+
+### Can't get past the access wall
+
+- **Wrong passcode:** Verify `ACCESS_PASSCODE` matches what you're entering.  It must be exactly 5 digits.
+- **Not set:** If `ACCESS_PASSCODE` is not exported, the access wall rejects all codes (fails closed by design).
+
+### Email transcripts not arriving
+
+- **Missing keys:** Both `RESEND_API_KEY` and `PARENT_EMAIL` must be set.  If either is absent, emails are silently skipped.
+- **Domain not verified:** The `EMAIL_FROM` address must match a domain verified in your Resend dashboard.  Check Resend → Domains for verification status.
+- **Session too short:** Emails are only sent when a session has at least one exchange (transcript length > 0).
+
+### Evaluation fails
+
+- **Model access:** The evaluation uses `claude-sonnet-4-6` by default (hardcoded in `packages/core/src/evaluate-transcript.ts`).  Your API key must have access to that model.
+- **Check server logs:** Evaluation errors are logged as `[evaluation] Failed to evaluate session <id>`.  The session still ends normally — evaluation failure doesn't block cleanup.
+
+### Session not found (404)
+
+- **Reaped by sweep:** If the session was idle for 10+ minutes, the inactivity sweep already removed it from memory and set `ended_at`.  Check server logs for `[sweep] Reaped idle session <id>`.
+- **Server restarted:** In-memory sessions don't survive server restarts.  Session data is still in Supabase — it just can't be resumed.

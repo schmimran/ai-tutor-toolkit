@@ -62,8 +62,7 @@ export class Session {
    */
   readonly messages: Array<{
     role: "user" | "assistant";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    content: any;
+    content: string | Anthropic.ContentBlockParam[] | Anthropic.ContentBlock[];
   }> = [];
 
   readonly transcript: TranscriptEntry[] = [];

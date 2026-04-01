@@ -26,6 +26,8 @@ The tutor follows six core principles:
 
 The last step of every problem is always your student's.  The tutor will guide them right up to the edge, but it won't type out the answer.
 
+These principles are a simplified summary for parents.  The tutor prompt implements them through a more detailed structure — see [`templates/tutor-prompt-v7.md`](templates/tutor-prompt-v7.md) for the full specification.
+
 ---
 
 ## Quick start — three options
@@ -111,7 +113,7 @@ To get email transcripts sent to you when sessions end, continue to [Optional: e
 
 ### Option C: CLI (terminal)
 
-For parents comfortable in a terminal.  No web interface — you type your student's messages at a prompt and see the tutor's responses in the terminal.  Does not require Supabase or an access passcode.
+For parents comfortable in a terminal.  No web interface — you type your student's messages at a prompt and see the tutor's responses in the terminal.  Does not require Supabase or an access passcode.  You'll need [Node.js](https://nodejs.org) version 20 or later installed (same as Option B).
 
 ```bash
 npm install

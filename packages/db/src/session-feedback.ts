@@ -1,15 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DbSessionFeedback, DbSessionFeedbackInsert } from "./types.js";
-
-function assertRow<T>(
-  data: T | null,
-  error: { message: string } | null,
-  context: string
-): T {
-  if (error) throw new Error(`${context}: ${error.message}`);
-  if (!data) throw new Error(`${context}: no row returned`);
-  return data;
-}
+import { assertRow } from "./assert.js";
 
 /** Insert a session_feedback row and return it. */
 export async function createSessionFeedback(

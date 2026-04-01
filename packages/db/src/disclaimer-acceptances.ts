@@ -3,6 +3,7 @@ import type {
   DbDisclaimerAcceptance,
   DbDisclaimerAcceptanceInsert,
 } from "./types.js";
+import { assertRow } from "./assert.js";
 
 /**
  * Backfill session_id on disclaimer acceptance rows that were recorded before
@@ -37,7 +38,5 @@ export async function createDisclaimerAcceptance(
     .select()
     .single();
 
-  if (error) throw new Error(`createDisclaimerAcceptance: ${error.message}`);
-  if (!data) throw new Error("createDisclaimerAcceptance: no row returned");
-  return data as DbDisclaimerAcceptance;
+  return assertRow<DbDisclaimerAcceptance>(data, error, "createDisclaimerAcceptance");
 }

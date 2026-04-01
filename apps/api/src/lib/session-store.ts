@@ -28,6 +28,6 @@ export function removeSession(id: string): void {
   store.delete(id);
 }
 
-export function getAllSessions(): Map<string, Session> {
-  return store;
+export function getAllSessions(): IterableIterator<[string, Session]> {
+  return store.entries();
 }
