@@ -1,6 +1,8 @@
 import { evaluateTranscript } from "@ai-tutor/core";
-import type { EvaluationResult } from "@ai-tutor/core";
+import type { EvaluationResult, Session } from "@ai-tutor/core";
+import type { TranscriptEmailPayload } from "@ai-tutor/email";
 import { createSessionEvaluation } from "@ai-tutor/db";
+import type { DbSessionFeedback } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DIMENSION_LABELS: Record<string, string> = {
@@ -28,6 +30,35 @@ export function buildEvaluationPayload(result: EvaluationResult) {
       rationale: result.rationale[key],
     })),
     hasFailures: result.has_failures,
+  };
+}
+
+/**
+ * Build the email payload from session data, evaluation, and feedback.
+ * Used by both the DELETE handler and the inactivity sweep.
+ */
+export function buildTranscriptEmailPayload(
+  session: Session,
+  sessionId: string,
+  evalResult: EvaluationResult | null,
+  feedback: DbSessionFeedback | null,
+  fallbackModel?: string,
+  fallbackPromptName?: string,
+): TranscriptEmailPayload {
+  const summary = session.getSessionSummary();
+  return {
+    transcript: summary.transcript,
+    files: session.files,
+    clientInfo: summary.clientInfo,
+    startedAt: summary.startedAt,
+    lastActivityAt: summary.lastActivityAt,
+    durationMs: summary.durationMs,
+    sessionId,
+    tokenUsage: summary.tokenUsage,
+    evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
+    studentFeedback: feedback ?? null,
+    model: session.model ?? fallbackModel,
+    promptName: session.promptName ?? fallbackPromptName,
   };
 }
 

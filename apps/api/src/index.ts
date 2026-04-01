@@ -24,7 +24,7 @@ import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { createAccessRouter } from "./routes/access.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildEvaluationPayload } from "./lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload } from "./lib/evaluation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -90,11 +90,9 @@ setInterval(() => {
   for (const [sessionId, session] of getAllSessions()) {
     if (now - session.lastActivityAt.getTime() > INACTIVITY_MS) {
       if (!session.emailSent && session.transcript.length > 0) {
-        const summary = session.getSessionSummary();
-
         void (async () => {
           try {
-            const evalResult = await runSessionEvaluation(db, sessionId, summary.transcript);
+            const evalResult = await runSessionEvaluation(db, sessionId, session.transcript);
 
             let feedback = await getSessionFeedback(db, sessionId).catch(err => {
               console.error(`[sweep] Failed to fetch feedback for ${sessionId}:`, err);
@@ -110,20 +108,10 @@ setInterval(() => {
               });
             }
 
-            await sendTranscript(emailConfig, {
-              transcript: summary.transcript,
-              files: session.files,
-              clientInfo: summary.clientInfo,
-              startedAt: summary.startedAt,
-              lastActivityAt: summary.lastActivityAt,
-              durationMs: summary.durationMs,
-              sessionId,
-              tokenUsage: summary.tokenUsage,
-              evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
-              studentFeedback: feedback ?? null,
-              model: session.model ?? config.model,
-              promptName: session.promptName ?? defaultPromptName,
-            });
+            const payload = buildTranscriptEmailPayload(
+              session, sessionId, evalResult, feedback, config.model, defaultPromptName
+            );
+            await sendTranscript(emailConfig, payload);
             session.markEmailSent();
           } catch (err) {
             console.error(`[sweep] Failed to process session ${sessionId}:`, err);

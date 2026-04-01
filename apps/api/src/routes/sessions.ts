@@ -7,7 +7,7 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildEvaluationPayload } from "../lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload } from "../lib/evaluation.js";
 
 export interface EmailConfig {
   apiKey: string | undefined;
@@ -57,26 +57,13 @@ export function createSessionsRouter(
       const session = getSession(sessionId);
 
       if (!discard && session && !session.emailSent && session.transcript.length > 0) {
-        const summary = session.getSessionSummary();
-        const evalResult = await runSessionEvaluation(db, sessionId, summary.transcript);
+        const evalResult = await runSessionEvaluation(db, sessionId, session.transcript);
         const feedback = await getSessionFeedback(db, sessionId).catch(err => {
           console.error(`[sessions] Failed to fetch feedback for ${sessionId}:`, err);
           return null;
         });
-        void sendTranscript(emailConfig, {
-          transcript: summary.transcript,
-          files: session.files,
-          clientInfo: summary.clientInfo,
-          startedAt: summary.startedAt,
-          lastActivityAt: summary.lastActivityAt,
-          durationMs: summary.durationMs,
-          sessionId,
-          tokenUsage: summary.tokenUsage,
-          evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
-          studentFeedback: feedback ?? null,
-          model: session.model ?? undefined,
-          promptName: session.promptName ?? undefined,
-        });
+        const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback);
+        void sendTranscript(emailConfig, payload);
         session.markEmailSent();
       }
 
