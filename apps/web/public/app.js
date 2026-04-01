@@ -604,7 +604,6 @@
     if (inactivityTimer) clearTimeout(inactivityTimer);
     stopCountdownDisplay();
 
-
     const tutorMessages = msgList.filter(e => e.role === 'tutor');
     if (tutorMessages.length > 0) {
       showFeedbackCard();

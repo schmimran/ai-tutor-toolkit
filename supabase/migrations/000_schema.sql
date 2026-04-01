@@ -65,7 +65,6 @@ CREATE TABLE session_feedback (
   CONSTRAINT session_feedback_unique_session UNIQUE (session_id)
 );
 
-CREATE INDEX session_feedback_session_id ON session_feedback (session_id);
 
 -- ── session_evaluations ───────────────────────────────────────────────────
 -- One row per session.  Written by an automated transcript evaluation job
@@ -93,7 +92,6 @@ CREATE TABLE session_evaluations (
   CONSTRAINT session_evaluations_unique_session UNIQUE (session_id)
 );
 
-CREATE INDEX session_evaluations_session_id   ON session_evaluations (session_id);
 CREATE INDEX session_evaluations_has_failures ON session_evaluations (has_failures) WHERE has_failures = true;
 
 -- ── disclaimer_acceptances ────────────────────────────────────────────────
