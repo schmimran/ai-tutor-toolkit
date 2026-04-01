@@ -233,7 +233,7 @@
       overflow: hidden;
     }
 
-    /* ── Chat column (wraps chat-container + end-banner + input-wrapper) ───── */
+    /* ── Chat column (wraps chat-container + input-wrapper) ──────────────── */
     .chat-column {
       flex: 1;
       display: flex;
@@ -517,23 +517,6 @@
       gap: 8px;
     }
     #drag-overlay.active { display: flex; }
-
-    /* ── End-session banner ────────────────────────────────────────────────── */
-    #end-banner {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      padding: 10px 20px;
-      background: var(--banner-bg);
-      border-top: 1px solid var(--banner-border);
-      border-bottom: 1px solid var(--banner-border);
-      font-size: 0.88rem;
-      font-weight: 500;
-      color: var(--success);
-      flex-shrink: 0;
-    }
-    #end-banner.active { display: flex; }
 
     /* ── Input wrapper ─────────────────────────────────────────────────────── */
     #input-wrapper {

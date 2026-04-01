@@ -51,7 +51,6 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | Image gallery pane | Collapsible left-side pane showing all uploads for the session; opens on thumbnail click or toggle button |
 | Tutor image references | When the tutor response contains `[IMG:filename.ext]`, it renders as a clickable pill that opens the gallery focused on that file |
 | Transcript viewer | Modal with copy-to-clipboard |
-| Session end detection | Sentinel-based: tutor includes `[END_SESSION_AVAILABLE]` to trigger wrap-up banner |
 | Inactivity timeout | Auto-ends session after 10 minutes idle; triggers transcript email |
 | Session feedback | Session-level outcome, experience, and comment collected at session end. |
 | New session | One-click reset with automatic prior session cleanup (`DELETE /api/sessions/:id`) |
