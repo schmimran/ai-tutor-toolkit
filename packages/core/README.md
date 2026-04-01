@@ -193,15 +193,7 @@ import type {
 
 ## Configuration
 
-All configuration is via environment variables.  See the root README for the full table.
-
-| Variable | Required | Default |
-|----------|----------|---------|
-| `ANTHROPIC_API_KEY` | **yes** | — |
-| `MODEL` | no | `claude-sonnet-4-6` |
-| `EXTENDED_THINKING` | no | `true` |
-| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt-v7.md` |
-| `PORT` | no | `3000` |
+This package reads `ANTHROPIC_API_KEY` (required), `MODEL`, `EXTENDED_THINKING`, `SYSTEM_PROMPT_PATH`, and `PORT` from environment variables.  For the full table with defaults and descriptions, see the [environment variables reference](../../README.md#environment-variables--full-reference) in the root README.
 
 ## Setup
 
