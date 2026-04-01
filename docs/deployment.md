@@ -67,6 +67,8 @@ You can skip `RESEND_API_KEY`, `PARENT_EMAIL`, and `EMAIL_FROM` if you don't wan
 
 `PORT` does not need to be set — Render sets it automatically.
 
+For descriptions of each variable, see the [environment variables reference](../README.md#environment-variables--full-reference) in the root README.
+
 ### Step 4: Set the health check path
 
 1. Scroll down to the **Advanced** section.

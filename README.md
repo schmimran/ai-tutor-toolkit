@@ -142,26 +142,11 @@ Supabase is a free hosted database.  The web app requires it — the server will
 2. Copy the **Project URL** — this is your `SUPABASE_URL`.
 3. Under **Project API keys**, copy the **service_role** key (the secret one, not `anon`) — this is your `SUPABASE_SERVICE_ROLE_KEY`.  Keep this key secret.  It has full access to your database.
 
-**Step 3: Run the migrations**
+**Step 3: Run the schema migration**
 
-Migrations are SQL scripts that create the database tables the app needs.  You run them once, in order.
+The migration is a SQL script that creates the database tables the app needs.  You run it once.
 
-In your Supabase project dashboard, open **SQL Editor** (in the left sidebar).  For each file below, copy its contents and click **Run**:
-
-1. `supabase/migrations/001_initial_schema.sql`
-2. `supabase/migrations/002_soft_session_end.sql`
-3. `supabase/migrations/003_feedback_message_id.sql`
-4. `supabase/migrations/004_feedback_category.sql`
-5. `supabase/migrations/005_token_tracking.sql`
-6. `supabase/migrations/006_disclaimer_acceptances.sql`
-7. `supabase/migrations/007_disclaimer_client_session_id.sql`
-8. `supabase/migrations/008_feedback_redesign.sql`
-9. `supabase/migrations/009_update_session_evaluations_v2.sql`
-10. `supabase/migrations/010_relax_legacy_evaluation_columns.sql`
-11. `supabase/migrations/011_disclaimer_email.sql`
-12. `supabase/migrations/012_session_model_prompt.sql`
-
-Run them in order.  Each one builds on the previous.
+In your Supabase project dashboard, open **SQL Editor** (in the left sidebar).  Open [`supabase/migrations/000_schema.sql`](supabase/migrations/000_schema.sql) in this repo, copy its contents, paste into the editor, and click **Run**.
 
 **Step 4: Export the variables**
 
@@ -169,6 +154,8 @@ Run them in order.  Each one builds on the previous.
 export SUPABASE_URL=https://your-project-ref.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
+
+Done?  [Continue to Step 4: Choose an access passcode](#option-b-web-app-self-hosted).
 
 ---
 
@@ -203,9 +190,13 @@ export PARENT_EMAIL=you@yourdomain.com       # where transcripts go
 export EMAIL_FROM=tutor@tutor.yourdomain.com # must match your verified domain
 ```
 
+Done?  [Continue to Deploying on Render](#deploying-on-render) or [Behind the scenes](#behind-the-scenes).
+
 ---
 
 ### Environment variables — full reference
+
+This table is a quick reference.  If you followed Option B above, you've already set these.
 
 | Variable | Required | Default | What it does |
 |----------|----------|---------|--------------|
@@ -332,18 +323,7 @@ ai-tutor-toolkit/
 ├── supabase/
 │   ├── config.toml                       ← Supabase CLI local development config
 │   └── migrations/
-│       ├── 001_initial_schema.sql        ← DB schema (sessions, messages, feedback)
-│       ├── 002_soft_session_end.sql      ← Adds ended_at; retains data after session end
-│       ├── 003_feedback_message_id.sql   ← Links ratings to specific messages
-│       ├── 004_feedback_category.sql     ← One row per feedback category per message
-│       ├── 005_token_tracking.sql        ← Token usage columns on sessions and messages
-│       ├── 006_disclaimer_acceptances.sql ← Disclaimer acceptance records
-│       ├── 007_disclaimer_client_session_id.sql ← Deferred FK backfill support
-│       ├── 008_feedback_redesign.sql     ← Renames feedback → feedback_legacy; creates session_feedback and session_evaluations
-│       ├── 009_update_session_evaluations_v2.sql ← v7 evaluation dimension columns
-│       ├── 010_relax_legacy_evaluation_columns.sql ← Drops NOT NULL on legacy v6 columns
-│       ├── 011_disclaimer_email.sql      ← Adds email column to disclaimer_acceptances
-│       └── 012_session_model_prompt.sql  ← Adds model and prompt_name to sessions
+│       └── 000_schema.sql               ← Database schema (sessions, messages, feedback, evaluations, disclaimers)
 │
 ├── templates/
 │   ├── tutor-prompt-v7.md               ← Production tutor prompt (current)

@@ -26,7 +26,6 @@
   let msgList           = []; // {id, role, bubbleEl}
   let attachments       = []; // {file, chipEl}
   let isStreaming       = false;
-  let endAvailable      = false;
   let sessionEnded      = false;
   let inactivityTimer   = null;
   let countdownInterval = null;
@@ -43,8 +42,6 @@
   let sessionUploads = []; // { id, name, mimeType, blobUrl, messageId }
   let uploadCounter  = 0;
 
-  // Sentinel emitted by tutor prompt when the problem is fully resolved.
-  const END_SENTINEL   = '[END_SESSION_AVAILABLE]';
   const MAX_FILES      = 5;
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
   const ALLOWED_TYPES  = new Set([
@@ -61,8 +58,6 @@
   const btnAttach      = $('btn-attach');
   const fileInput      = $('file-input');
   const fileStrip      = $('file-strip');
-  const endBanner      = $('end-banner');
-  const btnEndSession       = $('btn-end-session');
   const btnEndSessionHeader = $('btn-end-session-header');
   const fbCard             = $('fb-card');
   const btnFbSubmit        = $('btn-fb-submit');
@@ -252,8 +247,7 @@
   }
 
   function finalizeTutor(entry, rawText) {
-    const hasSentinel = rawText.includes(END_SENTINEL);
-    const clean = rawText.replace(END_SENTINEL, '').trim();
+    const clean = rawText.trim();
 
     // Replace [IMG:...] markers before markdown parse
     const withRefs = parseImgRefs(clean);
@@ -278,11 +272,6 @@
     if (refPills.length > 0) {
       const lastId = refPills[refPills.length - 1].dataset.uploadId;
       if (typeof focusUpload === 'function') focusUpload(lastId);
-    }
-
-    if (hasSentinel && !endAvailable && !sessionEnded) {
-      endAvailable = true;
-      endBanner.classList.add('active');
     }
 
     scrollBottom();
@@ -381,9 +370,7 @@
               tutorEntry.bubbleEl.innerHTML = '';
             }
             rawText += event.text;
-            // Show plain text live (strip sentinel for display)
-            tutorEntry.bubbleEl.textContent =
-              rawText.replace(END_SENTINEL, '').trimEnd();
+            tutorEntry.bubbleEl.textContent = rawText.trimEnd();
             scrollBottom();
           } else if (event.type === 'message_stop') {
             if (event.messageId) tutorEntry.dbId = event.messageId;
@@ -505,7 +492,6 @@
     if (typeof resetGallery === 'function') resetGallery();
     clearAttachments();
     isStreaming     = false;
-    endAvailable    = false;
     sessionEnded    = false;
     msgCounter      = 0;
     fbSelections    = { outcome: null, experience: null };
@@ -514,7 +500,7 @@
 
     messagesEl.innerHTML = '';
     showEmpty();
-    endBanner.classList.remove('active');
+
     fbCard.classList.remove('active');
     fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
     fbComment.value = '';
@@ -606,7 +592,7 @@
     if (sessionEnded || msgList.length === 0) return;
     sessionEnded = true;
     stopCountdownDisplay();
-    endBanner.classList.remove('active');
+
     await deleteSession(sessionId);
     lockSession('Session ended due to inactivity. Your transcript has been emailed.');
   }
@@ -617,7 +603,6 @@
     sessionEnded = true;
     if (inactivityTimer) clearTimeout(inactivityTimer);
     stopCountdownDisplay();
-    endBanner.classList.remove('active');
 
     const tutorMessages = msgList.filter(e => e.role === 'tutor');
     if (tutorMessages.length > 0) {
@@ -870,7 +855,6 @@
     if (fileInput.files?.length) { addFiles(fileInput.files); fileInput.value = ''; }
   });
 
-  btnEndSession.addEventListener('click', endSession);
   btnEndSessionHeader.addEventListener('click', endSession);
   btnTranscript.addEventListener('click', openTranscript);
 

@@ -197,25 +197,22 @@ import type { DbSession, DbMessage, DbSessionFeedback, DbSessionEvaluation } fro
 
 ## Database schema
 
-Managed by migrations in `supabase/migrations/`.
+Managed by `supabase/migrations/000_schema.sql`.
 
 ### sessions
 
 ```sql
 CREATE TABLE sessions (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  started_at           timestamptz DEFAULT now(),
-  last_activity_at     timestamptz DEFAULT now(),
+  started_at           timestamptz NOT NULL DEFAULT now(),
+  last_activity_at     timestamptz NOT NULL DEFAULT now(),
+  ended_at             timestamptz,
   client_ip            text,
   client_geo           jsonb,
   client_user_agent    text,
-  email_sent           boolean DEFAULT false,
-  -- migration 002
-  ended_at             timestamptz,
-  -- migration 005
+  email_sent           boolean NOT NULL DEFAULT false,
   total_input_tokens   integer NOT NULL DEFAULT 0,
   total_output_tokens  integer NOT NULL DEFAULT 0,
-  -- migration 012
   model                text,
   prompt_name          text
 );
@@ -230,27 +227,9 @@ CREATE TABLE messages (
   role          text NOT NULL CHECK (role IN ('user', 'assistant')),
   content       text NOT NULL,
   thinking      text,
-  created_at    timestamptz DEFAULT now(),
-  -- migration 005
+  created_at    timestamptz NOT NULL DEFAULT now(),
   input_tokens  integer,
   output_tokens integer
-);
-```
-
-### feedback_legacy
-
-Archive table — renamed from `feedback` in migration 008.  Not actively written to.
-
-```sql
--- Originally created in migration 001; renamed in migration 008.
-CREATE TABLE feedback_legacy (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id  uuid NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  rating      integer CHECK (rating BETWEEN 1 AND 5),
-  comment     text,
-  created_at  timestamptz DEFAULT now()
-  -- migration 003: message_id uuid REFERENCES messages(id) ON DELETE SET NULL
-  -- migration 004: category text
 );
 ```
 
@@ -274,34 +253,27 @@ CREATE TABLE session_feedback (
 
 ### session_evaluations
 
-One automated evaluation record per session.  Added in migration 008.
+One automated evaluation record per session.
 
 ```sql
 CREATE TABLE session_evaluations (
   id                              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id                      uuid        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   model                           text        NOT NULL,
-  -- Legacy v6 columns (nullable after migration 010; null for v7 evaluations)
-  opening_sequence                text        CHECK (opening_sequence    IN ('pass', 'partial', 'fail', 'na')),
-  asked_why                       text        CHECK (asked_why           IN ('pass', 'partial', 'fail', 'na')),
-  clarity                         text        CHECK (clarity             IN ('pass', 'partial', 'fail', 'na')),
-  tone                            text        CHECK (tone                IN ('pass', 'partial', 'fail', 'na')),
-  -- Retained across v6 and v7
-  one_question                    text        NOT NULL CHECK (one_question        IN ('pass', 'partial', 'fail', 'na')),
-  worked_at_edge                  text        NOT NULL CHECK (worked_at_edge      IN ('pass', 'partial', 'fail', 'na')),
-  parallel_problems               text        NOT NULL CHECK (parallel_problems   IN ('pass', 'partial', 'fail', 'na')),
-  step_feedback                   text        NOT NULL CHECK (step_feedback       IN ('pass', 'partial', 'fail', 'na')),
-  never_gave_answer               text        NOT NULL CHECK (never_gave_answer   IN ('pass', 'partial', 'fail', 'na')),
-  resolution                      text        NOT NULL CHECK (resolution          IN ('resolved', 'partial', 'unresolved', 'abandoned')),
-  has_failures                    boolean     NOT NULL DEFAULT false,
-  rationale                       jsonb       NOT NULL DEFAULT '{}',
-  -- v7 columns (added in migration 009; null for legacy v6 evaluations)
   mode_handling                   text        CHECK (mode_handling                   IN ('pass', 'partial', 'fail', 'na')),
   problem_confirmation            text        CHECK (problem_confirmation            IN ('pass', 'partial', 'fail', 'na')),
+  never_gave_answer               text        NOT NULL CHECK (never_gave_answer      IN ('pass', 'partial', 'fail', 'na')),
   probe_reasoning                 text        CHECK (probe_reasoning                 IN ('pass', 'partial', 'fail', 'na')),
   understood_where_student_was    text        CHECK (understood_where_student_was    IN ('pass', 'partial', 'fail', 'na')),
+  one_question                    text        NOT NULL CHECK (one_question           IN ('pass', 'partial', 'fail', 'na')),
+  worked_at_edge                  text        NOT NULL CHECK (worked_at_edge         IN ('pass', 'partial', 'fail', 'na')),
   followed_student_lead           text        CHECK (followed_student_lead           IN ('pass', 'partial', 'fail', 'na')),
   adaptive_tone                   text        CHECK (adaptive_tone                   IN ('pass', 'partial', 'fail', 'na')),
+  parallel_problems               text        NOT NULL CHECK (parallel_problems      IN ('pass', 'partial', 'fail', 'na')),
+  step_feedback                   text        NOT NULL CHECK (step_feedback          IN ('pass', 'partial', 'fail', 'na')),
+  resolution                      text        NOT NULL CHECK (resolution             IN ('resolved', 'partial', 'unresolved', 'abandoned')),
+  has_failures                    boolean     NOT NULL DEFAULT false,
+  rationale                       jsonb       NOT NULL DEFAULT '{}',
   created_at                      timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT session_evaluations_unique_session UNIQUE (session_id)
 );
@@ -310,7 +282,6 @@ CREATE TABLE session_evaluations (
 ### disclaimer_acceptances
 
 ```sql
--- migration 006
 CREATE TABLE disclaimer_acceptances (
   id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   accepted_at       timestamptz NOT NULL DEFAULT now(),
@@ -318,10 +289,7 @@ CREATE TABLE disclaimer_acceptances (
   client_geo        jsonb,
   client_user_agent text,
   session_id        uuid        REFERENCES sessions(id) ON DELETE SET NULL,
-  -- migration 007: plain text copy of the client session UUID (no FK).
-  -- Used to backfill session_id after the sessions row is created.
   client_session_id text,
-  -- migration 011
   email             text
 );
 ```
@@ -337,14 +305,6 @@ CREATE TABLE disclaimer_acceptances (
 
 ## Setup
 
-Run all migrations against your Supabase project before starting the API server.  Use the Supabase SQL Editor (paste each file in order) or the Supabase CLI:
-
-```bash
-supabase login
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
-
-Migrations must be applied in order: `001` through `012`.
+Run the schema migration against your Supabase project before starting the API server.  Open the Supabase SQL Editor, paste the contents of `supabase/migrations/000_schema.sql`, and click **Run**.
 
 This package is not run directly — it is imported by `apps/api`.

@@ -1,5 +1,7 @@
 # Methodology: Building an AI Tutor (v7)
 
+This is for anyone building or iterating on an AI tutor prompt.  It assumes familiarity with large language models and prompt engineering.  For a parent-level overview of what the tutor does, see the [root README](../README.md#what-the-tutor-does).
+
 This documents how we build and iterate on the AI tutor prompt.  The core loop from v1 still applies — write prompt, test with student, read transcript, diagnose failure, fix example.  What changed in v7 is the prompt architecture: mode detection as the first design primitive, tiered principles, identity-first framing, annotated dialogue examples, and automated evaluation to close the feedback loop.
 
 For the v1 methodology (single subject, single student, five rules), see `docs/archive/methodology-v1.md`.
