@@ -11,10 +11,13 @@ export const ALLOWED_MODELS = new Set([
 
 /**
  * Returns a trimmed email string if the value looks like a valid address,
- * or null otherwise.  Intentionally lenient — just enough to reject garbage.
+ * or null otherwise.  Intentionally lenient — just enough to reject garbage
+ * like bare "@" or missing local/domain parts.
  */
 export function sanitizeEmail(value: unknown): string | null {
-  return typeof value === "string" && value.includes("@") && value.length <= 254
-    ? value.trim()
-    : null;
+  if (typeof value !== "string" || value.length > 254) return null;
+  const trimmed = value.trim();
+  const atIndex = trimmed.indexOf("@");
+  if (atIndex < 1 || atIndex === trimmed.length - 1) return null;
+  return trimmed;
 }

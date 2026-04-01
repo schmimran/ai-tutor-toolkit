@@ -59,7 +59,10 @@ export function createSessionsRouter(
       if (!discard && session && !session.emailSent && session.transcript.length > 0) {
         const summary = session.getSessionSummary();
         const evalResult = await runSessionEvaluation(db, sessionId, summary.transcript);
-        const feedback = await getSessionFeedback(db, sessionId).catch(() => null);
+        const feedback = await getSessionFeedback(db, sessionId).catch(err => {
+          console.error(`[sessions] Failed to fetch feedback for ${sessionId}:`, err);
+          return null;
+        });
         void sendTranscript(emailConfig, {
           transcript: summary.transcript,
           files: session.files,

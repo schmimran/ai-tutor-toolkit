@@ -93,33 +93,42 @@ setInterval(() => {
         const summary = session.getSessionSummary();
 
         void (async () => {
-          const evalResult = await runSessionEvaluation(db, sessionId, summary.transcript);
+          try {
+            const evalResult = await runSessionEvaluation(db, sessionId, summary.transcript);
 
-          let feedback = await getSessionFeedback(db, sessionId).catch(() => null);
-          if (!feedback) {
-            feedback = await createSessionFeedback(db, {
-              session_id: sessionId,
-              source: "timeout",
-            }).catch(() => null);
+            let feedback = await getSessionFeedback(db, sessionId).catch(err => {
+              console.error(`[sweep] Failed to fetch feedback for ${sessionId}:`, err);
+              return null;
+            });
+            if (!feedback) {
+              feedback = await createSessionFeedback(db, {
+                session_id: sessionId,
+                source: "timeout",
+              }).catch(err => {
+                console.error(`[sweep] Failed to create timeout feedback for ${sessionId}:`, err);
+                return null;
+              });
+            }
+
+            await sendTranscript(emailConfig, {
+              transcript: summary.transcript,
+              files: session.files,
+              clientInfo: summary.clientInfo,
+              startedAt: summary.startedAt,
+              lastActivityAt: summary.lastActivityAt,
+              durationMs: summary.durationMs,
+              sessionId,
+              tokenUsage: summary.tokenUsage,
+              evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
+              studentFeedback: feedback ?? null,
+              model: session.model ?? config.model,
+              promptName: session.promptName ?? defaultPromptName,
+            });
+            session.markEmailSent();
+          } catch (err) {
+            console.error(`[sweep] Failed to process session ${sessionId}:`, err);
           }
-
-          void sendTranscript(emailConfig, {
-            transcript: summary.transcript,
-            files: session.files,
-            clientInfo: summary.clientInfo,
-            startedAt: summary.startedAt,
-            lastActivityAt: summary.lastActivityAt,
-            durationMs: summary.durationMs,
-            sessionId,
-            tokenUsage: summary.tokenUsage,
-            evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
-            studentFeedback: feedback ?? null,
-            model: session.model ?? config.model,
-            promptName: session.promptName ?? defaultPromptName,
-          });
         })();
-
-        session.markEmailSent();
       }
       removeSession(sessionId);
       void markSessionEnded(db, sessionId).catch(err =>
