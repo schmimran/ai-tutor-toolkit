@@ -258,9 +258,13 @@
     // Replace [IMG:...] markers before markdown parse
     const withRefs = parseImgRefs(clean);
 
-    // Render markdown (marked is defer-loaded; should be ready by first message)
-    const html = (typeof marked !== 'undefined')
-      ? marked.parse(withRefs)
+    // Render markdown then sanitize with DOMPurify before assigning to innerHTML.
+    // DOMPurify is required — if it hasn't loaded (CDN blocked/slow), fall back to
+    // plain-text rendering rather than passing unsanitized HTML to innerHTML.
+    // ADD_ATTR: tabindex is not in DOMPurify's default allow-list; data-upload-id
+    // is allowed by default via ALLOW_DATA_ATTR but listed explicitly for clarity.
+    const html = (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined')
+      ? DOMPurify.sanitize(marked.parse(withRefs), { ADD_ATTR: ['data-upload-id', 'tabindex'] })
       : `<p>${escHtml(withRefs)}</p>`;
 
     entry.bubbleEl.innerHTML = html;
@@ -398,8 +402,8 @@
         }
       }
 
-      // Fallback: finalize if stream ended without message_stop
-      if (rawText && !tutorEntry.bubbleEl.querySelector('p, ul, ol, pre, h1, h2, h3')) {
+      // Fallback: finalize if stream ended without message_stop (handles zero-token case too)
+      if (!tutorEntry.bubbleEl.querySelector('p, ul, ol, pre, h1, h2, h3')) {
         finalizeTutor(tutorEntry, rawText);
       }
 
@@ -494,6 +498,8 @@
 
   /** Reset all session state and UI to a fresh-session starting point. */
   function resetSessionState() {
+    if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+    stopCountdownDisplay();
     sessionId       = crypto.randomUUID();
     msgList         = [];
     for (const u of sessionUploads) {
@@ -537,9 +543,6 @@
     if (msgList.length > 0 && !sessionEnded) {
       void discardSession(sessionId);
     }
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    stopCountdownDisplay();
-
     resetSessionState();
 
     // Apply the switch.
@@ -727,9 +730,6 @@
     if (msgList.length > 0 && !sessionEnded) {
       await deleteSession(sessionId);
     }
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    stopCountdownDisplay();
-
     resetSessionState();
     msgInput.focus();
   }
