@@ -42,12 +42,9 @@ The ai-tutor-toolkit is a well-structured monorepo with strong type safety, cons
 
 ## Important (fix soon)
 
-### 2. `END_SENTINEL` feature is unreachable
+### 2. ~~`END_SENTINEL` feature is unreachable~~ — RESOLVED
 
-- **File:** `apps/web/public/index.html:1016`, `finalizeTutor()` at line 1159
-- **What:** The frontend defines `const END_SENTINEL = '[END_SESSION_AVAILABLE]'` and `finalizeTutor()` checks `rawText.includes(END_SENTINEL)` to show an end-of-session banner.  Neither `templates/tutor-prompt.md` nor `examples/physics-geometry-9th-grade.md` contains this string or instructs the model to emit it.  Unless the model spontaneously generates this exact string, `endAvailable` will never be set to `true` and the end-session banner (driven by `endBanner.classList.add('active')` at line 1173) will never appear.
-- **Why it matters:** The UI has a fully-implemented feature — the end-session banner — that is currently dead code because the prompt side was never connected.  A future contributor may not realize this is intentional versus a bug.
-- **Fix:** Either (a) add a final section to the tutor prompt instructing the model to append `[END_SESSION_AVAILABLE]` when a problem is fully resolved, or (b) remove the sentinel logic from the frontend if the feature is no longer planned.
+- **Resolved:** 2026-04-04.  The sentinel instruction now lives in `templates/system-instructions.md` (appended to every prompt at load time).  PR #39 restored the frontend detection; this change moved the instruction out of individual prompts into a global file and broadened the trigger to cover all session types (direct questions, conceptual clarifications, not just problem-solving).
 
 ### 3. `deleteSession` exported but never called by any app
 

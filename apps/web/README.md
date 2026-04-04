@@ -52,6 +52,7 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | Tutor image references | When the tutor response contains `[IMG:filename.ext]`, it renders as a clickable pill that opens the gallery focused on that file |
 | Transcript viewer | Modal with copy-to-clipboard |
 | Inactivity timeout | Auto-ends session after 10 minutes idle; triggers transcript email |
+| End-session banner | When the tutor resolves a problem or finishes a question, a green banner suggests ending the session; driven by `[END_SESSION_AVAILABLE]` sentinel in `templates/system-instructions.md` |
 | Session feedback | Session-level outcome, experience, and comment collected at session end. |
 | New session | One-click reset with automatic prior session cleanup (`DELETE /api/sessions/:id`) |
 | Model indicator | Shows current model and extended thinking status (from `/api/config`) |
