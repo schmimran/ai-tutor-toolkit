@@ -258,9 +258,14 @@
     // Replace [IMG:...] markers before markdown parse
     const withRefs = parseImgRefs(clean);
 
-    // Render markdown (marked is defer-loaded; should be ready by first message)
+    // Render markdown (marked is defer-loaded; should be ready by first message).
+    // DOMPurify sanitizes the output before assignment to innerHTML to prevent XSS
+    // from model-generated HTML (e.g. via prompt injection). ADD_ATTR preserves
+    // the data-upload-id and tabindex attributes used by img-ref pills.
     const html = (typeof marked !== 'undefined')
-      ? marked.parse(withRefs)
+      ? (typeof DOMPurify !== 'undefined'
+          ? DOMPurify.sanitize(marked.parse(withRefs), { ADD_ATTR: ['data-upload-id', 'tabindex'] })
+          : marked.parse(withRefs))
       : `<p>${escHtml(withRefs)}</p>`;
 
     entry.bubbleEl.innerHTML = html;
@@ -398,8 +403,8 @@
         }
       }
 
-      // Fallback: finalize if stream ended without message_stop
-      if (rawText && !tutorEntry.bubbleEl.querySelector('p, ul, ol, pre, h1, h2, h3')) {
+      // Fallback: finalize if stream ended without message_stop (handles zero-token case too)
+      if (!tutorEntry.bubbleEl.querySelector('p, ul, ol, pre, h1, h2, h3')) {
         finalizeTutor(tutorEntry, rawText);
       }
 
@@ -494,6 +499,8 @@
 
   /** Reset all session state and UI to a fresh-session starting point. */
   function resetSessionState() {
+    if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+    stopCountdownDisplay();
     sessionId       = crypto.randomUUID();
     msgList         = [];
     for (const u of sessionUploads) {
@@ -537,9 +544,6 @@
     if (msgList.length > 0 && !sessionEnded) {
       void discardSession(sessionId);
     }
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    stopCountdownDisplay();
-
     resetSessionState();
 
     // Apply the switch.
@@ -727,9 +731,6 @@
     if (msgList.length > 0 && !sessionEnded) {
       await deleteSession(sessionId);
     }
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    stopCountdownDisplay();
-
     resetSessionState();
     msgInput.focus();
   }

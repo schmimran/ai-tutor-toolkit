@@ -63,10 +63,12 @@ export function createSessionsRouter(
           return null;
         });
         const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback);
-        void sendTranscript(emailConfig, payload).then(
-          () => session.markEmailSent(),
-          err => console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err),
-        );
+        try {
+          await sendTranscript(emailConfig, payload);
+          session.markEmailSent();
+        } catch (err) {
+          console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err);
+        }
       }
 
       removeSession(sessionId);

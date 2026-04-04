@@ -89,6 +89,19 @@ setInterval(() => {
   const now = Date.now();
   for (const [sessionId, session] of getAllSessions()) {
     if (now - session.lastActivityAt.getTime() > INACTIVITY_MS) {
+      // Remove from memory first to prevent the next sweep tick from re-processing.
+      removeSession(sessionId);
+
+      // Shared teardown: mark ended_at in DB and log. Called both from the async
+      // eval/email path (in finally, after the evaluation row is written) and from
+      // the no-email path (immediately, since there is no evaluation to wait for).
+      const finishReap = () => {
+        void markSessionEnded(db, sessionId).catch(err =>
+          console.error(`[sweep] Could not mark session ${sessionId} as ended:`, err)
+        );
+        console.log(`[sweep] Reaped idle session ${sessionId}.`);
+      };
+
       if (!session.emailSent && session.transcript.length > 0) {
         void (async () => {
           try {
@@ -115,14 +128,15 @@ setInterval(() => {
             session.markEmailSent();
           } catch (err) {
             console.error(`[sweep] Failed to process session ${sessionId}:`, err);
+          } finally {
+            // Mark ended_at only after evaluation and email have completed (or failed),
+            // so session_evaluations is always written before ended_at is set.
+            finishReap();
           }
         })();
+      } else {
+        finishReap();
       }
-      removeSession(sessionId);
-      void markSessionEnded(db, sessionId).catch(err =>
-        console.error(`[sweep] Could not mark session ${sessionId} as ended:`, err)
-      );
-      console.log(`[sweep] Reaped idle session ${sessionId}.`);
     }
   }
 }, 60 * 1000); // Check every minute.
