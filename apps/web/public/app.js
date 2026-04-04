@@ -381,7 +381,6 @@
               tutorEntry.bubbleEl.innerHTML = '';
             }
             rawText += event.text;
-            // Show plain text live (strip sentinel for display)
             tutorEntry.bubbleEl.textContent =
               rawText.replace(END_SENTINEL, '').trimEnd();
             scrollBottom();
