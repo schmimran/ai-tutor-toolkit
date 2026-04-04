@@ -430,7 +430,7 @@ These apply to every Claude Code session in this repo.
 | `docs/archive/` | Archived versions of superseded docs |
 | `docs/deployment.md` | Render, AWS, and local deployment instructions |
 | `packages/core/src/config.ts` | `loadConfig()` — reads and validates all env vars |
-| `packages/core/src/prompt-loader.ts` | `loadSystemPrompt()` — loads prompt file from repo root |
+| `packages/core/src/prompt-loader.ts` | `loadPromptFile()` — loads and strips a prompt file; `loadSystemPrompt()` — wraps `loadPromptFile()` and appends global system instructions |
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
 | `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments, token usage tracking (`TokenUsage` interface) |
 | `packages/core/src/evaluate-transcript.ts` | Automated transcript evaluation against twelve tutoring dimensions (v7) |
