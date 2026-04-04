@@ -13,6 +13,20 @@ The toolkit started as a single prompt file and grew into a full monorepo: a CLI
 
 ---
 
+## Quick Start
+
+```bash
+npm run build              # Compile all TypeScript packages and apps (run from repo root)
+npm run api                # Start the Express API server (default port 3000)
+npm run dev                # Start API with file-watch (development)
+npm run cli                # Launch the terminal REPL
+npm run backfill:evaluations  # Backfill session_evaluations for sessions missing a row
+```
+
+> Copy `env.sh.template` to `env.sh`, fill in your values, then `source env.sh` before running any command.  `ANTHROPIC_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` are required to start the API server.
+
+---
+
 ## Architecture decisions
 
 ### Monorepo (npm workspaces)
@@ -59,6 +73,30 @@ Token usage (input and output tokens) is accumulated per session after each API 
 ### Extended thinking
 
 Enabled by default.  The Anthropic SDK is called with `thinking: { type: "enabled", budget_tokens: 10000 }` and `max_tokens: 16000`.  Thinking blocks are stored in the session (so the model can reference its own prior reasoning) but are never sent to the client or stored in transcript emails.
+
+---
+
+## Development environment notes
+
+### Git worktree builds
+
+When working inside a git worktree (`.claude/worktrees/<name>/`), TypeScript resolves `@ai-tutor/*` packages by traversing up to the main repo's `node_modules/@ai-tutor/` — which points to stale compiled `dist/` files that don't include changes in the worktree.
+
+**Required one-time setup before `npm run build` in any worktree:**
+
+```bash
+mkdir -p node_modules/@ai-tutor
+ln -sf ../../packages/core  node_modules/@ai-tutor/core
+ln -sf ../../packages/db    node_modules/@ai-tutor/db
+ln -sf ../../packages/email node_modules/@ai-tutor/email
+ln -sf ../../apps/api       node_modules/@ai-tutor/api
+ln -sf ../../apps/cli       node_modules/@ai-tutor/cli
+ln -sf ../../apps/web       node_modules/@ai-tutor/web
+# Also link the email package's local node_modules (contains resend):
+ln -sf /Users/imran/GitRepos/ai-tutor-toolkit/packages/email/node_modules packages/email/node_modules
+```
+
+Without these symlinks, `tsc --build` silently compiles against stale types and produces confusing "property does not exist" errors that don't match the actual source.
 
 ---
 
@@ -414,7 +452,7 @@ These apply to every Claude Code session in this repo.
 
 | Path | Purpose |
 |------|---------|
-| `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev` |
+| `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev`, `npm run backfill:evaluations` |
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
 | `supabase/migrations/000_schema.sql` | Consolidated database schema (sessions, messages, session_feedback, session_evaluations, disclaimer_acceptances) |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
@@ -467,9 +505,8 @@ These apply to every Claude Code session in this repo.
 | `apps/web/public/manifest.json` | PWA web app manifest — standalone display, theme colors, icon references |
 | `apps/web/public/icons/` | PWA app icons (192×192 and 512×512 PNGs) for home-screen and manifest |
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
-| `apps/ios/README.md` | Placeholder — future iOS app (no code yet) |
 | `render.yaml` | Render.com deployment config |
 | `supabase/config.toml` | Supabase CLI local development config |
 | `env.sh.template` | Template for local environment variable setup |
-| `scripts/backfill-evaluations.ts` | Backfills session evaluations for sessions without evaluation rows |
-| `reports/` | Audit reports and analysis artifacts |
+| `scripts/backfill-evaluations.ts` | Backfills session evaluations for sessions without evaluation rows. Run via: `npm run backfill:evaluations` |
+| `reports/` | Audit reports and analysis artifacts — checked into git; generated ad hoc for analysis, not build artifacts |
