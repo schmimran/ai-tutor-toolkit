@@ -42,7 +42,7 @@ Event types:
 
 ### End-of-session sentinel
 
-The model appends `[END_SESSION_AVAILABLE]` on its own line when a conversation reaches a natural end.  The instruction lives in `templates/system-instructions.md` (appended to every prompt at load time), not in individual tutor prompts.  The frontend (`apps/web/public/app.js`) detects the sentinel during SSE streaming, strips it before display, and shows a green banner (`#end-banner`) suggesting the student end the session.  The `endAvailable` flag prevents re-triggering.
+The model appends `[END_SESSION_AVAILABLE]` on its own line when a conversation reaches a natural end.  The instruction lives in `templates/system-instructions.md` (appended to every prompt at load time), not in individual tutor prompts.  A hard rule requires the student to have sent at least two messages before the sentinel may be emitted — it is never allowed on the first tutor response.  Explicit done signals (e.g., "thanks, that's all") trigger immediate emission; ambiguous signals (e.g., "ok") prompt the tutor to ask "anything else?" first.  The frontend (`apps/web/public/app.js`) detects the sentinel during SSE streaming, strips it before display, and shows a green banner (`#end-banner`) suggesting the student end the session.  The `endAvailable` flag prevents re-triggering.
 
 ### Global system instructions
 
