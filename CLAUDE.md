@@ -40,6 +40,14 @@ Event types:
 - `{ type: "message_stop", messageId: "<uuid or null>", tokenUsage: { inputTokens: N, outputTokens: N } }` — signals end of response; `messageId` is the DB UUID of the persisted assistant message, or `null` if DB persistence failed
 - `{ type: "error", message: "..." }` — on failure
 
+### End-of-session sentinel
+
+The model appends `[END_SESSION_AVAILABLE]` on its own line when a conversation reaches a natural end.  The instruction lives in `templates/system-instructions.md` (appended to every prompt at load time), not in individual tutor prompts.  The frontend (`apps/web/public/app.js`) detects the sentinel during SSE streaming, strips it before display, and shows a green banner (`#end-banner`) suggesting the student end the session.  The `endAvailable` flag prevents re-triggering.
+
+### Global system instructions
+
+`templates/system-instructions.md` contains protocol-level instructions appended to every tutor prompt by `loadSystemPrompt()`.  These are system/frontend contracts (sentinel token, image-ref format) — not tutoring methodology.  Tutor prompts should not duplicate these instructions.
+
 ### In-memory session store + database
 
 Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — running an automated evaluation, recording a `source: 'timeout'` feedback row if none exists, sending an email transcript (including evaluation and feedback), and marking the session ended in the DB.  When a session is explicitly ended via `DELETE /api/sessions/:id`, the same evaluation + feedback fetch happens before the transcript email is sent.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.
@@ -411,6 +419,7 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/000_schema.sql` | Consolidated database schema (sessions, messages, session_feedback, session_evaluations, disclaimer_acceptances) |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
+| `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |
 | `templates/evaluation-checklist.md` | Manual scoring rubric for test evaluation (v6-era; automated evaluation now uses `packages/core/src/evaluation-prompt.md`) |
 | `examples/physics-geometry-9th-grade-v6.md` | Physics & geometry example prompt v6 — retained as rollback reference |
 | `tests/README.md` | Test harness usage guide |

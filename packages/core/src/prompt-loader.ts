@@ -33,14 +33,28 @@ function findRepoRoot(): string {
 
 const repoRoot = findRepoRoot();
 
+const SYSTEM_INSTRUCTIONS_PATH = resolve(repoRoot, "templates/system-instructions.md");
+
+/** Cached system instructions content, loaded once at module init. */
+let systemInstructionsCache: string | null = null;
+try {
+  systemInstructionsCache = readFileSync(SYSTEM_INSTRUCTIONS_PATH, "utf-8");
+} catch {
+  console.warn(
+    "Warning: templates/system-instructions.md not found — global system instructions will not be appended."
+  );
+}
+
 /**
- * Load a system prompt from a file.  If the file contains a "## Begin prompt"
- * marker, everything above it is stripped — that section holds template
- * variable documentation, not prompt content.
+ * Load a prompt file, stripping template documentation.  If the file contains
+ * a "## Begin prompt" marker, everything above it is stripped.
+ *
+ * Does NOT append global system instructions — use `loadSystemPrompt()` for
+ * tutor prompts that need them.
  *
  * Paths resolve relative to the repository root unless absolute.
  */
-export function loadSystemPrompt(filePath: string): string {
+export function loadPromptFile(filePath: string): string {
   const resolved = isAbsolute(filePath)
     ? filePath
     : resolve(repoRoot, filePath);
@@ -49,7 +63,7 @@ export function loadSystemPrompt(filePath: string): string {
   try {
     content = readFileSync(resolved, "utf-8");
   } catch {
-    console.error(`Could not read system prompt from ${resolved}`);
+    console.error(`Could not read prompt from ${resolved}`);
     console.error(
       "Set SYSTEM_PROMPT_PATH to the path of your prompt file, relative to the repo root."
     );
@@ -60,6 +74,22 @@ export function loadSystemPrompt(filePath: string): string {
   const beginIndex = content.indexOf(beginMarker);
   if (beginIndex !== -1) {
     content = content.substring(beginIndex + beginMarker.length).trim();
+  }
+
+  return content;
+}
+
+/**
+ * Load a tutor system prompt with global system instructions appended.
+ *
+ * Calls `loadPromptFile()` then appends protocol-level instructions from
+ * `templates/system-instructions.md` (sentinel token, image-ref format).
+ */
+export function loadSystemPrompt(filePath: string): string {
+  let content = loadPromptFile(filePath);
+
+  if (systemInstructionsCache) {
+    content = content + "\n\n-----\n\n" + systemInstructionsCache;
   }
 
   return content;

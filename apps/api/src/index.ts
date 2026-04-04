@@ -40,7 +40,7 @@ const promptMap = new Map<string, string>();
 for (const file of fs.readdirSync(templatesDir)) {
   if (file.startsWith("tutor-prompt-") && file.endsWith(".md")) {
     const name = file.replace(/\.md$/, "");
-    promptMap.set(name, fs.readFileSync(path.join(templatesDir, file), "utf-8"));
+    promptMap.set(name, loadSystemPrompt(path.join(templatesDir, file)));
   }
 }
 

@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { loadSystemPrompt } from "./prompt-loader.js";
+import { loadPromptFile } from "./prompt-loader.js";
 
 /** Load the evaluation prompt from the co-located .md file (single source of truth). */
-const EVALUATION_PROMPT = loadSystemPrompt("packages/core/src/evaluation-prompt.md");
+const EVALUATION_PROMPT = loadPromptFile("packages/core/src/evaluation-prompt.md");
 
 export interface EvaluationResult {
   model: string;

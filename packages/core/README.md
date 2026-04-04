@@ -43,7 +43,7 @@ import { loadSystemPrompt } from "@ai-tutor/core";
 const prompt = loadSystemPrompt(config.systemPromptPath);
 ```
 
-Loads a prompt file from the repo root (synchronous).  Strips everything above the `## Begin prompt` marker (documentation/comments above that line are ignored).  Resolves the repo root by walking up the directory tree looking for a `package.json` with `"workspaces"`.  Exits the process if the file cannot be read.
+Loads a prompt file from the repo root (synchronous).  Strips everything above the `## Begin prompt` marker (documentation/comments above that line are ignored).  Appends global system instructions from `templates/system-instructions.md` if the file exists.  Resolves the repo root by walking up the directory tree looking for a `package.json` with `"workspaces"`.  Exits the process if the file cannot be read.
 
 ---
 
