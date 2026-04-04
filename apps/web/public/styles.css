@@ -19,6 +19,8 @@
       --user-border:   #3d3572;
       --danger:        #f87171;
       --success:       #34d399;
+      --banner-bg:     #1a2e1a;
+      --banner-border: #2d5a2d;
 
       --font-heading:  'Nunito', sans-serif;
       --font-sans:     'Plus Jakarta Sans', sans-serif;
@@ -516,6 +518,20 @@
       gap: 8px;
     }
     #drag-overlay.active { display: flex; }
+
+    /* ── End-session banner ───────────────────────────────────────────────── */
+    #end-banner {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: var(--banner-bg);
+      border-top: 1px solid var(--banner-border);
+      color: var(--success);
+      font-size: 0.9rem;
+    }
+    #end-banner.active { display: flex; }
 
     /* ── Input wrapper ─────────────────────────────────────────────────────── */
     #input-wrapper {
