@@ -43,7 +43,7 @@ This is the fastest path.  It uses the Claude website directly — no server to 
 1. Go to [claude.ai](https://claude.ai) and sign in.
 2. Click **Projects** in the left sidebar, then **New project**.
 3. Open [`templates/tutor-prompt-v7.md`](templates/tutor-prompt-v7.md) in this repo.
-4. Copy the entire file and paste it into the project's **Custom instructions** field.  The prompt is ready to use as-is — no variables to fill in.
+4. Copy the entire file and paste it into the project's **Custom instructions** field.  Then open [`templates/system-instructions.md`](templates/system-instructions.md), copy its contents, and paste them at the bottom of the Custom instructions field, separated by a line containing only `-----`.  The combined text is ready to use — no variables to fill in.
 5. Set the model to **Claude Sonnet 4.6 with extended thinking**.
 
 That's it.  Hand your student the project link.  They'll see a clean chat interface.  You can watch the conversation in the project history.
@@ -328,6 +328,7 @@ ai-tutor-toolkit/
 ├── templates/
 │   ├── tutor-prompt-v7.md               ← Production tutor prompt (current)
 │   ├── tutor-prompt-v6.md               ← Previous version (retained as rollback)
+│   ├── system-instructions.md           ← Global protocol instructions appended to every prompt at runtime
 │   └── evaluation-checklist.md          ← Scoring rubric for test evaluation
 │
 ├── examples/
