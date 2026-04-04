@@ -56,27 +56,29 @@ export function createSessionsRouter(
       const discard = req.query["discard"] === "true";
       const session = getSession(sessionId);
 
-      if (!discard && session && !session.emailSent && session.transcript.length > 0) {
-        const evalResult = await runSessionEvaluation(db, sessionId, session.transcript);
-        const feedback = await getSessionFeedback(db, sessionId).catch(err => {
-          console.error(`[sessions] Failed to fetch feedback for ${sessionId}:`, err);
-          return null;
-        });
-        const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback);
-        try {
-          await sendTranscript(emailConfig, payload);
-          session.markEmailSent();
-        } catch (err) {
-          console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err);
-        }
-      }
-
-      removeSession(sessionId);
-
       try {
-        await markSessionEnded(db, sessionId);
-      } catch (err) {
-        console.error("[sessions] Could not mark DB session as ended:", err);
+        if (!discard && session && !session.emailSent && session.transcript.length > 0) {
+          const evalResult = await runSessionEvaluation(db, sessionId, session.transcript);
+          const feedback = await getSessionFeedback(db, sessionId).catch(err => {
+            console.error(`[sessions] Failed to fetch feedback for ${sessionId}:`, err);
+            return null;
+          });
+          const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback);
+          try {
+            await sendTranscript(emailConfig, payload);
+            session.markEmailSent();
+          } catch (err) {
+            console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err);
+          }
+        }
+      } finally {
+        // Always clean up — even if eval or email throws unexpectedly.
+        removeSession(sessionId);
+        try {
+          await markSessionEnded(db, sessionId);
+        } catch (err) {
+          console.error("[sessions] Could not mark DB session as ended:", err);
+        }
       }
 
       res.json({ ok: true });

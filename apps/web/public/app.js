@@ -258,14 +258,13 @@
     // Replace [IMG:...] markers before markdown parse
     const withRefs = parseImgRefs(clean);
 
-    // Render markdown (marked is defer-loaded; should be ready by first message).
-    // DOMPurify sanitizes the output before assignment to innerHTML to prevent XSS
-    // from model-generated HTML (e.g. via prompt injection). ADD_ATTR preserves
-    // the data-upload-id and tabindex attributes used by img-ref pills.
-    const html = (typeof marked !== 'undefined')
-      ? (typeof DOMPurify !== 'undefined'
-          ? DOMPurify.sanitize(marked.parse(withRefs), { ADD_ATTR: ['data-upload-id', 'tabindex'] })
-          : marked.parse(withRefs))
+    // Render markdown then sanitize with DOMPurify before assigning to innerHTML.
+    // DOMPurify is required — if it hasn't loaded (CDN blocked/slow), fall back to
+    // plain-text rendering rather than passing unsanitized HTML to innerHTML.
+    // ADD_ATTR: tabindex is not in DOMPurify's default allow-list; data-upload-id
+    // is allowed by default via ALLOW_DATA_ATTR but listed explicitly for clarity.
+    const html = (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined')
+      ? DOMPurify.sanitize(marked.parse(withRefs), { ADD_ATTR: ['data-upload-id', 'tabindex'] })
       : `<p>${escHtml(withRefs)}</p>`;
 
     entry.bubbleEl.innerHTML = html;
