@@ -118,6 +118,15 @@
       flex-wrap: wrap;
     }
 
+    .build-info {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      opacity: 0.6;
+      white-space: nowrap;
+      user-select: all;
+    }
+
     .model-badge,
     .prompt-badge {
       font-family: var(--font-sans);

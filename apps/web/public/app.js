@@ -107,6 +107,7 @@
 
       updateModelBadge();
       updatePromptBadge();
+      updateBuildInfo();
 
       if (appConfig.contactEmail) {
         const note = $('disclaimer-contact-note');
@@ -132,6 +133,19 @@
     promptBadge.textContent = label;
     promptBadge.title = selectedPrompt;
     promptBadge.style.display = '';
+  }
+
+  function updateBuildInfo() {
+    const el = $('build-info');
+    if (!el || !appConfig.buildVersion) return;
+    const d = appConfig.buildDate ? new Date(appConfig.buildDate) : null;
+    const dateStr = d
+      ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : '';
+    el.textContent = dateStr
+      ? `${appConfig.buildVersion} \u00b7 ${dateStr}`
+      : appConfig.buildVersion;
+    el.title = `Build ${appConfig.buildVersion}` + (appConfig.buildDate ? ` — ${appConfig.buildDate}` : '');
   }
 
   // ── Header button state ───────────────────────────────────────────────────

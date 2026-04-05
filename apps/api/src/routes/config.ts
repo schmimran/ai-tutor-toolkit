@@ -1,6 +1,24 @@
 import { Router } from "express";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import type { Config } from "@ai-tutor/core";
 import { ALLOWED_MODELS } from "../lib/validation.js";
+
+/* ── Build metadata (generated at build time) ──────────────────────────── */
+interface BuildInfo {
+  commitShort: string;
+  builtAt: string;
+}
+
+let buildInfo: BuildInfo | null = null;
+try {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const raw = readFileSync(join(__dirname, "..", "build-info.json"), "utf-8");
+  buildInfo = JSON.parse(raw) as BuildInfo;
+} catch {
+  // File may not exist during local dev without a build step — that is fine.
+}
 
 export function createConfigRouter(
   config: Config,
@@ -15,7 +33,7 @@ export function createConfigRouter(
    *
    * Returns non-secret configuration the frontend needs to render correctly
    * (model name, whether extended thinking is active, inactivity timeout,
-   * available models/prompts for the picker UI).
+   * available models/prompts for the picker UI, build version).
    *
    * Never includes API keys or service-role credentials.
    */
@@ -28,6 +46,8 @@ export function createConfigRouter(
       availableModels: [...ALLOWED_MODELS],
       availablePrompts: [...promptMap.keys()],
       defaultPrompt: defaultPromptName,
+      buildVersion: buildInfo?.commitShort ?? null,
+      buildDate: buildInfo?.builtAt ?? null,
     });
   });
 
