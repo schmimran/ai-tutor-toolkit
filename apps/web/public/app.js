@@ -1022,8 +1022,10 @@
   // Show access wall only once per browser session
   if (sessionStorage.getItem('access-granted')) {
     disclaimerOverlay.classList.remove('active');
+    msgInput.focus();
+  } else {
+    accessPasscodeInput.focus();
   }
-  msgInput.focus();
 
   // ── iOS viewport stability ────────────────────────────────────────────────
   var isIOS = /iP(hone|od)/.test(navigator.userAgent) ||
