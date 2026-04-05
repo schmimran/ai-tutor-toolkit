@@ -14,7 +14,7 @@ interface BuildInfo {
 let buildInfo: BuildInfo | null = null;
 try {
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const raw = readFileSync(join(__dirname, "..", "build-info.json"), "utf-8");
+  const raw = readFileSync(join(__dirname, "..", "..", "build-info.json"), "utf-8");
   buildInfo = JSON.parse(raw) as BuildInfo;
 } catch {
   // File may not exist during local dev without a build step — that is fine.
