@@ -22,7 +22,7 @@ const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
 ]);
 
-import { ALLOWED_MODELS } from "../lib/validation.js";
+import { ALLOWED_MODELS, UUID_RE } from "../lib/validation.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -120,6 +120,11 @@ export function createChatRouter(
 
         if (!sessionId || !message?.trim()) {
           res.status(400).json({ error: "sessionId and message are required." });
+          return;
+        }
+
+        if (!UUID_RE.test(sessionId)) {
+          res.status(400).json({ error: "sessionId must be a valid UUID." });
           return;
         }
 

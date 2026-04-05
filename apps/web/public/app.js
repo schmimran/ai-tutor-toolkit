@@ -606,7 +606,7 @@
   }
 
   async function onInactivityTimeout() {
-    if (sessionEnded || msgList.length === 0) return;
+    if (sessionEnded || msgList.length === 0 || isStreaming) return;
     sessionEnded = true;
     stopCountdownDisplay();
     endBanner.classList.remove('active');
@@ -655,6 +655,8 @@
   }
 
   async function submitFeedback(skip) {
+    btnFbSubmit.disabled = true;
+    btnFbSkip.disabled   = true;
     fbCard.classList.remove('active');
     inputRow.style.display = '';
 

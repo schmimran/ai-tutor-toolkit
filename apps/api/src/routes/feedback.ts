@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createSessionFeedback } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { UUID_RE } from "../lib/validation.js";
 
 export function createFeedbackRouter(db: SupabaseClient): Router {
   const router = Router();
@@ -32,6 +33,11 @@ export function createFeedbackRouter(db: SupabaseClient): Router {
 
       if (!sessionId) {
         res.status(400).json({ error: "sessionId is required." });
+        return;
+      }
+
+      if (!UUID_RE.test(sessionId)) {
+        res.status(400).json({ error: "sessionId must be a valid UUID." });
         return;
       }
 
