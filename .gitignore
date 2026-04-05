@@ -5,6 +5,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Generated build metadata (recreated on every build)
+apps/api/build-info.json
+
 # Environment variables (contains API keys and secrets)
 .env
 .env.local

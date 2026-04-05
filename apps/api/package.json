@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc --build",
+    "build": "node scripts/gen-build-info.js && tsc --build",
     "start": "node dist/index.js",
     "dev": "tsc --watch & node --watch dist/index.js",
     "clean": "rm -rf dist *.tsbuildinfo"

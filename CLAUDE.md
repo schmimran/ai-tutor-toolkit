@@ -256,9 +256,13 @@ Get non-secret runtime config.
   "contactEmail": "wax.spirits8d@icloud.com",
   "availableModels": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-6"],
   "availablePrompts": ["tutor-prompt-v7", "tutor-prompt-v6"],
-  "defaultPrompt": "tutor-prompt-v7"
+  "defaultPrompt": "tutor-prompt-v7",
+  "buildVersion": "abc1234",
+  "buildDate": "2026-04-05T12:00:00.000Z"
 }
 ```
+
+`buildVersion` is the short Git commit SHA and `buildDate` is the ISO timestamp of the build.  Both are `null` in local dev if `npm run build` has not been run for the API package.  The values come from `apps/api/build-info.json`, which is generated at build time by `apps/api/scripts/gen-build-info.js` and gitignored.
 
 ---
 
@@ -488,6 +492,8 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row |
 | `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records access-wall acceptance with IP/geo/user-agent/email |
 | `apps/api/src/routes/access.ts` | `POST /api/access/verify` — server-side passcode validation against ACCESS_PASSCODE env var |
+| `apps/api/scripts/gen-build-info.js` | Generates `build-info.json` (commit SHA + timestamp) at build time; called by the API `build` script |
+| `apps/api/build-info.json` | Generated build metadata (gitignored); read at startup by the config route |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
 | `apps/api/src/lib/evaluation.ts` | `runSessionEvaluation()` — calls `evaluateTranscript`, saves to DB, returns result; `buildEvaluationPayload()` — maps result to email shape; `buildTranscriptEmailPayload()` — assembles full email payload from session data |
 | `apps/api/src/lib/session-store.ts` | In-memory session cache (`Map<id, Session>`) |
