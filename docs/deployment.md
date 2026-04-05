@@ -99,7 +99,7 @@ To confirm the server is healthy, visit `https://your-app-url.onrender.com/api/c
 
 ### Ongoing
 
-- **Auto-deploy:** By default, Render rebuilds and redeploys whenever you push to your main branch.  You can disable this under **Settings → Auto-Deploy**.
+- **Auto-deploy:** By default, Render rebuilds and redeploys whenever you push to your **stage** branch.  You can disable this under **Settings → Auto-Deploy**.
 - **Manual redeploy:** Click **Manual Deploy → Deploy latest commit** from your service's dashboard.
 - **Logs:** Click **Logs** in the left sidebar to see live server output.
 
