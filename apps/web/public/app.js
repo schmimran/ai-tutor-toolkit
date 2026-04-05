@@ -72,6 +72,7 @@
   const btnTranscript       = $('btn-transcript');
   const promptBadge    = $('prompt-badge');
   const modelBadge     = $('model-badge');
+  const buildInfoEl    = $('build-info');
   const tokenCounter   = $('token-counter');
   const configPicker        = $('config-picker');
   const configPickerList    = $('config-picker-list');
@@ -136,16 +137,15 @@
   }
 
   function updateBuildInfo() {
-    const el = $('build-info');
-    if (!el || !appConfig.buildVersion) return;
+    if (!buildInfoEl || !appConfig.buildVersion) return;
     const d = appConfig.buildDate ? new Date(appConfig.buildDate) : null;
     const dateStr = d
       ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : '';
-    el.textContent = dateStr
-      ? `${appConfig.buildVersion} \u00b7 ${dateStr}`
+    buildInfoEl.textContent = dateStr
+      ? `${appConfig.buildVersion} · ${dateStr}`
       : appConfig.buildVersion;
-    el.title = `Build ${appConfig.buildVersion}` + (appConfig.buildDate ? ` — ${appConfig.buildDate}` : '');
+    buildInfoEl.title = `Build ${appConfig.buildVersion}` + (appConfig.buildDate ? ` — ${appConfig.buildDate}` : '');
   }
 
   // ── Header button state ───────────────────────────────────────────────────
