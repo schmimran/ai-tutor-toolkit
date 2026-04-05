@@ -8,6 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { runSessionEvaluation, buildTranscriptEmailPayload } from "../lib/evaluation.js";
+import { UUID_RE } from "../lib/validation.js";
 
 export interface EmailConfig {
   apiKey: string | undefined;
@@ -17,7 +18,9 @@ export interface EmailConfig {
 
 export function createSessionsRouter(
   db: SupabaseClient,
-  emailConfig: EmailConfig
+  emailConfig: EmailConfig,
+  defaultModel: string,
+  defaultPromptName: string,
 ): Router {
   const router = Router();
 
@@ -29,6 +32,10 @@ export function createSessionsRouter(
   router.get("/:sessionId", async (req, res, next) => {
     try {
       const { sessionId } = req.params;
+      if (!UUID_RE.test(sessionId)) {
+        res.status(400).json({ error: "sessionId must be a valid UUID." });
+        return;
+      }
       const row = await getDbSession(db, sessionId);
       if (!row) {
         res.status(404).json({ error: "Session not found." });
@@ -53,6 +60,10 @@ export function createSessionsRouter(
   router.delete("/:sessionId", async (req, res, next) => {
     try {
       const { sessionId } = req.params;
+      if (!UUID_RE.test(sessionId)) {
+        res.status(400).json({ error: "sessionId must be a valid UUID." });
+        return;
+      }
       const discard = req.query["discard"] === "true";
       const session = getSession(sessionId);
 
@@ -63,7 +74,7 @@ export function createSessionsRouter(
             console.error(`[sessions] Failed to fetch feedback for ${sessionId}:`, err);
             return null;
           });
-          const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback);
+          const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback, defaultModel, defaultPromptName);
           try {
             await sendTranscript(emailConfig, payload);
             session.markEmailSent();

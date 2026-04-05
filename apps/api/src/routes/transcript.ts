@@ -2,6 +2,7 @@ import { Router } from "express";
 import { getMessagesBySession } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession } from "../lib/session-store.js";
+import { UUID_RE } from "../lib/validation.js";
 
 export function createTranscriptRouter(db: SupabaseClient): Router {
   const router = Router();
@@ -18,6 +19,10 @@ export function createTranscriptRouter(db: SupabaseClient): Router {
   router.get("/:sessionId", async (req, res, next) => {
     try {
       const { sessionId } = req.params;
+      if (!UUID_RE.test(sessionId)) {
+        res.status(400).json({ error: "sessionId must be a valid UUID." });
+        return;
+      }
       const session = getSession(sessionId);
 
       if (session) {

@@ -76,7 +76,7 @@ app.use(express.static(path.join(__dirname, "../../web/public")));
 
 // Routes
 app.use("/api/chat", createChatRouter(tutorClient, db, promptMap, defaultPromptName, config.model));
-app.use("/api/sessions", createSessionsRouter(db, emailConfig));
+app.use("/api/sessions", createSessionsRouter(db, emailConfig, config.model, defaultPromptName));
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
