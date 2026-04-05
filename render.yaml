@@ -2,6 +2,7 @@ services:
   - type: web
     name: ai-tutor
     runtime: node
+    branch: stage
     buildCommand: npm install && npm run build
     startCommand: npm run api
     # All env vars are set in the Render dashboard — no .env files
