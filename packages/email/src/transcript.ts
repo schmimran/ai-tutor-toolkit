@@ -241,8 +241,9 @@ function buildHtml(payload: TranscriptEmailPayload): string {
 /**
  * Send the session transcript email via Resend.
  *
- * Fails silently — logs warnings but never throws.  A failed email must not
- * crash the API server or disrupt the student's session.
+ * @throws {Error} if the Resend API returns an error or the network call fails.
+ * Callers are responsible for catching and logging; callers must NOT mark the
+ * email as sent unless this function returns without throwing.
  *
  * File attachments are included unless the combined size exceeds Resend's
  * 40 MB limit, in which case attachments are skipped and the omission is
@@ -283,21 +284,23 @@ export async function sendTranscript(
     );
   }
 
+  let result;
   try {
-    const result = await resend.emails.send({
+    result = await resend.emails.send({
       from: config.from,
       to: config.to,
       subject: `Tutor session — ${formatDate(payload.startedAt)}`,
       html: buildHtml(payload),
       attachments,
     });
-
-    if (result.error) {
-      console.error("[email] Resend API error:", result.error);
-    } else {
-      console.log(`[email] Transcript sent (id: ${result.data?.id}).`);
-    }
   } catch (err) {
     console.error("[email] Unexpected error sending transcript:", err);
+    throw err;
   }
+
+  if (result.error) {
+    console.error("[email] Resend API error:", result.error);
+    throw new Error(`Resend API error: ${result.error.message}`);
+  }
+  console.log(`[email] Transcript sent (id: ${result.data?.id}).`);
 }

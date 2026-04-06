@@ -41,6 +41,8 @@ export function createFeedbackRouter(db: SupabaseClient): Router {
         return;
       }
 
+      // createSessionFeedback returns null on duplicate (UNIQUE constraint on
+      // session_id) — treat as idempotent success.
       await createSessionFeedback(db, {
         session_id: sessionId,
         source: source ?? "student",
