@@ -428,6 +428,7 @@
       isStreaming = false;
       setInputDisabled(false);
       msgInput.focus();
+      resetInactivityTimer();
     }
   }
 
@@ -661,6 +662,8 @@
 
   // ── Feedback card ──────────────────────────────────────────────────────────
   function showFeedbackCard() {
+    btnFbSubmit.disabled = false;
+    btnFbSkip.disabled   = false;
     fbSelections = { outcome: null, experience: null };
     fbComment.value = '';
     fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
