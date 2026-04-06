@@ -17,7 +17,7 @@ export async function createSessionFeedback(
     .single();
 
   // Postgres unique-violation: a feedback row already exists for this session.
-  if ((error as { code?: string } | null)?.code === '23505') return null;
+  if (error?.code === '23505') return null;
   return assertRow(data, error, "createSessionFeedback");
 }
 
