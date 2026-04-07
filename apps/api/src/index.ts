@@ -24,7 +24,7 @@ import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { createAccessRouter } from "./routes/access.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload } from "./lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted } from "./lib/evaluation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -119,13 +119,18 @@ setInterval(() => {
                 console.error(`[sweep] Failed to create timeout feedback for ${sessionId}:`, err);
                 return null;
               });
+              // createSessionFeedback returns null on unique-constraint violation (concurrent insert).
+              // Re-fetch to get the row that was created by the concurrent path.
+              if (!feedback) {
+                feedback = await getSessionFeedback(db, sessionId).catch(() => null);
+              }
             }
 
             const payload = buildTranscriptEmailPayload(
               session, sessionId, evalResult, feedback, config.model, defaultPromptName
             );
             await sendTranscript(emailConfig, payload);
-            session.markEmailSent();
+            await markEmailSentPersisted(session, db, sessionId, "sweep");
           } catch (err) {
             console.error(`[sweep] Failed to process session ${sessionId}:`, err);
           } finally {
