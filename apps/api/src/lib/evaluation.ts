@@ -1,7 +1,7 @@
 import { evaluateTranscript } from "@ai-tutor/core";
 import type { EvaluationResult, Session } from "@ai-tutor/core";
 import type { TranscriptEmailPayload } from "@ai-tutor/email";
-import { createSessionEvaluation } from "@ai-tutor/db";
+import { createSessionEvaluation, updateSession } from "@ai-tutor/db";
 import type { DbSessionFeedback } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -92,4 +92,21 @@ export async function runSessionEvaluation(
     console.error(`[evaluation] Failed to evaluate session ${sessionId}:`, err);
     return null;
   }
+}
+
+/**
+ * Mark the session email as sent in both in-memory state and the database.
+ * Called after sendTranscript succeeds in both the inactivity sweep and the
+ * DELETE handler — extracted here to avoid duplicating the two-step pattern.
+ */
+export async function markEmailSentPersisted(
+  session: Session,
+  db: SupabaseClient,
+  sessionId: string,
+  logPrefix: string,
+): Promise<void> {
+  session.markEmailSent();
+  await updateSession(db, sessionId, { email_sent: true }).catch(err =>
+    console.error(`[${logPrefix}] Could not persist email_sent for ${sessionId}:`, err)
+  );
 }

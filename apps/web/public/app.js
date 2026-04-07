@@ -279,7 +279,7 @@
     // is allowed by default via ALLOW_DATA_ATTR but listed explicitly for clarity.
     const html = (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined')
       ? DOMPurify.sanitize(marked.parse(withRefs), { ADD_ATTR: ['data-upload-id', 'tabindex'] })
-      : `<p>${escHtml(withRefs)}</p>`;
+      : `<p>${escHtml(clean)}</p>`;
 
     entry.bubbleEl.innerHTML = html;
     renderKaTeX(entry.bubbleEl);
@@ -367,6 +367,7 @@
 
     let rawText = '';
     let gotToken = false;
+    let finalized = false;
 
     try {
       const resp = await fetch('/api/chat', { method: 'POST', body: fd });
@@ -410,14 +411,15 @@
               tokenCounter.style.display = 'inline';
             }
             finalizeTutor(tutorEntry, rawText);
+            finalized = true;
           } else if (event.type === 'error') {
             throw new Error(event.message || 'Streaming error');
           }
         }
       }
 
-      // Fallback: finalize if stream ended without message_stop (handles zero-token case too)
-      if (!tutorEntry.bubbleEl.querySelector('p, ul, ol, pre, h1, h2, h3')) {
+      // Fallback: finalize if stream ended without message_stop
+      if (!finalized) {
         finalizeTutor(tutorEntry, rawText);
       }
 
@@ -621,7 +623,11 @@
   }
 
   async function onInactivityTimeout() {
-    if (sessionEnded || msgList.length === 0 || isStreaming) return;
+    if (sessionEnded || msgList.length === 0) return;
+    if (isStreaming) {
+      inactivityTimer = setTimeout(onInactivityTimeout, 5000);
+      return;
+    }
     sessionEnded = true;
     stopCountdownDisplay();
     endBanner.classList.remove('active');

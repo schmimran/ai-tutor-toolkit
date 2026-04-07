@@ -7,7 +7,7 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload } from "../lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted } from "../lib/evaluation.js";
 import { UUID_RE } from "../lib/validation.js";
 
 export interface EmailConfig {
@@ -77,7 +77,7 @@ export function createSessionsRouter(
           const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback, defaultModel, defaultPromptName);
           try {
             await sendTranscript(emailConfig, payload);
-            session.markEmailSent();
+            await markEmailSentPersisted(session, db, sessionId, "sessions");
           } catch (err) {
             console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err);
           }
