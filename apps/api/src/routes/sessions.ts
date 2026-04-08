@@ -2,12 +2,11 @@ import { Router } from "express";
 import {
   getSession as getDbSession,
   markSessionEnded,
-  getSessionFeedback,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted } from "../lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback } from "../lib/evaluation.js";
 import { UUID_RE } from "../lib/validation.js";
 
 export interface EmailConfig {
@@ -69,11 +68,10 @@ export function createSessionsRouter(
 
       try {
         if (!discard && session && !session.emailSent && session.transcript.length > 0) {
-          const evalResult = await runSessionEvaluation(db, sessionId, session.transcript);
-          const feedback = await getSessionFeedback(db, sessionId).catch(err => {
-            console.error(`[sessions] Failed to fetch feedback for ${sessionId}:`, err);
-            return null;
-          });
+          const [evalResult, feedback] = await Promise.all([
+            runSessionEvaluation(db, sessionId, session.transcript),
+            getOrCreateTimeoutFeedback(db, sessionId, "sessions"),
+          ]);
           const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback, defaultModel, defaultPromptName);
           try {
             await sendTranscript(emailConfig, payload);
