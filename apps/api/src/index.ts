@@ -10,8 +10,6 @@ import {
 import {
   createSupabaseClient,
   markSessionEnded,
-  createSessionFeedback,
-  getSessionFeedback,
 } from "@ai-tutor/db";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/errors.js";
@@ -24,7 +22,7 @@ import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { createAccessRouter } from "./routes/access.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted } from "./lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback } from "./lib/evaluation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -105,26 +103,10 @@ setInterval(() => {
       if (!session.emailSent && session.transcript.length > 0) {
         void (async () => {
           try {
-            const evalResult = await runSessionEvaluation(db, sessionId, session.transcript);
-
-            let feedback = await getSessionFeedback(db, sessionId).catch(err => {
-              console.error(`[sweep] Failed to fetch feedback for ${sessionId}:`, err);
-              return null;
-            });
-            if (!feedback) {
-              feedback = await createSessionFeedback(db, {
-                session_id: sessionId,
-                source: "timeout",
-              }).catch(err => {
-                console.error(`[sweep] Failed to create timeout feedback for ${sessionId}:`, err);
-                return null;
-              });
-              // createSessionFeedback returns null on unique-constraint violation (concurrent insert).
-              // Re-fetch to get the row that was created by the concurrent path.
-              if (!feedback) {
-                feedback = await getSessionFeedback(db, sessionId).catch(() => null);
-              }
-            }
+            const [evalResult, feedback] = await Promise.all([
+              runSessionEvaluation(db, sessionId, session.transcript),
+              getOrCreateTimeoutFeedback(db, sessionId, "sweep"),
+            ]);
 
             const payload = buildTranscriptEmailPayload(
               session, sessionId, evalResult, feedback, config.model, defaultPromptName

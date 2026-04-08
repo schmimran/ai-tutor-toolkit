@@ -530,6 +530,8 @@
     endAvailable    = false;
     sessionEnded    = false;
     msgCounter      = 0;
+    katexQueue      = [];
+    dragDepth       = 0;
     fbSelections    = { outcome: null, experience: null };
     tokenCounter.style.display = 'none';
     tokenCounter.textContent = '';

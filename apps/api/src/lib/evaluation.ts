@@ -1,7 +1,7 @@
 import { evaluateTranscript } from "@ai-tutor/core";
 import type { EvaluationResult, Session } from "@ai-tutor/core";
 import type { TranscriptEmailPayload } from "@ai-tutor/email";
-import { createSessionEvaluation, updateSession } from "@ai-tutor/db";
+import { upsertSessionEvaluation, updateSession, getSessionFeedback, createSessionFeedback } from "@ai-tutor/db";
 import type { DbSessionFeedback } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -62,6 +62,37 @@ export function buildTranscriptEmailPayload(
   };
 }
 
+/**
+ * Fetch the session_feedback row for a session, creating a source:'timeout' row
+ * if none exists.  Handles unique-constraint races by re-fetching on null return.
+ * Used by both the inactivity sweep and the explicit DELETE handler.
+ */
+export async function getOrCreateTimeoutFeedback(
+  db: SupabaseClient,
+  sessionId: string,
+  logPrefix: string,
+): Promise<DbSessionFeedback | null> {
+  let feedback = await getSessionFeedback(db, sessionId).catch(err => {
+    console.error(`[${logPrefix}] Failed to fetch feedback for ${sessionId}:`, err);
+    return null;
+  });
+  if (!feedback) {
+    feedback = await createSessionFeedback(db, {
+      session_id: sessionId,
+      source: "timeout",
+    }).catch(err => {
+      console.error(`[${logPrefix}] Failed to create timeout feedback for ${sessionId}:`, err);
+      return null;
+    });
+    // createSessionFeedback returns null on unique-constraint violation (concurrent insert).
+    // Re-fetch to get the row that was created by the concurrent path.
+    if (!feedback) {
+      feedback = await getSessionFeedback(db, sessionId).catch(() => null);
+    }
+  }
+  return feedback;
+}
+
 export async function runSessionEvaluation(
   db: SupabaseClient,
   sessionId: string,
@@ -69,7 +100,7 @@ export async function runSessionEvaluation(
 ): Promise<EvaluationResult | null> {
   try {
     const result = await evaluateTranscript(transcript);
-    await createSessionEvaluation(db, {
+    await upsertSessionEvaluation(db, {
       session_id: sessionId,
       model: result.model,
       mode_handling: result.mode_handling,
