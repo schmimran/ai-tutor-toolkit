@@ -42,6 +42,7 @@
 
   let sessionUploads = []; // { id, name, mimeType, blobUrl, messageId }
   let uploadCounter  = 0;
+  let activeAbortController = null; // aborts the in-flight /api/chat fetch when session resets
 
   // Sentinel emitted by tutor prompt when the problem is fully resolved.
   const END_SENTINEL   = '[END_SESSION_AVAILABLE]';
@@ -267,7 +268,7 @@
 
   function finalizeTutor(entry, rawText) {
     const hasSentinel = rawText.includes(END_SENTINEL);
-    const clean = rawText.replace(END_SENTINEL, '').trim();
+    const clean = rawText.replace(/\[END_SESSION_AVAILABLE\]/g, '').trim();
 
     // Replace [IMG:...] markers before markdown parse
     const withRefs = parseImgRefs(clean);
@@ -284,15 +285,13 @@
     entry.bubbleEl.innerHTML = html;
     renderKaTeX(entry.bubbleEl);
 
-    // Wire click handlers for image-reference pills
-    entry.bubbleEl.querySelectorAll('.img-ref[data-upload-id]').forEach(pill => {
+    // Wire click handlers for image-reference pills and auto-focus the last one
+    const refPills = entry.bubbleEl.querySelectorAll('.img-ref[data-upload-id]');
+    refPills.forEach(pill => {
       pill.addEventListener('click', () => {
         if (typeof focusUpload === 'function') focusUpload(pill.dataset.uploadId);
       });
     });
-
-    // Auto-focus the last referenced image
-    const refPills = entry.bubbleEl.querySelectorAll('.img-ref[data-upload-id]');
     if (refPills.length > 0) {
       const lastId = refPills[refPills.length - 1].dataset.uploadId;
       if (typeof focusUpload === 'function') focusUpload(lastId);
@@ -370,7 +369,8 @@
     let finalized = false;
 
     try {
-      const resp = await fetch('/api/chat', { method: 'POST', body: fd });
+      activeAbortController = new AbortController();
+      const resp = await fetch('/api/chat', { method: 'POST', body: fd, signal: activeAbortController.signal });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: resp.statusText }));
         throw new Error(err.error || resp.statusText);
@@ -382,10 +382,9 @@
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
+        buf += decoder.decode(value ?? new Uint8Array(), { stream: !done });
         const lines = buf.split('\n');
-        buf = lines.pop() ?? '';
+        buf = done ? '' : (lines.pop() ?? '');
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
@@ -401,7 +400,7 @@
             }
             rawText += event.text;
             tutorEntry.bubbleEl.textContent =
-              rawText.replace(END_SENTINEL, '').trimEnd();
+              rawText.replace(/\[END_SESSION_AVAILABLE\]/g, '').trimEnd();
             scrollBottom();
           } else if (event.type === 'message_stop') {
             if (event.messageId) tutorEntry.dbId = event.messageId;
@@ -416,6 +415,7 @@
             throw new Error(event.message || 'Streaming error');
           }
         }
+        if (done) break;
       }
 
       // Fallback: finalize if stream ended without message_stop
@@ -515,6 +515,7 @@
 
   /** Reset all session state and UI to a fresh-session starting point. */
   function resetSessionState() {
+    if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; }
     if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
     stopCountdownDisplay();
     sessionId       = crypto.randomUUID();
