@@ -133,8 +133,14 @@
     // Strip "tutor-prompt-" prefix for compact display (e.g. "v7").
     const label = selectedPrompt.replace(/^tutor-prompt-/, '');
     promptBadge.textContent = label;
-    promptBadge.title = selectedPrompt;
     promptBadge.style.display = '';
+    if (!appConfig.promptSelectionEnabled) {
+      promptBadge.classList.add('locked');
+      promptBadge.title = selectedPrompt;
+    } else {
+      promptBadge.classList.remove('locked');
+      promptBadge.title = selectedPrompt + ' — click to switch';
+    }
   }
 
   function updateBuildInfo() {
@@ -939,6 +945,7 @@
 
   promptBadge.addEventListener('click', e => {
     e.stopPropagation();
+    if (!appConfig.promptSelectionEnabled) return; // locked — ignore clicks
     if (activePicker === 'prompt') { closeConfigPicker(); return; }
     openConfigPicker('prompt', promptBadge);
   });
