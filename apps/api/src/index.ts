@@ -109,7 +109,8 @@ setInterval(() => {
             ]);
 
             const payload = buildTranscriptEmailPayload(
-              session, sessionId, evalResult, feedback, config.model, defaultPromptName, config.extendedThinking
+              session, sessionId, evalResult, feedback,
+              { model: config.model, promptName: defaultPromptName, extendedThinking: config.extendedThinking }
             );
             await sendTranscript(emailConfig, payload);
             await markEmailSentPersisted(session, db, sessionId, "sweep");

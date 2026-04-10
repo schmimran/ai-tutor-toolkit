@@ -73,7 +73,8 @@ export function createSessionsRouter(
             runSessionEvaluation(db, sessionId, session.transcript),
             getOrCreateTimeoutFeedback(db, sessionId, "sessions"),
           ]);
-          const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback, defaultModel, defaultPromptName, defaultExtendedThinking);
+          const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback,
+            { model: defaultModel, promptName: defaultPromptName, extendedThinking: defaultExtendedThinking });
           try {
             await sendTranscript(emailConfig, payload);
             await markEmailSentPersisted(session, db, sessionId, "sessions");

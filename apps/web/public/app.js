@@ -130,7 +130,7 @@
     const label = selectedModel.replace(/^claude-/, '').replace(/-\d{8}$/, '');
     modelBadge.textContent = label;
     const isHaiku = selectedModel.includes('haiku');
-    modelBadge.classList.toggle('extended', !!selectedThinking && !isHaiku);
+    modelBadge.classList.toggle('extended', selectedThinking && !isHaiku);
     modelBadge.title = selectedModel + (selectedThinking && !isHaiku ? ' — extended thinking on' : '');
     modelBadge.style.display = '';
   }
@@ -143,7 +143,7 @@
     promptBadge.style.display = '';
     if (!appConfig.promptSelectionEnabled) {
       promptBadge.classList.add('locked');
-      promptBadge.title = selectedPrompt;
+      promptBadge.title = selectedPrompt + ' — prompt selection disabled';
     } else {
       promptBadge.classList.remove('locked');
       promptBadge.title = selectedPrompt + ' — click to switch';

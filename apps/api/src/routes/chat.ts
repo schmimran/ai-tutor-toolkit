@@ -212,7 +212,7 @@ export function createChatRouter(
           {
             modelOverride,
             systemPromptOverride,
-            extendedThinkingOverride: session.extendedThinking ?? defaultExtendedThinking,
+            extendedThinkingOverride: session.extendedThinking!,
           }
         );
         let step = await gen.next();

@@ -42,9 +42,7 @@ export function buildTranscriptEmailPayload(
   sessionId: string,
   evalResult: EvaluationResult | null,
   feedback: DbSessionFeedback | null,
-  fallbackModel?: string,
-  fallbackPromptName?: string,
-  fallbackExtendedThinking?: boolean,
+  fallbacks?: { model?: string; promptName?: string; extendedThinking?: boolean },
 ): TranscriptEmailPayload {
   const summary = session.getSessionSummary();
   return {
@@ -58,9 +56,9 @@ export function buildTranscriptEmailPayload(
     tokenUsage: summary.tokenUsage,
     evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
     studentFeedback: feedback ?? null,
-    model: session.model ?? fallbackModel,
-    promptName: session.promptName ?? fallbackPromptName,
-    extendedThinking: session.extendedThinking ?? fallbackExtendedThinking,
+    model: session.model ?? fallbacks?.model,
+    promptName: session.promptName ?? fallbacks?.promptName,
+    extendedThinking: session.extendedThinking ?? fallbacks?.extendedThinking,
   };
 }
 
