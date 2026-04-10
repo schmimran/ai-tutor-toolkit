@@ -35,10 +35,11 @@
   let fbSelections      = { outcome: null, experience: null };
 
   // ── Model / prompt selection state ────────────────────────────────────────
-  let selectedModel   = ''; // active model ID (persisted in localStorage)
-  let selectedPrompt  = ''; // active prompt name (persisted in localStorage)
-  let pendingSwitch   = null; // { type: 'model'|'prompt', value: string } — waiting for confirmation
-  let activePicker    = null; // 'model' | 'prompt' — which picker is open
+  let selectedModel    = ''; // active model ID (persisted in localStorage)
+  let selectedPrompt   = ''; // active prompt name (persisted in localStorage)
+  let selectedThinking = true; // extended thinking on/off (persisted in localStorage)
+  let pendingSwitch   = null; // { type: 'model'|'prompt'|'thinking', value: string|boolean } — waiting for confirmation
+  let activePicker    = null; // 'model' | 'prompt' | 'thinking' — which picker is open
 
   let sessionUploads = []; // { id, name, mimeType, blobUrl, messageId }
   let uploadCounter  = 0;
@@ -73,6 +74,7 @@
   const btnTranscript       = $('btn-transcript');
   const promptBadge    = $('prompt-badge');
   const modelBadge     = $('model-badge');
+  const thinkingBadge  = $('thinking-badge');
   const buildInfoEl    = $('build-info');
   const tokenCounter   = $('token-counter');
   const configPicker        = $('config-picker');
@@ -100,15 +102,20 @@
       appConfig = await res.json();
 
       // Restore persisted selection or fall back to server default.
-      const storedModel  = localStorage.getItem('selectedModel');
-      const storedPrompt = localStorage.getItem('selectedPrompt');
+      const storedModel    = localStorage.getItem('selectedModel');
+      const storedPrompt   = localStorage.getItem('selectedPrompt');
+      const storedThinking = localStorage.getItem('selectedThinking');
       selectedModel  = (storedModel  && appConfig.availableModels?.includes(storedModel))
         ? storedModel  : (appConfig.model  || '');
       selectedPrompt = (storedPrompt && appConfig.availablePrompts?.includes(storedPrompt))
         ? storedPrompt : (appConfig.defaultPrompt || '');
+      selectedThinking = storedThinking === null
+        ? !!appConfig.extendedThinking
+        : storedThinking === 'true';
 
       updateModelBadge();
       updatePromptBadge();
+      updateThinkingBadge();
       updateBuildInfo();
 
       if (appConfig.contactEmail) {
@@ -123,8 +130,8 @@
     const label = selectedModel.replace(/^claude-/, '').replace(/-\d{8}$/, '');
     modelBadge.textContent = label;
     const isHaiku = selectedModel.includes('haiku');
-    modelBadge.classList.toggle('extended', !!appConfig.extendedThinking && !isHaiku);
-    modelBadge.title = selectedModel + (appConfig.extendedThinking && !isHaiku ? ' — extended thinking on' : '');
+    modelBadge.classList.toggle('extended', !!selectedThinking && !isHaiku);
+    modelBadge.title = selectedModel + (selectedThinking && !isHaiku ? ' — extended thinking on' : '');
     modelBadge.style.display = '';
   }
 
@@ -135,6 +142,13 @@
     promptBadge.textContent = label;
     promptBadge.title = selectedPrompt;
     promptBadge.style.display = '';
+  }
+
+  function updateThinkingBadge() {
+    thinkingBadge.textContent = selectedThinking ? 'thinking: on' : 'thinking: off';
+    thinkingBadge.classList.toggle('off', !selectedThinking);
+    thinkingBadge.title = (selectedThinking ? 'Extended thinking on' : 'Extended thinking off') + ' — click to toggle';
+    thinkingBadge.style.display = '';
   }
 
   function updateBuildInfo() {
@@ -356,6 +370,7 @@
     fd.append('message', text);
     if (selectedModel)  fd.append('model', selectedModel);
     if (selectedPrompt) fd.append('promptName', selectedPrompt);
+    fd.append('extendedThinking', String(selectedThinking));
     for (const f of files) fd.append('files', f);
 
     // Clear input
@@ -451,24 +466,32 @@
     return fetch(`/api/sessions/${id}?discard=true`, { method: 'DELETE' }).catch(() => {});
   }
 
-  // ── Config picker (model / prompt) ────────────────────────────────────────
+  // ── Config picker (model / prompt / thinking) ─────────────────────────────
   function openConfigPicker(type, anchorEl) {
     activePicker = type;
     configPickerList.innerHTML = '';
 
-    const options = type === 'model'
-      ? (appConfig.availableModels || [])
-      : (appConfig.availablePrompts || []);
-    const current = type === 'model' ? selectedModel : selectedPrompt;
+    let options;
+    let current;
+    if (type === 'model') {
+      options = (appConfig.availableModels || []).map(v => ({ value: v, label: v.replace(/^claude-/, '').replace(/-\d{8}$/, '') }));
+      current = selectedModel;
+    } else if (type === 'prompt') {
+      options = (appConfig.availablePrompts || []).map(v => ({ value: v, label: v.replace(/^tutor-prompt-/, '') }));
+      current = selectedPrompt;
+    } else { // 'thinking'
+      options = [
+        { value: true,  label: 'On' },
+        { value: false, label: 'Off' },
+      ];
+      current = selectedThinking;
+    }
 
-    for (const value of options) {
+    for (const opt of options) {
       const li = document.createElement('li');
-      li.className = 'config-picker-item' + (value === current ? ' active' : '');
-      li.textContent = type === 'model'
-        ? value.replace(/^claude-/, '').replace(/-\d{8}$/, '')
-        : value.replace(/^tutor-prompt-/, '');
-      li.dataset.value = value;
-      li.addEventListener('click', () => onPickerSelect(type, value));
+      li.className = 'config-picker-item' + (opt.value === current ? ' active' : '');
+      li.textContent = opt.label;
+      li.addEventListener('click', () => onPickerSelect(type, opt.value));
       configPickerList.appendChild(li);
     }
 
@@ -486,13 +509,19 @@
 
   function onPickerSelect(type, value) {
     closeConfigPicker();
-    const current = type === 'model' ? selectedModel : selectedPrompt;
+    let current;
+    if (type === 'model')        current = selectedModel;
+    else if (type === 'prompt')  current = selectedPrompt;
+    else                         current = selectedThinking; // 'thinking'
     if (value === current) return;
 
     if (msgList.length > 0 && !sessionEnded) {
       // Session in progress — need confirmation before switching.
       pendingSwitch = { type, value };
-      switchConfigTitle.textContent = type === 'model' ? 'Switch model?' : 'Switch prompt?';
+      switchConfigTitle.textContent =
+        type === 'model'   ? 'Switch model?' :
+        type === 'prompt'  ? 'Switch prompt?' :
+                             'Switch extended thinking?';
       switchConfigOverlay.classList.add('active');
     } else {
       // No active session — apply immediately.
@@ -505,10 +534,16 @@
       selectedModel = value;
       localStorage.setItem('selectedModel', value);
       updateModelBadge();
-    } else {
+    } else if (type === 'prompt') {
       selectedPrompt = value;
       localStorage.setItem('selectedPrompt', value);
       updatePromptBadge();
+    } else { // 'thinking'
+      selectedThinking = !!value;
+      localStorage.setItem('selectedThinking', String(selectedThinking));
+      updateThinkingBadge();
+      // The model badge's "extended" indicator depends on selectedThinking.
+      updateModelBadge();
     }
     pendingSwitch = null;
   }
@@ -943,10 +978,16 @@
     openConfigPicker('prompt', promptBadge);
   });
 
+  thinkingBadge.addEventListener('click', e => {
+    e.stopPropagation();
+    if (activePicker === 'thinking') { closeConfigPicker(); return; }
+    openConfigPicker('thinking', thinkingBadge);
+  });
+
   document.addEventListener('click', e => {
     if (configPicker.style.display !== 'none' &&
         !configPicker.contains(e.target) &&
-        e.target !== modelBadge && e.target !== promptBadge) {
+        e.target !== modelBadge && e.target !== promptBadge && e.target !== thinkingBadge) {
       closeConfigPicker();
     }
   });

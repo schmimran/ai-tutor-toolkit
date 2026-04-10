@@ -87,7 +87,8 @@ export function createChatRouter(
   db: SupabaseClient,
   promptMap: Map<string, string>,
   defaultPromptName: string,
-  defaultModel: string
+  defaultModel: string,
+  defaultExtendedThinking: boolean
 ): Router {
   const router = Router();
 
@@ -111,11 +112,18 @@ export function createChatRouter(
     upload.array("files"),
     async (req, res, next) => {
       try {
-        const { sessionId, message, model: modelReq, promptName: promptNameReq } = req.body as {
+        const {
+          sessionId,
+          message,
+          model: modelReq,
+          promptName: promptNameReq,
+          extendedThinking: extendedThinkingReq,
+        } = req.body as {
           sessionId?: string;
           message?: string;
           model?: string;
           promptName?: string;
+          extendedThinking?: string;
         };
 
         if (!sessionId || !message?.trim()) {
@@ -145,6 +153,17 @@ export function createChatRouter(
               ? promptNameReq
               : defaultPromptName;
 
+          // Validate and set extended thinking for this session. Multipart form
+          // data sends booleans as the strings "true"/"false". Anything else
+          // (including undefined) falls back to the server default.
+          if (extendedThinkingReq === "true") {
+            session.extendedThinking = true;
+          } else if (extendedThinkingReq === "false") {
+            session.extendedThinking = false;
+          } else {
+            session.extendedThinking = defaultExtendedThinking;
+          }
+
           // Upsert the session row in the database.
           try {
             await createSession(db, {
@@ -155,6 +174,7 @@ export function createChatRouter(
               email_sent: false,
               model: session.model,
               prompt_name: session.promptName,
+              extended_thinking: session.extendedThinking,
             });
             // Backfill session_id on any disclaimer acceptance rows recorded
             // before this session row existed.
@@ -189,7 +209,11 @@ export function createChatRouter(
           session,
           userContent,
           transcriptText,
-          { modelOverride, systemPromptOverride }
+          {
+            modelOverride,
+            systemPromptOverride,
+            extendedThinkingOverride: session.extendedThinking ?? defaultExtendedThinking,
+          }
         );
         let step = await gen.next();
         while (!step.done) {

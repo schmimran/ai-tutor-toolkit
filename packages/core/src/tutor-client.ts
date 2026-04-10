@@ -9,6 +9,12 @@ export interface StreamOptions {
   modelOverride?: string;
   /** Override the system prompt for this call. If omitted, uses the client's system prompt. */
   systemPromptOverride?: string;
+  /**
+   * Override the extended-thinking flag for this call. When omitted, falls back
+   * to `config.extendedThinking`. Haiku models always block extended thinking
+   * regardless of this value.
+   */
+  extendedThinkingOverride?: boolean;
 }
 
 /** Haiku models do not support extended thinking. */
@@ -28,7 +34,8 @@ function buildParams(
 ): Omit<Anthropic.MessageCreateParams, "stream"> {
   const model = opts?.modelOverride ?? config.model;
   const prompt = opts?.systemPromptOverride ?? systemPrompt;
-  const extendedThinking = config.extendedThinking && !isHaiku(model);
+  const useExtendedThinking = opts?.extendedThinkingOverride ?? config.extendedThinking;
+  const extendedThinking = useExtendedThinking && !isHaiku(model);
 
   return {
     model,

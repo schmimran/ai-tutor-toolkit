@@ -24,6 +24,8 @@ export interface TranscriptEmailPayload {
   model?: string;
   /** Tutor prompt name used for this session (e.g. "tutor-prompt-v7"). */
   promptName?: string;
+  /** Whether extended thinking was enabled for this session. */
+  extendedThinking?: boolean;
 
   /** Automated evaluation results.  Null if evaluation hasn't run yet. */
   evaluation?: {
@@ -186,6 +188,7 @@ function buildHtml(payload: TranscriptEmailPayload): string {
     studentFeedback,
     model,
     promptName,
+    extendedThinking,
   } = payload;
 
   const exchangeCount = Math.floor(transcript.length / 2);
@@ -220,6 +223,7 @@ function buildHtml(payload: TranscriptEmailPayload): string {
     <tr><td style="padding:6px 0;color:#555;width:160px;">Session ID</td><td style="font-size:0.85em;">${sessionId ?? "unknown"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Model</td><td>${model ?? "unknown"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Prompt</td><td>${promptName ?? "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Extended thinking</td><td>${extendedThinking === undefined ? "unknown" : extendedThinking ? "On" : "Off"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Started</td><td>${formatDate(startedAt)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Duration</td><td>${formatDuration(durationMs)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Exchanges</td><td>${exchangeCount}</td></tr>
