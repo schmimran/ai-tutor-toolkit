@@ -77,6 +77,8 @@ export class Session {
   model: string | null = null;
   /** Tutor prompt name used for this session (e.g. "tutor-prompt-v7"). Set on first message. */
   promptName: string | null = null;
+  /** Whether extended thinking is enabled for this session. Null until set on the first message. */
+  extendedThinking: boolean | null = null;
 
   /**
    * Record a user message.
@@ -168,5 +170,8 @@ export class Session {
     this.lastActivityAt = new Date();
     this.emailSent = false;
     this.tokenUsage = { inputTokens: 0, outputTokens: 0 };
+    this.model = null;
+    this.promptName = null;
+    this.extendedThinking = null;
   }
 }

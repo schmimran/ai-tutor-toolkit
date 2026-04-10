@@ -23,7 +23,8 @@ CREATE TABLE sessions (
   total_input_tokens    integer     NOT NULL DEFAULT 0,
   total_output_tokens   integer     NOT NULL DEFAULT 0,
   model                 text,
-  prompt_name           text
+  prompt_name           text,
+  extended_thinking     boolean     NOT NULL DEFAULT true
 );
 
 CREATE INDEX sessions_last_activity_at ON sessions (last_activity_at);
