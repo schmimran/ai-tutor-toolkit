@@ -406,6 +406,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | PORT | no | 3000 | api | HTTP listen port |
 | ACCESS_PASSCODE | **yes (API)** | — | api | 5-digit numeric passcode for the access wall; fails closed if unset |
 | CONTACT_EMAIL | no | wax.spirits8d@icloud.com | api | Contact email shown in access-wall overlay and returned by GET /api/config |
+| ALLOW_PROMPT_SELECTION | no | — (locked) | api | Set `"true"` to allow users to switch prompt versions via the header badge; omitting locks the picker (fail-closed). Surfaced as `promptSelectionEnabled` in `GET /api/config`. |
 
 Both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are required for the API server.  If either is absent, the server will not start.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
 

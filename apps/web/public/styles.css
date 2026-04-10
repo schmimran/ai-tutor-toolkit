@@ -147,6 +147,14 @@
       border-color: var(--accent);
       color: var(--text);
     }
+    .prompt-badge.locked {
+      cursor: default;
+      opacity: 0.55;
+    }
+    .prompt-badge.locked:hover {
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
     .model-badge.extended::after {
       content: ' · thinking';
       color: var(--accent);

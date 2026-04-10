@@ -62,6 +62,7 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `EXTENDED_THINKING` | no | Default: `true`; set `false` to disable | No |
 | `SYSTEM_PROMPT_PATH` | no | Default: `templates/tutor-prompt-v7.md` | No |
 | `CORS_ORIGIN` | no | Your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`) | No |
+| `ALLOW_PROMPT_SELECTION` | no | Set to `true` to enable the in-app prompt-version picker. Omit (or set to anything else) to lock the picker. Defaults fail-closed. | No |
 
 You can skip `RESEND_API_KEY`, `PARENT_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.
 
@@ -141,6 +142,10 @@ export ACCESS_PASSCODE=12345
 export RESEND_API_KEY=re_...
 export PARENT_EMAIL=you@yourdomain.com
 export EMAIL_FROM=tutor@tutor.yourdomain.com
+
+# Optional — set to "true" to allow users to switch prompt versions in the UI.
+# Omitting this variable locks the prompt picker (fail-closed).
+export ALLOW_PROMPT_SELECTION=true
 ```
 
 To avoid re-entering these every time you open a terminal, add the export lines to your `~/.zshrc` (Mac) or `~/.bashrc` (Linux).
