@@ -1,7 +1,7 @@
 import { evaluateTranscript } from "@ai-tutor/core";
 import type { EvaluationResult, Session } from "@ai-tutor/core";
 import type { TranscriptEmailPayload } from "@ai-tutor/email";
-import { createSessionEvaluation } from "@ai-tutor/db";
+import { upsertSessionEvaluation, updateSession, getSessionFeedback, createSessionFeedback } from "@ai-tutor/db";
 import type { DbSessionFeedback } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -44,6 +44,7 @@ export function buildTranscriptEmailPayload(
   feedback: DbSessionFeedback | null,
   fallbackModel?: string,
   fallbackPromptName?: string,
+  fallbackExtendedThinking?: boolean,
 ): TranscriptEmailPayload {
   const summary = session.getSessionSummary();
   return {
@@ -59,7 +60,39 @@ export function buildTranscriptEmailPayload(
     studentFeedback: feedback ?? null,
     model: session.model ?? fallbackModel,
     promptName: session.promptName ?? fallbackPromptName,
+    extendedThinking: session.extendedThinking ?? fallbackExtendedThinking,
   };
+}
+
+/**
+ * Fetch the session_feedback row for a session, creating a source:'timeout' row
+ * if none exists.  Handles unique-constraint races by re-fetching on null return.
+ * Used by both the inactivity sweep and the explicit DELETE handler.
+ */
+export async function getOrCreateTimeoutFeedback(
+  db: SupabaseClient,
+  sessionId: string,
+  logPrefix: string,
+): Promise<DbSessionFeedback | null> {
+  let feedback = await getSessionFeedback(db, sessionId).catch(err => {
+    console.error(`[${logPrefix}] Failed to fetch feedback for ${sessionId}:`, err);
+    return null;
+  });
+  if (!feedback) {
+    feedback = await createSessionFeedback(db, {
+      session_id: sessionId,
+      source: "timeout",
+    }).catch(err => {
+      console.error(`[${logPrefix}] Failed to create timeout feedback for ${sessionId}:`, err);
+      return null;
+    });
+    // createSessionFeedback returns null on unique-constraint violation (concurrent insert).
+    // Re-fetch to get the row that was created by the concurrent path.
+    if (!feedback) {
+      feedback = await getSessionFeedback(db, sessionId).catch(() => null);
+    }
+  }
+  return feedback;
 }
 
 export async function runSessionEvaluation(
@@ -69,7 +102,7 @@ export async function runSessionEvaluation(
 ): Promise<EvaluationResult | null> {
   try {
     const result = await evaluateTranscript(transcript);
-    await createSessionEvaluation(db, {
+    await upsertSessionEvaluation(db, {
       session_id: sessionId,
       model: result.model,
       mode_handling: result.mode_handling,
@@ -92,4 +125,21 @@ export async function runSessionEvaluation(
     console.error(`[evaluation] Failed to evaluate session ${sessionId}:`, err);
     return null;
   }
+}
+
+/**
+ * Mark the session email as sent in both in-memory state and the database.
+ * Called after sendTranscript succeeds in both the inactivity sweep and the
+ * DELETE handler — extracted here to avoid duplicating the two-step pattern.
+ */
+export async function markEmailSentPersisted(
+  session: Session,
+  db: SupabaseClient,
+  sessionId: string,
+  logPrefix: string,
+): Promise<void> {
+  session.markEmailSent();
+  await updateSession(db, sessionId, { email_sent: true }).catch(err =>
+    console.error(`[${logPrefix}] Could not persist email_sent for ${sessionId}:`, err)
+  );
 }

@@ -2,12 +2,11 @@ import { Router } from "express";
 import {
   getSession as getDbSession,
   markSessionEnded,
-  getSessionFeedback,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload } from "../lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback } from "../lib/evaluation.js";
 import { UUID_RE } from "../lib/validation.js";
 
 export interface EmailConfig {
@@ -21,6 +20,7 @@ export function createSessionsRouter(
   emailConfig: EmailConfig,
   defaultModel: string,
   defaultPromptName: string,
+  defaultExtendedThinking: boolean,
 ): Router {
   const router = Router();
 
@@ -69,15 +69,14 @@ export function createSessionsRouter(
 
       try {
         if (!discard && session && !session.emailSent && session.transcript.length > 0) {
-          const evalResult = await runSessionEvaluation(db, sessionId, session.transcript);
-          const feedback = await getSessionFeedback(db, sessionId).catch(err => {
-            console.error(`[sessions] Failed to fetch feedback for ${sessionId}:`, err);
-            return null;
-          });
-          const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback, defaultModel, defaultPromptName);
+          const [evalResult, feedback] = await Promise.all([
+            runSessionEvaluation(db, sessionId, session.transcript),
+            getOrCreateTimeoutFeedback(db, sessionId, "sessions"),
+          ]);
+          const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback, defaultModel, defaultPromptName, defaultExtendedThinking);
           try {
             await sendTranscript(emailConfig, payload);
-            session.markEmailSent();
+            await markEmailSentPersisted(session, db, sessionId, "sessions");
           } catch (err) {
             console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err);
           }

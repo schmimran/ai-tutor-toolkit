@@ -46,6 +46,7 @@ export function createConfigRouter(
       availableModels: [...ALLOWED_MODELS],
       availablePrompts: [...promptMap.keys()],
       defaultPrompt: defaultPromptName,
+      promptSelectionEnabled: process.env.ALLOW_PROMPT_SELECTION === "true",
       buildVersion: buildInfo?.commitShort ?? null,
       buildDate: buildInfo?.builtAt ?? null,
     });

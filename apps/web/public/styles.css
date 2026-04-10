@@ -128,7 +128,8 @@
     }
 
     .model-badge,
-    .prompt-badge {
+    .prompt-badge,
+    .thinking-badge {
       font-family: var(--font-sans);
       font-size: 0.71rem;
       font-weight: 500;
@@ -143,13 +144,25 @@
       transition: border-color 0.15s, color 0.15s;
     }
     .model-badge:hover,
-    .prompt-badge:hover {
+    .prompt-badge:hover,
+    .thinking-badge:hover {
       border-color: var(--accent);
       color: var(--text);
+    }
+    .prompt-badge.locked {
+      cursor: default;
+      opacity: 0.55;
+    }
+    .prompt-badge.locked:hover {
+      border-color: var(--border);
+      color: var(--text-muted);
     }
     .model-badge.extended::after {
       content: ' · thinking';
       color: var(--accent);
+    }
+    .thinking-badge.off {
+      opacity: 0.6;
     }
 
     /* ── Config picker dropdown ─────────────────────────────────────────── */

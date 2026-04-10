@@ -35,13 +35,15 @@
   let fbSelections      = { outcome: null, experience: null };
 
   // ── Model / prompt selection state ────────────────────────────────────────
-  let selectedModel   = ''; // active model ID (persisted in localStorage)
-  let selectedPrompt  = ''; // active prompt name (persisted in localStorage)
-  let pendingSwitch   = null; // { type: 'model'|'prompt', value: string } — waiting for confirmation
-  let activePicker    = null; // 'model' | 'prompt' — which picker is open
+  let selectedModel    = ''; // active model ID (persisted in localStorage)
+  let selectedPrompt   = ''; // active prompt name (persisted in localStorage)
+  let selectedThinking = true; // extended thinking on/off (persisted in localStorage)
+  let pendingSwitch   = null; // { type: 'model'|'prompt'|'thinking', value: string|boolean } — waiting for confirmation
+  let activePicker    = null; // 'model' | 'prompt' | 'thinking' — which picker is open
 
   let sessionUploads = []; // { id, name, mimeType, blobUrl, messageId }
   let uploadCounter  = 0;
+  let activeAbortController = null; // aborts the in-flight /api/chat fetch when session resets
 
   // Sentinel emitted by tutor prompt when the problem is fully resolved.
   const END_SENTINEL   = '[END_SESSION_AVAILABLE]';
@@ -72,6 +74,7 @@
   const btnTranscript       = $('btn-transcript');
   const promptBadge    = $('prompt-badge');
   const modelBadge     = $('model-badge');
+  const thinkingBadge  = $('thinking-badge');
   const buildInfoEl    = $('build-info');
   const tokenCounter   = $('token-counter');
   const configPicker        = $('config-picker');
@@ -99,15 +102,20 @@
       appConfig = await res.json();
 
       // Restore persisted selection or fall back to server default.
-      const storedModel  = localStorage.getItem('selectedModel');
-      const storedPrompt = localStorage.getItem('selectedPrompt');
+      const storedModel    = localStorage.getItem('selectedModel');
+      const storedPrompt   = localStorage.getItem('selectedPrompt');
+      const storedThinking = localStorage.getItem('selectedThinking');
       selectedModel  = (storedModel  && appConfig.availableModels?.includes(storedModel))
         ? storedModel  : (appConfig.model  || '');
       selectedPrompt = (storedPrompt && appConfig.availablePrompts?.includes(storedPrompt))
         ? storedPrompt : (appConfig.defaultPrompt || '');
+      selectedThinking = storedThinking === null
+        ? !!appConfig.extendedThinking
+        : storedThinking === 'true';
 
       updateModelBadge();
       updatePromptBadge();
+      updateThinkingBadge();
       updateBuildInfo();
 
       if (appConfig.contactEmail) {
@@ -122,8 +130,8 @@
     const label = selectedModel.replace(/^claude-/, '').replace(/-\d{8}$/, '');
     modelBadge.textContent = label;
     const isHaiku = selectedModel.includes('haiku');
-    modelBadge.classList.toggle('extended', !!appConfig.extendedThinking && !isHaiku);
-    modelBadge.title = selectedModel + (appConfig.extendedThinking && !isHaiku ? ' — extended thinking on' : '');
+    modelBadge.classList.toggle('extended', !!selectedThinking && !isHaiku);
+    modelBadge.title = selectedModel + (selectedThinking && !isHaiku ? ' — extended thinking on' : '');
     modelBadge.style.display = '';
   }
 
@@ -132,8 +140,21 @@
     // Strip "tutor-prompt-" prefix for compact display (e.g. "v7").
     const label = selectedPrompt.replace(/^tutor-prompt-/, '');
     promptBadge.textContent = label;
-    promptBadge.title = selectedPrompt;
     promptBadge.style.display = '';
+    if (!appConfig.promptSelectionEnabled) {
+      promptBadge.classList.add('locked');
+      promptBadge.title = selectedPrompt;
+    } else {
+      promptBadge.classList.remove('locked');
+      promptBadge.title = selectedPrompt + ' — click to switch';
+    }
+  }
+
+  function updateThinkingBadge() {
+    thinkingBadge.textContent = selectedThinking ? 'thinking: on' : 'thinking: off';
+    thinkingBadge.classList.toggle('off', !selectedThinking);
+    thinkingBadge.title = (selectedThinking ? 'Extended thinking on' : 'Extended thinking off') + ' — click to toggle';
+    thinkingBadge.style.display = '';
   }
 
   function updateBuildInfo() {
@@ -267,7 +288,7 @@
 
   function finalizeTutor(entry, rawText) {
     const hasSentinel = rawText.includes(END_SENTINEL);
-    const clean = rawText.replace(END_SENTINEL, '').trim();
+    const clean = rawText.replace(/\[END_SESSION_AVAILABLE\]/g, '').trim();
 
     // Replace [IMG:...] markers before markdown parse
     const withRefs = parseImgRefs(clean);
@@ -279,20 +300,18 @@
     // is allowed by default via ALLOW_DATA_ATTR but listed explicitly for clarity.
     const html = (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined')
       ? DOMPurify.sanitize(marked.parse(withRefs), { ADD_ATTR: ['data-upload-id', 'tabindex'] })
-      : `<p>${escHtml(withRefs)}</p>`;
+      : `<p>${escHtml(clean)}</p>`;
 
     entry.bubbleEl.innerHTML = html;
     renderKaTeX(entry.bubbleEl);
 
-    // Wire click handlers for image-reference pills
-    entry.bubbleEl.querySelectorAll('.img-ref[data-upload-id]').forEach(pill => {
+    // Wire click handlers for image-reference pills and auto-focus the last one
+    const refPills = entry.bubbleEl.querySelectorAll('.img-ref[data-upload-id]');
+    refPills.forEach(pill => {
       pill.addEventListener('click', () => {
         if (typeof focusUpload === 'function') focusUpload(pill.dataset.uploadId);
       });
     });
-
-    // Auto-focus the last referenced image
-    const refPills = entry.bubbleEl.querySelectorAll('.img-ref[data-upload-id]');
     if (refPills.length > 0) {
       const lastId = refPills[refPills.length - 1].dataset.uploadId;
       if (typeof focusUpload === 'function') focusUpload(lastId);
@@ -357,6 +376,7 @@
     fd.append('message', text);
     if (selectedModel)  fd.append('model', selectedModel);
     if (selectedPrompt) fd.append('promptName', selectedPrompt);
+    fd.append('extendedThinking', String(selectedThinking));
     for (const f of files) fd.append('files', f);
 
     // Clear input
@@ -367,9 +387,11 @@
 
     let rawText = '';
     let gotToken = false;
+    let finalized = false;
 
     try {
-      const resp = await fetch('/api/chat', { method: 'POST', body: fd });
+      activeAbortController = new AbortController();
+      const resp = await fetch('/api/chat', { method: 'POST', body: fd, signal: activeAbortController.signal });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: resp.statusText }));
         throw new Error(err.error || resp.statusText);
@@ -381,10 +403,9 @@
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
+        buf += decoder.decode(value ?? new Uint8Array(), { stream: !done });
         const lines = buf.split('\n');
-        buf = lines.pop() ?? '';
+        buf = done ? '' : (lines.pop() ?? '');
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
@@ -400,7 +421,7 @@
             }
             rawText += event.text;
             tutorEntry.bubbleEl.textContent =
-              rawText.replace(END_SENTINEL, '').trimEnd();
+              rawText.replace(/\[END_SESSION_AVAILABLE\]/g, '').trimEnd();
             scrollBottom();
           } else if (event.type === 'message_stop') {
             if (event.messageId) tutorEntry.dbId = event.messageId;
@@ -410,14 +431,16 @@
               tokenCounter.style.display = 'inline';
             }
             finalizeTutor(tutorEntry, rawText);
+            finalized = true;
           } else if (event.type === 'error') {
             throw new Error(event.message || 'Streaming error');
           }
         }
+        if (done) break;
       }
 
-      // Fallback: finalize if stream ended without message_stop (handles zero-token case too)
-      if (!tutorEntry.bubbleEl.querySelector('p, ul, ol, pre, h1, h2, h3')) {
+      // Fallback: finalize if stream ended without message_stop
+      if (!finalized) {
         finalizeTutor(tutorEntry, rawText);
       }
 
@@ -428,6 +451,7 @@
       isStreaming = false;
       setInputDisabled(false);
       msgInput.focus();
+      resetInactivityTimer();
     }
   }
 
@@ -448,24 +472,32 @@
     return fetch(`/api/sessions/${id}?discard=true`, { method: 'DELETE' }).catch(() => {});
   }
 
-  // ── Config picker (model / prompt) ────────────────────────────────────────
+  // ── Config picker (model / prompt / thinking) ─────────────────────────────
   function openConfigPicker(type, anchorEl) {
     activePicker = type;
     configPickerList.innerHTML = '';
 
-    const options = type === 'model'
-      ? (appConfig.availableModels || [])
-      : (appConfig.availablePrompts || []);
-    const current = type === 'model' ? selectedModel : selectedPrompt;
+    let options;
+    let current;
+    if (type === 'model') {
+      options = (appConfig.availableModels || []).map(v => ({ value: v, label: v.replace(/^claude-/, '').replace(/-\d{8}$/, '') }));
+      current = selectedModel;
+    } else if (type === 'prompt') {
+      options = (appConfig.availablePrompts || []).map(v => ({ value: v, label: v.replace(/^tutor-prompt-/, '') }));
+      current = selectedPrompt;
+    } else { // 'thinking'
+      options = [
+        { value: true,  label: 'On' },
+        { value: false, label: 'Off' },
+      ];
+      current = selectedThinking;
+    }
 
-    for (const value of options) {
+    for (const opt of options) {
       const li = document.createElement('li');
-      li.className = 'config-picker-item' + (value === current ? ' active' : '');
-      li.textContent = type === 'model'
-        ? value.replace(/^claude-/, '').replace(/-\d{8}$/, '')
-        : value.replace(/^tutor-prompt-/, '');
-      li.dataset.value = value;
-      li.addEventListener('click', () => onPickerSelect(type, value));
+      li.className = 'config-picker-item' + (opt.value === current ? ' active' : '');
+      li.textContent = opt.label;
+      li.addEventListener('click', () => onPickerSelect(type, opt.value));
       configPickerList.appendChild(li);
     }
 
@@ -483,13 +515,19 @@
 
   function onPickerSelect(type, value) {
     closeConfigPicker();
-    const current = type === 'model' ? selectedModel : selectedPrompt;
+    let current;
+    if (type === 'model')        current = selectedModel;
+    else if (type === 'prompt')  current = selectedPrompt;
+    else                         current = selectedThinking; // 'thinking'
     if (value === current) return;
 
     if (msgList.length > 0 && !sessionEnded) {
       // Session in progress — need confirmation before switching.
       pendingSwitch = { type, value };
-      switchConfigTitle.textContent = type === 'model' ? 'Switch model?' : 'Switch prompt?';
+      switchConfigTitle.textContent =
+        type === 'model'   ? 'Switch model?' :
+        type === 'prompt'  ? 'Switch prompt?' :
+                             'Switch extended thinking?';
       switchConfigOverlay.classList.add('active');
     } else {
       // No active session — apply immediately.
@@ -502,16 +540,23 @@
       selectedModel = value;
       localStorage.setItem('selectedModel', value);
       updateModelBadge();
-    } else {
+    } else if (type === 'prompt') {
       selectedPrompt = value;
       localStorage.setItem('selectedPrompt', value);
       updatePromptBadge();
+    } else { // 'thinking'
+      selectedThinking = !!value;
+      localStorage.setItem('selectedThinking', String(selectedThinking));
+      updateThinkingBadge();
+      // The model badge's "extended" indicator depends on selectedThinking.
+      updateModelBadge();
     }
     pendingSwitch = null;
   }
 
   /** Reset all session state and UI to a fresh-session starting point. */
   function resetSessionState() {
+    if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; }
     if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
     stopCountdownDisplay();
     sessionId       = crypto.randomUUID();
@@ -527,6 +572,8 @@
     endAvailable    = false;
     sessionEnded    = false;
     msgCounter      = 0;
+    katexQueue      = [];
+    dragDepth       = 0;
     fbSelections    = { outcome: null, experience: null };
     tokenCounter.style.display = 'none';
     tokenCounter.textContent = '';
@@ -620,7 +667,11 @@
   }
 
   async function onInactivityTimeout() {
-    if (sessionEnded || msgList.length === 0 || isStreaming) return;
+    if (sessionEnded || msgList.length === 0) return;
+    if (isStreaming) {
+      inactivityTimer = setTimeout(onInactivityTimeout, 5000);
+      return;
+    }
     sessionEnded = true;
     stopCountdownDisplay();
     endBanner.classList.remove('active');
@@ -661,6 +712,8 @@
 
   // ── Feedback card ──────────────────────────────────────────────────────────
   function showFeedbackCard() {
+    btnFbSubmit.disabled = false;
+    btnFbSkip.disabled   = false;
     fbSelections = { outcome: null, experience: null };
     fbComment.value = '';
     fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
@@ -927,14 +980,21 @@
 
   promptBadge.addEventListener('click', e => {
     e.stopPropagation();
+    if (!appConfig.promptSelectionEnabled) return; // locked — ignore clicks
     if (activePicker === 'prompt') { closeConfigPicker(); return; }
     openConfigPicker('prompt', promptBadge);
+  });
+
+  thinkingBadge.addEventListener('click', e => {
+    e.stopPropagation();
+    if (activePicker === 'thinking') { closeConfigPicker(); return; }
+    openConfigPicker('thinking', thinkingBadge);
   });
 
   document.addEventListener('click', e => {
     if (configPicker.style.display !== 'none' &&
         !configPicker.contains(e.target) &&
-        e.target !== modelBadge && e.target !== promptBadge) {
+        e.target !== modelBadge && e.target !== promptBadge && e.target !== thinkingBadge) {
       closeConfigPicker();
     }
   });
@@ -1022,8 +1082,10 @@
   // Show access wall only once per browser session
   if (sessionStorage.getItem('access-granted')) {
     disclaimerOverlay.classList.remove('active');
+    msgInput.focus();
+  } else {
+    accessPasscodeInput.focus();
   }
-  msgInput.focus();
 
   // ── iOS viewport stability ────────────────────────────────────────────────
   var isIOS = /iP(hone|od)/.test(navigator.userAgent) ||

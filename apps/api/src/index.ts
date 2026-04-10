@@ -10,8 +10,6 @@ import {
 import {
   createSupabaseClient,
   markSessionEnded,
-  createSessionFeedback,
-  getSessionFeedback,
 } from "@ai-tutor/db";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/errors.js";
@@ -24,7 +22,7 @@ import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { createAccessRouter } from "./routes/access.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload } from "./lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback } from "./lib/evaluation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -75,8 +73,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "../../web/public")));
 
 // Routes
-app.use("/api/chat", createChatRouter(tutorClient, db, promptMap, defaultPromptName, config.model));
-app.use("/api/sessions", createSessionsRouter(db, emailConfig, config.model, defaultPromptName));
+app.use("/api/chat", createChatRouter(tutorClient, db, promptMap, defaultPromptName, config.model, config.extendedThinking));
+app.use("/api/sessions", createSessionsRouter(db, emailConfig, config.model, defaultPromptName, config.extendedThinking));
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
@@ -105,27 +103,16 @@ setInterval(() => {
       if (!session.emailSent && session.transcript.length > 0) {
         void (async () => {
           try {
-            const evalResult = await runSessionEvaluation(db, sessionId, session.transcript);
-
-            let feedback = await getSessionFeedback(db, sessionId).catch(err => {
-              console.error(`[sweep] Failed to fetch feedback for ${sessionId}:`, err);
-              return null;
-            });
-            if (!feedback) {
-              feedback = await createSessionFeedback(db, {
-                session_id: sessionId,
-                source: "timeout",
-              }).catch(err => {
-                console.error(`[sweep] Failed to create timeout feedback for ${sessionId}:`, err);
-                return null;
-              });
-            }
+            const [evalResult, feedback] = await Promise.all([
+              runSessionEvaluation(db, sessionId, session.transcript),
+              getOrCreateTimeoutFeedback(db, sessionId, "sweep"),
+            ]);
 
             const payload = buildTranscriptEmailPayload(
-              session, sessionId, evalResult, feedback, config.model, defaultPromptName
+              session, sessionId, evalResult, feedback, config.model, defaultPromptName, config.extendedThinking
             );
             await sendTranscript(emailConfig, payload);
-            session.markEmailSent();
+            await markEmailSentPersisted(session, db, sessionId, "sweep");
           } catch (err) {
             console.error(`[sweep] Failed to process session ${sessionId}:`, err);
           } finally {
