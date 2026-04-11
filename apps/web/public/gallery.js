@@ -23,6 +23,7 @@
 
   // ── Open / close ───────────────────────────────────────────────────────
   window.openGallery = function () {
+    if (!galleryPane) return;
     galleryPane.classList.add('open');
     if (isMobile()) {
       galleryBackdrop.classList.add('active');
@@ -41,6 +42,7 @@
   };
 
   window.closeGallery = function () {
+    if (!galleryPane) return;
     // Clear inline width so the CSS width:0 rule takes over and the
     // close transition animates correctly.
     galleryPane.style.width = '';
@@ -59,6 +61,7 @@
 
   // ── Focus a specific upload ───────────────────────────────────────────
   window.focusUpload = function (uploadId) {
+    if (!galleryThumbs || !galleryFocused) return;
     const entry = (typeof sessionUploads !== 'undefined' ? sessionUploads : [])
       .find(u => u.id === uploadId);
 
@@ -121,6 +124,7 @@
 
   // ── Add a new upload to the gallery ──────────────────────────────────
   window.addToGallery = function (entry) {
+    if (!galleryThumbs) return;
     const thumb = document.createElement('div');
     thumb.className = 'gallery-thumb';
     thumb.dataset.uploadId = entry.id;
@@ -147,6 +151,7 @@
 
   // ── Reset gallery (called on new session) ────────────────────────────
   window.resetGallery = function () {
+    if (!galleryThumbs || !galleryFocused) return;
     galleryThumbs.innerHTML = '';
     galleryFocused.innerHTML =
       '<div class="gallery-empty-state">No uploads yet</div>';

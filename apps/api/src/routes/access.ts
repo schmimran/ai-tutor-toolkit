@@ -24,10 +24,13 @@ export function createAccessRouter(): Router {
       return;
     }
 
-    const ok =
-      typeof passcode === "string" &&
-      passcode.length === expected.length &&
-      timingSafeEqual(Buffer.from(passcode), Buffer.from(expected));
+    if (typeof passcode !== "string") {
+      res.json({ ok: false });
+      return;
+    }
+    const submittedBuf = Buffer.from(passcode);
+    const expectedBuf  = Buffer.from(expected);
+    const ok = submittedBuf.length === expectedBuf.length && timingSafeEqual(submittedBuf, expectedBuf);
     res.json({ ok });
   });
 
