@@ -101,10 +101,13 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
   /**
    * POST /api/auth/register
    *
-   * Creates a new Supabase auth user with `email_confirm: true` so the user
-   * can log in immediately without a confirmation step. Uses the service-role
-   * admin API. Returns a generic error message on failure to avoid leaking
-   * which emails are registered.
+   * Creates a new Supabase auth user with `email_confirm: false` so Supabase
+   * sends a verification email before the account can be used to sign in
+   * (issue #76). Uses the service-role admin API. Additional profile fields
+   * (name, birthdate, grade_level, state, country) are persisted in
+   * `user_metadata`. Returns a generic error message on failure to avoid
+   * leaking which emails are registered; the one exception is the `underage`
+   * error, which is surfaced so the client can show a specific message.
    */
   router.post("/register", async (req, res) => {
     const parsed = validateCredentials(req.body);
@@ -127,7 +130,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
       const { error } = await db.auth.admin.createUser({
         email: parsed.email,
         password: parsed.password,
-        email_confirm: true,
+        email_confirm: false,
         user_metadata: {
           name: profile.name,
           birthdate: profile.birthdate,
@@ -151,8 +154,10 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
    *
    * Authenticates via `anonDb.auth.signInWithPassword`. On success, returns
    * the access token, refresh token, and expiry so the client can store them
-   * in sessionStorage. On failure, returns a single opaque error so callers
-   * cannot distinguish "wrong password" from "unconfirmed email" etc.
+   * in sessionStorage. On failure, returns an opaque `invalid_credentials`
+   * error in most cases. The one exception is `email_not_confirmed`, which
+   * is passed through so the client can offer a "resend verification email"
+   * affordance (issue #76).
    */
   router.post("/login", async (req, res) => {
     const parsed = validateCredentials(req.body);
@@ -167,6 +172,11 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
         password: parsed.password,
       });
       if (error || !data?.session) {
+        const code = (error as { code?: string } | null)?.code;
+        if (code === "email_not_confirmed") {
+          res.status(401).json({ ok: false, error: "email_not_confirmed" });
+          return;
+        }
         res.status(401).json({ ok: false, error: "invalid_credentials" });
         return;
       }
@@ -179,6 +189,30 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
     } catch {
       res.status(500).json({ ok: false, error: "server_error" });
     }
+  });
+
+  /**
+   * POST /api/auth/resend-verification
+   *
+   * Re-sends the Supabase signup verification email for a given address
+   * (issue #76). Always returns `{ ok: true }` regardless of whether the
+   * email exists, to avoid account enumeration. Errors are logged
+   * server-side but never surfaced to the client.
+   */
+  router.post("/resend-verification", async (req, res) => {
+    const body = req.body as { email?: unknown } | undefined;
+    const email = body?.email;
+    if (typeof email !== "string" || !EMAIL_RE.test(email)) {
+      // Still return ok:true to avoid enumeration / probing.
+      res.json({ ok: true });
+      return;
+    }
+    try {
+      await anonDb.auth.resend({ type: "signup", email });
+    } catch {
+      // Swallow — do not surface errors to client.
+    }
+    res.json({ ok: true });
   });
 
   /**

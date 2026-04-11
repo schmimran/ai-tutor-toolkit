@@ -71,6 +71,8 @@
       });
       setError(null);
       setSuccess(null);
+      var resendBtn = $('btn-resend-verification');
+      if (resendBtn) resendBtn.style.display = 'none';
     });
   });
 
@@ -154,10 +156,11 @@
         if (res.status >= 200 && res.status < 300 && res.body.ok) {
           setError(null);
           resetRegisterForm();
-          // Switch to login tab first — the tab handler clears success, so set it after
-          document.querySelector('.login-tab[data-tab="login"]').click();
+          // Stay on the register tab and prompt the user to verify their
+          // email (issue #76). Pre-fill the login email field so they can
+          // sign in once they have verified.
           $('login-email').value = email;
-          setSuccess('Account created. You can now sign in.');
+          setSuccess('Check your inbox to verify your email before logging in.');
         } else if (res.body && res.body.error === 'underage') {
           setError('You must be at least 13 to register.');
         } else {
@@ -170,9 +173,16 @@
   });
 
   /* ── Login ─────────────────────────────────────────────────────────── */
+  function setResendVisible(visible) {
+    var btn = $('btn-resend-verification');
+    if (!btn) return;
+    btn.style.display = visible ? '' : 'none';
+  }
+
   $('login-panel').addEventListener('submit', function (e) {
     e.preventDefault();
     setError(null);
+    setResendVisible(false);
     var email = $('login-email').value.trim();
     var password = $('login-password').value;
 
@@ -195,9 +205,33 @@
           saveAuth(auth);
           showStatus(auth);
           setOutput('Login successful. Tokens stored in sessionStorage.');
+        } else if (res.body && res.body.error === 'email_not_confirmed') {
+          setError('Please verify your email first.');
+          setResendVisible(true);
         } else {
           setError('Invalid email or password.');
         }
+      }).catch(function (err) {
+        btn.disabled = false;
+        setError('Network error: ' + err.message);
+      });
+  });
+
+  /* ── Resend verification email ─────────────────────────────────────── */
+  $('btn-resend-verification').addEventListener('click', function () {
+    var email = $('login-email').value.trim();
+    if (!email) { setError('Enter your email above, then click resend.'); return; }
+    var btn = $('btn-resend-verification');
+    btn.disabled = true;
+    fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email }),
+    }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
+      .then(function () {
+        btn.disabled = false;
+        setError(null);
+        setSuccess('Verification email sent.');
       }).catch(function (err) {
         btn.disabled = false;
         setError('Network error: ' + err.message);
