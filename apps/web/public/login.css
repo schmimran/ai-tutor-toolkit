@@ -182,6 +182,12 @@ html, body {
   font-size: 0.85rem;
 }
 
+.login-success {
+  margin: 0.85rem 0 0;
+  color: #22c55e;
+  font-size: 0.85rem;
+}
+
 .login-contact-note {
   margin: 1rem 0 0;
   font-size: 0.75rem;

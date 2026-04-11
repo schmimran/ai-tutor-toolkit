@@ -12,12 +12,15 @@
 
   function $(id) { return document.getElementById(id); }
 
-  function setError(msg) {
-    var el = $('login-error');
+  function setMessage(id, msg) {
+    var el = $(id);
     if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
     el.textContent = msg;
     el.style.display = '';
   }
+
+  function setError(msg) { setMessage('login-error', msg); }
+  function setSuccess(msg) { setMessage('login-success', msg); }
 
   function setOutput(obj) {
     var el = $('login-status-output');
@@ -67,6 +70,7 @@
         panels[key].classList.toggle('active', key === target);
       });
       setError(null);
+      setSuccess(null);
     });
   });
 
@@ -99,10 +103,10 @@
         btn.disabled = false;
         if (res.status >= 200 && res.status < 300 && res.body.ok) {
           setError(null);
-          setOutput('Account created. You can now sign in.');
-          // Switch to login tab
+          // Switch to login tab first — the tab handler clears success, so set it after
           document.querySelector('.login-tab[data-tab="login"]').click();
           $('login-email').value = email;
+          setSuccess('Account created. You can now sign in.');
         } else {
           setError('Registration failed. (' + (res.body.error || 'unknown') + ')');
         }

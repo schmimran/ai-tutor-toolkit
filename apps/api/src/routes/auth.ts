@@ -37,8 +37,8 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
   /**
    * POST /api/auth/register
    *
-   * Creates a new Supabase auth user with `email_confirm: false` so the user
-   * must confirm their email before login succeeds. Uses the service-role
+   * Creates a new Supabase auth user with `email_confirm: true` so the user
+   * can log in immediately without a confirmation step. Uses the service-role
    * admin API. Returns a generic error message on failure to avoid leaking
    * which emails are registered.
    */
@@ -53,7 +53,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
       const { error } = await db.auth.admin.createUser({
         email: parsed.email,
         password: parsed.password,
-        email_confirm: false,
+        email_confirm: true,
       });
       if (error) {
         res.status(400).json({ ok: false, error: "registration_failed" });
