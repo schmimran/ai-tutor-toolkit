@@ -9,6 +9,7 @@ import {
 } from "@ai-tutor/core";
 import {
   createSupabaseClient,
+  createSupabaseAnonClient,
   markSessionEnded,
 } from "@ai-tutor/db";
 import { corsMiddleware } from "./middleware/cors.js";
@@ -20,6 +21,7 @@ import { createFeedbackRouter } from "./routes/feedback.js";
 import { createConfigRouter } from "./routes/config.js";
 import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { createAccessRouter } from "./routes/access.js";
+import { createAuthRouter } from "./routes/auth.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback } from "./lib/evaluation.js";
@@ -28,6 +30,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const config = loadConfig();
 const db = createSupabaseClient();
+
+// Optional Supabase anon client — only needed for the new /api/auth/* routes
+// that back the /login.html entry point (issue #73). If SUPABASE_ANON_KEY is
+// unset, the auth router is not registered and the existing passcode flow
+// continues to work untouched.
+let anonDb: ReturnType<typeof createSupabaseAnonClient> | null = null;
+if (process.env.SUPABASE_ANON_KEY) {
+  try {
+    anonDb = createSupabaseAnonClient();
+  } catch (err) {
+    console.warn("[api] SUPABASE_ANON_KEY present but anon client init failed:", err);
+    anonDb = null;
+  }
+} else {
+  console.warn("[api] SUPABASE_ANON_KEY not set — /api/auth/* routes disabled.");
+}
 
 // ── Prompt discovery ──────────────────────────────────────────────────────────
 // Scan templates/ for all tutor-prompt-*.md files and build a name→content map.
@@ -80,6 +98,10 @@ app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
 app.use("/api/disclaimer", createDisclaimerRouter(db));
 app.use("/api/access", createAccessRouter());
+
+if (anonDb) {
+  app.use("/api/auth", createAuthRouter(db, anonDb));
+}
 
 app.use(errorHandler);
 
