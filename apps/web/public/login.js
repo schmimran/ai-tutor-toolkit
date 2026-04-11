@@ -71,6 +71,8 @@
       });
       setError(null);
       setSuccess(null);
+      var resendBtn = $('btn-resend-verification');
+      if (resendBtn) resendBtn.style.display = 'none';
     });
   });
 
@@ -83,32 +85,86 @@
   }).catch(function () { /* silent */ });
 
   /* ── Register ──────────────────────────────────────────────────────── */
+  function computeAgeYears(birthdate) {
+    // birthdate in YYYY-MM-DD format
+    var parts = birthdate.split('-');
+    if (parts.length !== 3) return NaN;
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    var d = parseInt(parts[2], 10);
+    var today = new Date();
+    var age = today.getFullYear() - y;
+    var monthDiff = (today.getMonth() + 1) - m;
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) {
+      age -= 1;
+    }
+    return age;
+  }
+
+  function resetRegisterForm() {
+    $('register-name').value = '';
+    $('register-email').value = '';
+    $('register-password').value = '';
+    $('register-birthdate').value = '';
+    $('register-grade').value = '';
+    $('register-state').value = '';
+    $('register-country').value = '';
+    $('register-terms').checked = false;
+  }
+
   $('register-panel').addEventListener('submit', function (e) {
     e.preventDefault();
     setError(null);
+    var name = $('register-name').value.trim();
     var email = $('register-email').value.trim();
     var password = $('register-password').value;
+    var birthdate = $('register-birthdate').value;
+    var gradeLevel = $('register-grade').value;
+    var state = $('register-state').value.trim();
+    var country = $('register-country').value.trim();
     var terms = $('register-terms').checked;
+
+    if (!name) { setError('Please enter your full name.'); return; }
+    if (!birthdate) { setError('Please enter your birthdate.'); return; }
+    if (!gradeLevel) { setError('Please select a grade level.'); return; }
     if (!terms) { setError('Please accept the terms to continue.'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+
+    var age = computeAgeYears(birthdate);
+    if (!isFinite(age) || age < 13) {
+      setError('You must be at least 13 to register.');
+      return;
+    }
 
     var btn = $('btn-register');
     btn.disabled = true;
     fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, password: password }),
+      body: JSON.stringify({
+        email: email,
+        password: password,
+        name: name,
+        birthdate: birthdate,
+        gradeLevel: gradeLevel,
+        state: state,
+        country: country,
+      }),
     }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
       .then(function (res) {
         btn.disabled = false;
         if (res.status >= 200 && res.status < 300 && res.body.ok) {
           setError(null);
-          // Switch to login tab first — the tab handler clears success, so set it after
-          document.querySelector('.login-tab[data-tab="login"]').click();
+          resetRegisterForm();
+          // Stay on the register tab and prompt the user to verify their
+          // email (issue #76). Pre-fill the login email field so they can
+          // sign in once they have verified.
           $('login-email').value = email;
-          setSuccess('Account created. You can now sign in.');
+          setSuccess('Check your inbox to verify your email before logging in.');
+        } else if (res.body && res.body.error === 'underage') {
+          setError('You must be at least 13 to register.');
         } else {
-          setError('Registration failed. (' + (res.body.error || 'unknown') + ')');
+          setError('Registration failed. (' + ((res.body && res.body.error) || 'unknown') + ')');
         }
       }).catch(function (err) {
         btn.disabled = false;
@@ -117,9 +173,16 @@
   });
 
   /* ── Login ─────────────────────────────────────────────────────────── */
+  function setResendVisible(visible) {
+    var btn = $('btn-resend-verification');
+    if (!btn) return;
+    btn.style.display = visible ? '' : 'none';
+  }
+
   $('login-panel').addEventListener('submit', function (e) {
     e.preventDefault();
     setError(null);
+    setResendVisible(false);
     var email = $('login-email').value.trim();
     var password = $('login-password').value;
 
@@ -142,9 +205,33 @@
           saveAuth(auth);
           showStatus(auth);
           setOutput('Login successful. Tokens stored in sessionStorage.');
+        } else if (res.body && res.body.error === 'email_not_confirmed') {
+          setError('Please verify your email first.');
+          setResendVisible(true);
         } else {
           setError('Invalid email or password.');
         }
+      }).catch(function (err) {
+        btn.disabled = false;
+        setError('Network error: ' + err.message);
+      });
+  });
+
+  /* ── Resend verification email ─────────────────────────────────────── */
+  $('btn-resend-verification').addEventListener('click', function () {
+    var email = $('login-email').value.trim();
+    if (!email) { setError('Enter your email above, then click resend.'); return; }
+    var btn = $('btn-resend-verification');
+    btn.disabled = true;
+    fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email }),
+    }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
+      .then(function () {
+        btn.disabled = false;
+        setError(null);
+        setSuccess('Verification email sent.');
       }).catch(function (err) {
         btn.disabled = false;
         setError('Network error: ' + err.message);

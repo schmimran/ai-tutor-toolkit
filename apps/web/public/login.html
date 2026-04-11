@@ -32,10 +32,15 @@
           <input type="password" id="login-password" class="login-input" autocomplete="current-password" required minlength="8">
         </label>
         <button type="submit" class="login-btn login-btn-primary" id="btn-login">Sign in</button>
+        <button type="button" class="login-btn" id="btn-resend-verification" style="display:none">Resend verification email</button>
       </form>
 
       <!-- ── Register panel ────────────────────────────────────────────── -->
       <form class="login-panel" id="register-panel" autocomplete="on">
+        <label class="login-field">
+          <span class="login-label">Full name</span>
+          <input type="text" id="register-name" class="login-input" autocomplete="name" required>
+        </label>
         <label class="login-field">
           <span class="login-label">Email</span>
           <input type="email" id="register-email" class="login-input" autocomplete="email" required>
@@ -44,6 +49,33 @@
           <span class="login-label">Password</span>
           <input type="password" id="register-password" class="login-input" autocomplete="new-password" required minlength="8">
           <span class="login-hint">At least 8 characters.</span>
+        </label>
+        <label class="login-field">
+          <span class="login-label">Birthdate</span>
+          <input type="date" id="register-birthdate" class="login-input" autocomplete="bday" required>
+          <span class="login-hint">You must be at least 13 to register.</span>
+        </label>
+        <label class="login-field">
+          <span class="login-label">Grade level</span>
+          <select id="register-grade" class="login-input" required>
+            <option value="" disabled selected>Select grade</option>
+            <option value="6th">6th</option>
+            <option value="7th">7th</option>
+            <option value="8th">8th</option>
+            <option value="9th">9th</option>
+            <option value="10th">10th</option>
+            <option value="11th">11th</option>
+            <option value="12th">12th</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label class="login-field">
+          <span class="login-label">State / Province <span class="login-hint-inline">(optional)</span></span>
+          <input type="text" id="register-state" class="login-input" autocomplete="address-level1">
+        </label>
+        <label class="login-field">
+          <span class="login-label">Country <span class="login-hint-inline">(optional)</span></span>
+          <input type="text" id="register-country" class="login-input" autocomplete="country-name">
         </label>
         <label class="login-checkbox-row">
           <input type="checkbox" id="register-terms">
