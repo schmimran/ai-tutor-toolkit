@@ -25,6 +25,18 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
   const requireAuth = createRequireAuth(db);
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const BIRTHDATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const ALLOWED_GRADES = new Set([
+    "6th",
+    "7th",
+    "8th",
+    "9th",
+    "10th",
+    "11th",
+    "12th",
+    "Other",
+  ]);
+  const MIN_AGE_YEARS = 13;
 
   function validateCredentials(body: unknown): { email: string; password: string } | string {
     if (!body || typeof body !== "object") return "invalid_request";
@@ -32,6 +44,58 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
     if (typeof email !== "string" || !EMAIL_RE.test(email)) return "invalid_email";
     if (typeof password !== "string" || password.length < 8) return "invalid_password";
     return { email, password };
+  }
+
+  interface RegistrationProfile {
+    name: string;
+    birthdate: string;
+    gradeLevel: string;
+    state: string | null;
+    country: string | null;
+  }
+
+  function validateRegistrationProfile(body: unknown): RegistrationProfile | string {
+    if (!body || typeof body !== "object") return "invalid_request";
+    const {
+      name,
+      birthdate,
+      gradeLevel,
+      state,
+      country,
+    } = body as {
+      name?: unknown;
+      birthdate?: unknown;
+      gradeLevel?: unknown;
+      state?: unknown;
+      country?: unknown;
+    };
+
+    if (typeof name !== "string" || name.trim().length === 0) return "invalid_name";
+    if (typeof birthdate !== "string" || !BIRTHDATE_RE.test(birthdate)) return "invalid_birthdate";
+    const parsed = new Date(birthdate + "T00:00:00Z");
+    if (Number.isNaN(parsed.getTime())) return "invalid_birthdate";
+    if (typeof gradeLevel !== "string" || !ALLOWED_GRADES.has(gradeLevel)) return "invalid_grade";
+
+    const stateVal = typeof state === "string" && state.trim().length > 0 ? state.trim() : null;
+    const countryVal = typeof country === "string" && country.trim().length > 0 ? country.trim() : null;
+
+    return {
+      name: name.trim(),
+      birthdate,
+      gradeLevel,
+      state: stateVal,
+      country: countryVal,
+    };
+  }
+
+  function computeAgeYears(birthdate: string, today: Date = new Date()): number {
+    const [y, m, d] = birthdate.split("-").map((n) => parseInt(n, 10));
+    let age = today.getUTCFullYear() - y;
+    const monthDiff = today.getUTCMonth() + 1 - m;
+    if (monthDiff < 0 || (monthDiff === 0 && today.getUTCDate() < d)) {
+      age -= 1;
+    }
+    return age;
   }
 
   /**
@@ -48,12 +112,29 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
       res.status(400).json({ ok: false, error: parsed });
       return;
     }
+    const profile = validateRegistrationProfile(req.body);
+    if (typeof profile === "string") {
+      res.status(400).json({ ok: false, error: profile });
+      return;
+    }
+    const age = computeAgeYears(profile.birthdate);
+    if (age < MIN_AGE_YEARS) {
+      res.status(400).json({ ok: false, error: "underage" });
+      return;
+    }
 
     try {
       const { error } = await db.auth.admin.createUser({
         email: parsed.email,
         password: parsed.password,
         email_confirm: true,
+        user_metadata: {
+          name: profile.name,
+          birthdate: profile.birthdate,
+          grade_level: profile.gradeLevel,
+          state: profile.state,
+          country: profile.country,
+        },
       });
       if (error) {
         res.status(400).json({ ok: false, error: "registration_failed" });
