@@ -77,7 +77,9 @@ export function createSessionsRouter(
             { model: defaultModel, promptName: defaultPromptName, extendedThinking: defaultExtendedThinking });
           try {
             await sendTranscript(emailConfig, payload);
-            await markEmailSentPersisted(session, db, sessionId, "sessions");
+            if (emailConfig.apiKey && emailConfig.to) {
+              await markEmailSentPersisted(session, db, sessionId, "sessions");
+            }
           } catch (err) {
             console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err);
           }

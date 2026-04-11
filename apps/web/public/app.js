@@ -445,8 +445,10 @@
       }
 
     } catch (err) {
-      tutorEntry.bubbleEl.innerHTML =
-        `<span style="color:var(--danger)">Error: ${escHtml(err.message)}</span>`;
+      if (err.name !== 'AbortError') {
+        tutorEntry.bubbleEl.innerHTML =
+          `<span style="color:var(--danger)">Error: ${escHtml(err.message)}</span>`;
+      }
     } finally {
       isStreaming = false;
       setInputDisabled(false);

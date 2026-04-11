@@ -93,10 +93,12 @@ setInterval(() => {
       // Shared teardown: mark ended_at in DB and log. Called both from the async
       // eval/email path (in finally, after the evaluation row is written) and from
       // the no-email path (immediately, since there is no evaluation to wait for).
-      const finishReap = () => {
-        void markSessionEnded(db, sessionId).catch(err =>
-          console.error(`[sweep] Could not mark session ${sessionId} as ended:`, err)
-        );
+      const finishReap = async () => {
+        try {
+          await markSessionEnded(db, sessionId);
+        } catch (err) {
+          console.error(`[sweep] Could not mark session ${sessionId} as ended:`, err);
+        }
         console.log(`[sweep] Reaped idle session ${sessionId}.`);
       };
 
@@ -113,17 +115,19 @@ setInterval(() => {
               { model: config.model, promptName: defaultPromptName, extendedThinking: config.extendedThinking }
             );
             await sendTranscript(emailConfig, payload);
-            await markEmailSentPersisted(session, db, sessionId, "sweep");
+            if (emailConfig.apiKey && emailConfig.to) {
+              await markEmailSentPersisted(session, db, sessionId, "sweep");
+            }
           } catch (err) {
             console.error(`[sweep] Failed to process session ${sessionId}:`, err);
           } finally {
             // Mark ended_at only after evaluation and email have completed (or failed),
             // so session_evaluations is always written before ended_at is set.
-            finishReap();
+            await finishReap();
           }
         })();
       } else {
-        finishReap();
+        void finishReap();
       }
     }
   }
