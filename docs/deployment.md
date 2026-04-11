@@ -53,6 +53,7 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `ANTHROPIC_API_KEY` | **yes** | [console.anthropic.com](https://console.anthropic.com) → API Keys | **Yes** |
 | `SUPABASE_URL` | **yes** | Supabase dashboard → Settings → API → Project URL | No |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes** | Supabase dashboard → Settings → API → service_role key | **Yes** |
+| `SUPABASE_ANON_KEY` | no | Supabase dashboard → Settings → API → anon/public key. Required only if you want to enable the parallel Supabase-backed login flow at `/login.html` (issue #73). Omit to leave that route disabled — the main app's passcode access wall works either way. | **Yes** |
 | `RESEND_API_KEY` | no | Resend dashboard → API Keys | **Yes** |
 | `PARENT_EMAIL` | no | Your email address (where transcripts will be sent) | No |
 | `EMAIL_FROM` | no | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |

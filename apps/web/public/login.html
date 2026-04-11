@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sign in — Axiom AI Tutor</title>
+  <meta name="theme-color" content="#0f1117">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/login.css">
+</head>
+<body>
+  <main class="login-shell">
+    <div class="login-card">
+      <h1 class="login-title">Axiom AI Tutor</h1>
+      <p class="login-subtitle">Sign in or create an account</p>
+
+      <div class="login-tabs" role="tablist">
+        <button type="button" class="login-tab active" data-tab="login" role="tab" aria-selected="true">Sign in</button>
+        <button type="button" class="login-tab" data-tab="register" role="tab" aria-selected="false">Register</button>
+      </div>
+
+      <!-- ── Sign in panel ─────────────────────────────────────────────── -->
+      <form class="login-panel active" id="login-panel" autocomplete="on">
+        <label class="login-field">
+          <span class="login-label">Email</span>
+          <input type="email" id="login-email" class="login-input" autocomplete="email" required>
+        </label>
+        <label class="login-field">
+          <span class="login-label">Password</span>
+          <input type="password" id="login-password" class="login-input" autocomplete="current-password" required minlength="8">
+        </label>
+        <button type="submit" class="login-btn login-btn-primary" id="btn-login">Sign in</button>
+      </form>
+
+      <!-- ── Register panel ────────────────────────────────────────────── -->
+      <form class="login-panel" id="register-panel" autocomplete="on">
+        <label class="login-field">
+          <span class="login-label">Email</span>
+          <input type="email" id="register-email" class="login-input" autocomplete="email" required>
+        </label>
+        <label class="login-field">
+          <span class="login-label">Password</span>
+          <input type="password" id="register-password" class="login-input" autocomplete="new-password" required minlength="8">
+          <span class="login-hint">At least 8 characters.</span>
+        </label>
+        <label class="login-checkbox-row">
+          <input type="checkbox" id="register-terms">
+          <span class="login-checkbox-label">I understand this is an early prototype. AI can make mistakes — always verify important information with a teacher or trusted source.</span>
+        </label>
+        <button type="submit" class="login-btn login-btn-primary" id="btn-register">Create account</button>
+      </form>
+
+      <p class="login-error" id="login-error" style="display:none"></p>
+      <p class="login-contact-note" id="login-contact-note"></p>
+
+      <!-- ── Post-login status ─────────────────────────────────────────── -->
+      <div class="login-status" id="login-status" style="display:none">
+        <p class="login-status-main" id="login-status-main"></p>
+        <p class="login-status-note">
+          The main app still requires the passcode. Signing in here does not
+          grant access to <code>/</code>.
+        </p>
+        <div class="login-status-actions">
+          <button type="button" class="login-btn" id="btn-test-me">Test GET /api/auth/me</button>
+          <button type="button" class="login-btn" id="btn-logout">Sign out</button>
+        </div>
+        <pre class="login-status-output" id="login-status-output"></pre>
+      </div>
+    </div>
+  </main>
+  <script src="/login.js"></script>
+</body>
+</html>

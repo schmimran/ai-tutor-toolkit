@@ -142,6 +142,7 @@ Managed via `supabase/migrations/000_schema.sql`.  No RLS.  All queries run serv
 | model | text | null | Claude model ID used for this session (e.g. "claude-sonnet-4-6"). Set on first message. |
 | prompt_name | text | null | Tutor prompt filename stem used for this session (e.g. "tutor-prompt-v7"). Set on first message. |
 | extended_thinking | boolean | true | Whether extended thinking was enabled for this session. Set on first message; user-controllable via the header thinking badge. |
+| user_id | uuid | null | FK → auth.users(id) ON DELETE SET NULL. Populated only for sessions initiated via the parallel `/login.html` Supabase auth flow (issue #73). Null for sessions that came through the existing passcode access wall. Partial index `sessions_user_id` on non-null values. |
 
 ### messages
 
@@ -391,6 +392,20 @@ Returns `{ ok: false }` if the passcode is wrong or if `ACCESS_PASSCODE` is not 
 
 ---
 
+### POST /api/auth/register, POST /api/auth/login, POST /api/auth/refresh, POST /api/auth/logout, GET /api/auth/me
+
+Parallel Supabase-backed individual-user login flow (issue #73). **These endpoints are only registered if `SUPABASE_ANON_KEY` is set.** They do NOT gate `/api/chat`, `/api/sessions`, `/api/transcript`, or `/api/feedback` — those still run on the existing passcode access wall. The new flow is reachable only by typing `/login.html` directly; it is a smoke-test / manual-verification surface.
+
+- `POST /api/auth/register` — body `{ email, password }`. Server-side validation (valid email, password ≥ 8). Calls `db.auth.admin.createUser({ email, password, email_confirm: false })`. Returns `{ ok: true }` on success.
+- `POST /api/auth/login` — body `{ email, password }`. Calls `anonDb.auth.signInWithPassword(...)`. Returns `{ ok: true, accessToken, refreshToken, expiresAt }` on success. On failure, always returns the same opaque `invalid_credentials` error (no distinction between wrong password and unconfirmed email).
+- `POST /api/auth/refresh` — body `{ refreshToken }`. Calls `anonDb.auth.refreshSession(...)`. Returns `{ ok, accessToken?, refreshToken?, expiresAt? }`.
+- `POST /api/auth/logout` — requires `Authorization: Bearer <accessToken>`. Calls `db.auth.admin.signOut(userId)` (service-role admin API). Returns `{ ok: true }`.
+- `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId }`. This is the smoke-test endpoint used by `/login.html`.
+
+JWT verification is handled by `createRequireAuth()` (in `apps/api/src/middleware/require-auth.ts`), which reads the bearer token and calls `db.auth.getUser(token)`. There is no `SUPABASE_JWT_SECRET` — Supabase's own verification API is used.
+
+---
+
 ## Config/secrets management
 
 All configuration comes from environment variables.  No `.env` files are committed.  No secrets are read by client-side code.
@@ -411,6 +426,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | ACCESS_PASSCODE | **yes (API)** | — | api | 5-digit numeric passcode for the access wall; fails closed if unset |
 | CONTACT_EMAIL | no | wax.spirits8d@icloud.com | api | Contact email shown in access-wall overlay and returned by GET /api/config |
 | ALLOW_PROMPT_SELECTION | no | — (locked) | api | Set `"true"` to allow users to switch prompt versions via the header badge; omitting locks the picker (fail-closed). Surfaced as `promptSelectionEnabled` in `GET /api/config`. |
+| SUPABASE_ANON_KEY | no | — | db, api | Supabase anon/public key. Enables the parallel Supabase-backed login flow at `/login.html` and the `/api/auth/*` endpoints (issue #73). Still held server-side only — never exposed via `/api/config`. When unset, the auth router is not registered and the app boots with only the existing passcode access wall. |
 
 Both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are required for the API server.  If either is absent, the server will not start.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
 
@@ -465,6 +481,7 @@ These apply to every Claude Code session in this repo.
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
 | `supabase/migrations/000_schema.sql` | Consolidated database schema (sessions, messages, session_feedback, session_evaluations, disclaimer_acceptances) |
 | `supabase/migrations/001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` column to the sessions table |
+| `supabase/migrations/002_users.sql` | Adds nullable `user_id uuid` column to sessions referencing `auth.users(id) ON DELETE SET NULL`, with partial index `sessions_user_id`. Backs the parallel Supabase-auth login flow (issue #73). |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |
@@ -498,6 +515,8 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row |
 | `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records access-wall acceptance with IP/geo/user-agent/email |
 | `apps/api/src/routes/access.ts` | `POST /api/access/verify` — server-side passcode validation against ACCESS_PASSCODE env var |
+| `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — POST `/register`, `/login`, `/refresh`, `/logout` and GET `/me` for the parallel Supabase-auth login flow (issue #73). Registered only if `SUPABASE_ANON_KEY` is set. Does not gate the main app. |
+| `apps/api/src/middleware/require-auth.ts` | `createRequireAuth(db)` — middleware that verifies `Authorization: Bearer <token>` via `db.auth.getUser(token)` and sets `req.userId`. Used by the `/api/auth/me` and `/api/auth/logout` routes. |
 | `apps/api/scripts/gen-build-info.js` | Generates `build-info.json` (commit SHA + timestamp) at build time; called by the API `build` script |
 | `apps/api/build-info.json` | Generated build metadata (gitignored); read at startup by the config route |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
@@ -513,6 +532,9 @@ These apply to every Claude Code session in this repo.
 | `apps/web/public/app.js` | Chat application logic; exposes `sessionUploads` global for gallery.js |
 | `apps/web/public/gallery.css` | Gallery pane styles, thumbnail strip, img-ref pills, mobile drawer |
 | `apps/web/public/gallery.js` | Gallery pane logic; exposes `openGallery`, `closeGallery`, `focusUpload`, `addToGallery`, `resetGallery` globals |
+| `apps/web/public/login.html` | Standalone login/register page for the parallel Supabase auth flow (issue #73). Reachable only by typing the URL directly. Does NOT gate the main app at `/`. |
+| `apps/web/public/login.css` | Styles for `login.html`. Self-contained dark theme mirroring `styles.css` palette. |
+| `apps/web/public/login.js` | Client logic for the login page: tabbed login/register forms, `/api/auth/*` calls, `sessionStorage` under key `authSession`, and a smoke-test button that hits `GET /api/auth/me`. |
 | `apps/web/public/maintenance.html` | Static maintenance page; served manually when the app is down for planned maintenance |
 | `apps/web/public/manifest.json` | PWA web app manifest — standalone display, theme colors, icon references |
 | `apps/web/public/icons/` | PWA app icons (192×192 and 512×512 PNGs) for home-screen and manifest |

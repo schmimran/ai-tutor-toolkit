@@ -1,4 +1,4 @@
-export { createSupabaseClient } from "./client.js";
+export { createSupabaseClient, createSupabaseAnonClient } from "./client.js";
 
 export { createSession, getSession, updateSession, markSessionEnded } from "./sessions.js";
 
