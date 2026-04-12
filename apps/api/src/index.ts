@@ -21,6 +21,7 @@ import { createFeedbackRouter } from "./routes/feedback.js";
 import { createConfigRouter } from "./routes/config.js";
 import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { createAuthRouter } from "./routes/auth.js";
+import { createHistoryRouter } from "./routes/history.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
@@ -99,6 +100,7 @@ app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defa
 app.use("/api/disclaimer", createDisclaimerRouter(db));
 if (anonDb) {
   app.use("/api/auth", createAuthRouter(db, anonDb));
+  app.use("/api/history", createHistoryRouter(db));
 }
 
 app.use(errorHandler);

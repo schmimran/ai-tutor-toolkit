@@ -69,6 +69,26 @@ export async function getUserEmailForSession(
 }
 
 /**
+ * Return ended sessions belonging to a specific user, most recent first.
+ * Used by the history page to list past tutoring sessions.
+ */
+export async function getSessionsByUser(
+  client: SupabaseClient,
+  userId: string,
+): Promise<DbSession[]> {
+  const { data, error } = await client
+    .from("sessions")
+    .select()
+    .eq("user_id", userId)
+    .not("ended_at", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw new Error(`getSessionsByUser: ${error.message}`);
+  return data ?? [];
+}
+
+/**
  * Mark a session as ended by setting ended_at to now.
  * Session data (messages, feedback) is retained for analysis.
  */
