@@ -167,7 +167,7 @@
   // ── Admin badge visibility + user identity ───────────────────────────────
   async function fetchUserInfo() {
     try {
-      const authRaw = sessionStorage.getItem('authSession');
+      const authRaw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
       if (!authRaw) return;
       const auth = JSON.parse(authRaw);
       if (!auth || !auth.accessToken) return;
@@ -197,7 +197,7 @@
 
   async function handleLogout() {
     try {
-      const authRaw = sessionStorage.getItem('authSession');
+      const authRaw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
       if (authRaw) {
         const auth = JSON.parse(authRaw);
         if (auth && auth.accessToken) {
@@ -211,6 +211,7 @@
       // Proceed regardless of API result (fail-open).
     }
     sessionStorage.removeItem('authSession');
+    localStorage.removeItem('authSession');
     window.location.href = '/login.html';
   }
 
@@ -439,7 +440,7 @@
       activeAbortController = new AbortController();
       const fetchOpts = { method: 'POST', body: fd, signal: activeAbortController.signal, headers: {} };
       try {
-        const authRaw = sessionStorage.getItem('authSession');
+        const authRaw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
         if (authRaw) {
           const auth = JSON.parse(authRaw);
           if (auth && auth.accessToken) {
@@ -1078,13 +1079,14 @@
   // synchronously before any UI renders.
   (function () {
     try {
-      var raw = sessionStorage.getItem('authSession');
+      var raw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
       if (!raw) { window.location.href = '/login.html'; return; }
       var auth = JSON.parse(raw);
       if (!auth || !auth.accessToken) { window.location.href = '/login.html'; return; }
       // Check token expiry (Supabase expiresAt is in Unix seconds)
       if (auth.expiresAt && Date.now() / 1000 > auth.expiresAt) {
         sessionStorage.removeItem('authSession');
+        localStorage.removeItem('authSession');
         window.location.href = '/login.html';
         return;
       }
@@ -1095,10 +1097,15 @@
   var refreshTimer = null;
   var REFRESH_LEAD_MS = 2 * 60 * 1000; // 2 minutes before expiry
 
+  /** Return whichever storage currently holds the auth session (sessionStorage wins). */
+  function authStorage() {
+    return sessionStorage.getItem('authSession') ? sessionStorage : localStorage;
+  }
+
   function scheduleTokenRefresh() {
     if (refreshTimer) clearTimeout(refreshTimer);
     try {
-      var raw = sessionStorage.getItem('authSession');
+      var raw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
       if (!raw) return;
       var auth = JSON.parse(raw);
       if (!auth || !auth.refreshToken || !auth.expiresAt) return;
@@ -1109,7 +1116,8 @@
   }
 
   function doTokenRefresh() {
-    var raw = sessionStorage.getItem('authSession');
+    var store = authStorage();
+    var raw = store.getItem('authSession');
     if (!raw) return;
     var auth;
     try { auth = JSON.parse(raw); } catch (e) { return; }
@@ -1123,7 +1131,7 @@
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (res.ok && res.accessToken) {
-          sessionStorage.setItem('authSession', JSON.stringify({
+          store.setItem('authSession', JSON.stringify({
             accessToken: res.accessToken,
             refreshToken: res.refreshToken,
             expiresAt: res.expiresAt,
@@ -1132,6 +1140,7 @@
         } else {
           // Refresh token also expired — force re-login
           sessionStorage.removeItem('authSession');
+          localStorage.removeItem('authSession');
           window.location.href = '/login.html?reason=session_expired';
         }
       })
