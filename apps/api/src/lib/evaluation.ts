@@ -1,7 +1,8 @@
 import { evaluateTranscript } from "@ai-tutor/core";
 import type { EvaluationResult, Session } from "@ai-tutor/core";
 import type { TranscriptEmailPayload } from "@ai-tutor/email";
-import { upsertSessionEvaluation, updateSession, getSessionFeedback, createSessionFeedback } from "@ai-tutor/db";
+import { sendUserTranscript } from "@ai-tutor/email";
+import { upsertSessionEvaluation, updateSession, getSessionFeedback, createSessionFeedback, getUserEmailForSession } from "@ai-tutor/db";
 import type { DbSessionFeedback } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -140,4 +141,31 @@ export async function markEmailSentPersisted(
   await updateSession(db, sessionId, { email_sent: true }).catch(err =>
     console.error(`[${logPrefix}] Could not persist email_sent for ${sessionId}:`, err)
   );
+}
+
+/**
+ * Send a student-facing transcript email if the session belongs to a
+ * registered user.  Fire-and-forget — never throws.
+ */
+export async function sendUserTranscriptIfApplicable(
+  sessionId: string,
+  transcript: Array<{ role: string; text: string }>,
+  startedAt: Date,
+  durationMs: number,
+  emailFrom: string,
+  db: SupabaseClient,
+): Promise<void> {
+  try {
+    const email = await getUserEmailForSession(db, sessionId);
+    if (!email) return;
+
+    const apiKey = process.env.RESEND_API_KEY;
+    await sendUserTranscript(email, { apiKey, from: emailFrom }, {
+      transcript: transcript as Array<{ role: "Student" | "Tutor"; text: string }>,
+      startedAt,
+      durationMs,
+    });
+  } catch (err) {
+    console.error(`[email] Failed to send user transcript for ${sessionId}:`, err);
+  }
 }

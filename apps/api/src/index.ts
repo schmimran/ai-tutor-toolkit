@@ -23,7 +23,7 @@ import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback } from "./lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -137,6 +137,12 @@ setInterval(() => {
             if (emailConfig.apiKey && emailConfig.to) {
               await markEmailSentPersisted(session, db, sessionId, "sweep");
             }
+            // Send a student-facing copy (fire-and-forget).
+            const summary = session.getSessionSummary();
+            void sendUserTranscriptIfApplicable(
+              sessionId, summary.transcript, summary.startedAt, summary.durationMs,
+              emailConfig.from, db,
+            );
           } catch (err) {
             console.error(`[sweep] Failed to process session ${sessionId}:`, err);
           } finally {

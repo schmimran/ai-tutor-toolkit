@@ -48,6 +48,27 @@ export async function updateSession(
 }
 
 /**
+ * Look up the email address of the authenticated user who owns a session.
+ * Returns null if the session has no user_id or if any lookup fails.
+ */
+export async function getUserEmailForSession(
+  client: SupabaseClient,
+  sessionId: string,
+): Promise<string | null> {
+  try {
+    const session = await getSession(client, sessionId);
+    if (!session?.user_id) return null;
+
+    const { data, error } = await client.auth.admin.getUserById(session.user_id);
+    if (error || !data?.user?.email) return null;
+
+    return data.user.email;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Mark a session as ended by setting ended_at to now.
  * Session data (messages, feedback) is retained for analysis.
  */
