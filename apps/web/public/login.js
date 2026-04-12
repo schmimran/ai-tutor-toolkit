@@ -25,16 +25,25 @@
   function loadAuth() {
     try {
       var raw = sessionStorage.getItem(AUTH_KEY);
+      if (raw) return JSON.parse(raw);
+      raw = localStorage.getItem(AUTH_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (e) { return null; }
   }
 
-  function saveAuth(obj) {
-    sessionStorage.setItem(AUTH_KEY, JSON.stringify(obj));
+  /** Detect which storage holds the current session (sessionStorage wins). */
+  function authStorage() {
+    return sessionStorage.getItem(AUTH_KEY) ? sessionStorage : localStorage;
+  }
+
+  function saveAuth(obj, persistent) {
+    var store = persistent ? localStorage : sessionStorage;
+    store.setItem(AUTH_KEY, JSON.stringify(obj));
   }
 
   function clearAuth() {
     sessionStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(AUTH_KEY);
   }
 
   function isAuthValid(auth) {
@@ -251,13 +260,14 @@
         if (res.status === 429) {
           setError('Too many attempts \u2014 please wait a few minutes and try again.');
         } else if (res.status >= 200 && res.status < 300 && res.body.ok) {
+          var remember = $('login-remember').checked;
           var auth = {
             email: email,
             accessToken: res.body.accessToken,
             refreshToken: res.body.refreshToken,
             expiresAt: res.body.expiresAt,
           };
-          saveAuth(auth);
+          saveAuth(auth, remember);
           window.location.href = '/';
           return;
         } else if (res.body && res.body.error === 'email_not_confirmed') {
