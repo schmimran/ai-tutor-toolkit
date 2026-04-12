@@ -1,8 +1,8 @@
-/* login.js — logic for the parallel /login.html entry point (issue #73).
+/* login.js — logic for the /login.html entry point.
  *
- * IMPORTANT: this page does NOT gate the main app at /. The main app
- * continues to use the existing passcode access wall. Signing in here is a
- * smoke test for the new Supabase-backed auth flow.
+ * This page gates the main app at /. Users must sign in or register here
+ * before accessing the chat. After a successful login, the browser is
+ * redirected to / with the auth session stored in sessionStorage.
  */
 
 (function () {
@@ -22,11 +22,6 @@
   function setError(msg) { setMessage('login-error', msg); }
   function setSuccess(msg) { setMessage('login-success', msg); }
 
-  function setOutput(obj) {
-    var el = $('login-status-output');
-    el.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
-  }
-
   function loadAuth() {
     try {
       var raw = sessionStorage.getItem(AUTH_KEY);
@@ -42,14 +37,10 @@
     sessionStorage.removeItem(AUTH_KEY);
   }
 
-  function showStatus(auth) {
-    var status = $('login-status');
-    if (!auth) {
-      status.style.display = 'none';
-      return;
-    }
-    status.style.display = '';
-    $('login-status-main').textContent = 'Signed in as ' + (auth.email || '(unknown email)') + '.';
+  function isAuthValid(auth) {
+    if (!auth || !auth.accessToken) return false;
+    if (auth.expiresAt && Date.now() / 1000 > auth.expiresAt) return false;
+    return true;
   }
 
   /* ── Tabs ──────────────────────────────────────────────────────────── */
@@ -203,8 +194,8 @@
             expiresAt: res.body.expiresAt,
           };
           saveAuth(auth);
-          showStatus(auth);
-          setOutput('Login successful. Tokens stored in sessionStorage.');
+          window.location.href = '/';
+          return;
         } else if (res.body && res.body.error === 'email_not_confirmed') {
           setError('Please verify your email first.');
           setResendVisible(true);
@@ -238,45 +229,12 @@
       });
   });
 
-  /* ── Test /api/auth/me ─────────────────────────────────────────────── */
-  $('btn-test-me').addEventListener('click', function () {
-    var auth = loadAuth();
-    if (!auth || !auth.accessToken) {
-      setOutput('No access token stored. Sign in first.');
-      return;
-    }
-    fetch('/api/auth/me', {
-      headers: { 'Authorization': 'Bearer ' + auth.accessToken },
-    }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
-      .then(function (res) { setOutput({ status: res.status, body: res.body }); })
-      .catch(function (err) { setOutput('Network error: ' + err.message); });
-  });
-
-  /* ── Logout ────────────────────────────────────────────────────────── */
-  $('btn-logout').addEventListener('click', function () {
-    var auth = loadAuth();
-    if (!auth || !auth.accessToken) {
-      clearAuth();
-      showStatus(null);
-      setOutput('Cleared local session.');
-      return;
-    }
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + auth.accessToken },
-    }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
-      .then(function (res) {
-        clearAuth();
-        showStatus(null);
-        setOutput({ status: res.status, body: res.body });
-      }).catch(function (err) {
-        clearAuth();
-        showStatus(null);
-        setOutput('Network error during logout: ' + err.message);
-      });
-  });
-
-  /* ── Restore on load ───────────────────────────────────────────────── */
+  /* ── Redirect if already authenticated ───────────────────────────────── */
   var existing = loadAuth();
-  if (existing) showStatus(existing);
+  if (isAuthValid(existing)) {
+    window.location.href = '/';
+    return;
+  }
+  // Expired or malformed — clear stale data
+  if (existing) clearAuth();
 })();

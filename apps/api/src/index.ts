@@ -20,7 +20,6 @@ import { createTranscriptRouter } from "./routes/transcript.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createConfigRouter } from "./routes/config.js";
 import { createDisclaimerRouter } from "./routes/disclaimer.js";
-import { createAccessRouter } from "./routes/access.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
@@ -31,10 +30,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
 const db = createSupabaseClient();
 
-// Optional Supabase anon client — only needed for the new /api/auth/* routes
-// that back the /login.html entry point (issue #73). If SUPABASE_ANON_KEY is
-// unset, the auth router is not registered and the existing passcode flow
-// continues to work untouched.
+// Optional Supabase anon client — needed for the /api/auth/* routes that back
+// the /login.html entry point. If SUPABASE_ANON_KEY is unset, the auth router
+// is not registered and the app will be inaccessible (login page cannot
+// authenticate).
 let anonDb: ReturnType<typeof createSupabaseAnonClient> | null = null;
 if (process.env.SUPABASE_ANON_KEY) {
   try {
@@ -97,8 +96,6 @@ app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
 app.use("/api/disclaimer", createDisclaimerRouter(db));
-app.use("/api/access", createAccessRouter());
-
 if (anonDb) {
   app.use("/api/auth", createAuthRouter(db, anonDb));
 }

@@ -53,12 +53,11 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `ANTHROPIC_API_KEY` | **yes** | [console.anthropic.com](https://console.anthropic.com) → API Keys | **Yes** |
 | `SUPABASE_URL` | **yes** | Supabase dashboard → Settings → API → Project URL | No |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes** | Supabase dashboard → Settings → API → service_role key | **Yes** |
-| `SUPABASE_ANON_KEY` | no | Supabase dashboard → Settings → API → anon/public key. Required only if you want to enable the parallel Supabase-backed login flow at `/login.html` (issue #73). Omit to leave that route disabled — the main app's passcode access wall works either way. | **Yes** |
+| `SUPABASE_ANON_KEY` | **yes** | Supabase dashboard → Settings → API → anon/public key. Required for the Supabase auth flow that gates the app at `/login.html`. If unset, the auth router is not registered and users cannot log in. | **Yes** |
 | `RESEND_API_KEY` | no | Resend dashboard → API Keys | **Yes** |
 | `PARENT_EMAIL` | no | Your email address (where transcripts will be sent) | No |
 | `EMAIL_FROM` | no | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |
-| `ACCESS_PASSCODE` | **yes** | A 5-digit code you choose; share with your student | **Yes** |
-| `CONTACT_EMAIL` | no | Contact email shown in the access-wall overlay | No |
+| `CONTACT_EMAIL` | no | Contact email shown on the login page and returned by GET /api/config | No |
 | `MODEL` | no | Default: `claude-sonnet-4-6` | No |
 | `EXTENDED_THINKING` | no | Default: `true`; set `false` to disable | No |
 | `SYSTEM_PROMPT_PATH` | no | Default: `templates/tutor-prompt-v7.md` | No |
@@ -136,8 +135,8 @@ export ANTHROPIC_API_KEY=sk-ant-...
 export SUPABASE_URL=https://your-project-ref.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-# Required — 5-digit passcode for the access wall; share with your student
-export ACCESS_PASSCODE=12345
+# Required — enables the /api/auth/* login flow
+export SUPABASE_ANON_KEY=eyJ...
 
 # Optional — emails are silently skipped if absent
 export RESEND_API_KEY=re_...
@@ -220,14 +219,9 @@ Understanding how a tutoring session moves through the system:
 
 ### API server won't start
 
-- **Missing env vars:** The server requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANTHROPIC_API_KEY`.  It also requires `ACCESS_PASSCODE` (fails closed if unset).  Check that all four are exported in your shell.
+- **Missing env vars:** The server requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, and `ANTHROPIC_API_KEY`.  Check that all four are exported in your shell.  If `SUPABASE_ANON_KEY` is missing, the auth router will not register and users will be unable to log in.
 - **Port in use:** Another process is on port 3000.  Either stop it or set `export PORT=3001`.
 - **Build not run:** TypeScript must be compiled before starting.  Run `npm run build` first, then `npm run api`.
-
-### Can't get past the access wall
-
-- **Wrong passcode:** Verify `ACCESS_PASSCODE` matches what you're entering.  It must be exactly 5 digits.
-- **Not set:** If `ACCESS_PASSCODE` is not exported, the access wall rejects all codes (fails closed by design).
 
 ### Email transcripts not arriving
 
