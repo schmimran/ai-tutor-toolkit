@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createProfile, getProfile } from "@ai-tutor/db";
+import { createProfile, getProfile, updateProfile } from "@ai-tutor/db";
 import rateLimit from "express-rate-limit";
 import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
 
@@ -394,6 +394,119 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
     } catch (err) {
       console.error("[auth] getProfile failed for /me:", err);
       res.json({ ok: true, userId, isAdmin: false, email: userEmail, name: userName ?? null });
+    }
+  });
+
+  /**
+   * GET /api/auth/settings
+   *
+   * Returns the authenticated user's profile settings for the settings page.
+   * Reads from both auth.users (name, email, birthdate, gradeLevel) and the
+   * profiles table (emailTranscriptsEnabled). Handles missing profile rows
+   * gracefully by defaulting emailTranscriptsEnabled to true.
+   */
+  router.get("/settings", requireAuth, async (req, res) => {
+    const authed = req as AuthedRequest;
+    const { userId } = authed;
+    try {
+      const [profileResult, userResult] = await Promise.all([
+        getProfile(db, userId),
+        db.auth.admin.getUserById(userId),
+      ]);
+      const meta = userResult.data?.user?.user_metadata ?? {};
+      const email = userResult.data?.user?.email ?? authed.userEmail;
+      res.json({
+        ok: true,
+        name: (meta.name as string | undefined) ?? null,
+        email,
+        birthdate: (meta.birthdate as string | undefined) ?? null,
+        gradeLevel: (meta.grade_level as string | undefined) ?? null,
+        emailTranscriptsEnabled: profileResult?.emailTranscriptsEnabled ?? true,
+      });
+    } catch (err) {
+      console.error("[auth] GET /settings error:", err);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
+  /**
+   * POST /api/auth/settings
+   *
+   * Updates mutable profile settings. Accepts `gradeLevel` (updates
+   * user_metadata on auth.users) and `emailTranscriptsEnabled` (updates
+   * profiles table). Uses selective merge for user_metadata to avoid wiping
+   * other fields.
+   */
+  router.post("/settings", requireAuth, async (req, res) => {
+    const authed = req as AuthedRequest;
+    const { userId } = authed;
+    const body = req.body as {
+      gradeLevel?: unknown;
+      emailTranscriptsEnabled?: unknown;
+    } | undefined;
+
+    try {
+      // Update gradeLevel in auth.users user_metadata if provided.
+      if (body?.gradeLevel !== undefined) {
+        const grade = body.gradeLevel;
+        if (typeof grade !== "string" || !ALLOWED_GRADES.has(grade)) {
+          res.status(400).json({ ok: false, error: "invalid_grade" });
+          return;
+        }
+        // Get current metadata first, then merge selectively.
+        const { data: { user } } = await db.auth.admin.getUserById(userId);
+        const currentMeta = user?.user_metadata ?? {};
+        await db.auth.admin.updateUserById(userId, {
+          user_metadata: { ...currentMeta, grade_level: grade },
+        });
+      }
+
+      // Update emailTranscriptsEnabled in profiles table if provided.
+      if (body?.emailTranscriptsEnabled !== undefined) {
+        const enabled = body.emailTranscriptsEnabled;
+        if (typeof enabled !== "boolean") {
+          res.status(400).json({ ok: false, error: "invalid_request" });
+          return;
+        }
+        await updateProfile(db, userId, { emailTranscriptsEnabled: enabled });
+      }
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[auth] POST /settings error:", err);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
+  /**
+   * POST /api/auth/change-email
+   *
+   * Updates the authenticated user's email address via the admin API.
+   * Body: `{ newEmail: string }`.
+   *
+   * // NOTE: verify resend behavior with Supabase email_change type in production
+   */
+  router.post("/change-email", resendLimiter, requireAuth, async (req, res) => {
+    const authed = req as AuthedRequest;
+    const { userId } = authed;
+    const body = req.body as { newEmail?: unknown } | undefined;
+    const newEmail = body?.newEmail;
+    if (typeof newEmail !== "string" || !EMAIL_RE.test(newEmail)) {
+      res.status(400).json({ ok: false, error: "invalid_email" });
+      return;
+    }
+
+    try {
+      const { error } = await db.auth.admin.updateUserById(userId, { email: newEmail });
+      if (error) {
+        console.error("[auth] change-email updateUserById failed:", error);
+        res.status(500).json({ ok: false, error: "server_error" });
+        return;
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[auth] change-email unexpected error:", err);
+      res.status(500).json({ ok: false, error: "server_error" });
     }
   });
 
