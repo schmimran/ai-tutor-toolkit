@@ -164,6 +164,26 @@ export function createChatRouter(
             session.extendedThinking = defaultExtendedThinking;
           }
 
+          // Resolve user_id from Bearer token (best-effort; never 401 on this route).
+          let userId: string | null = null;
+          try {
+            const authHeader = req.headers.authorization;
+            if (authHeader && typeof authHeader === "string") {
+              const match = authHeader.match(/^Bearer\s+(.+)$/i);
+              if (match) {
+                const token = match[1].trim();
+                if (token) {
+                  const { data, error } = await db.auth.getUser(token);
+                  if (!error && data?.user?.id) {
+                    userId = data.user.id;
+                  }
+                }
+              }
+            }
+          } catch {
+            // Swallow — user_id is optional.
+          }
+
           // Upsert the session row in the database.
           try {
             await createSession(db, {
@@ -175,6 +195,7 @@ export function createChatRouter(
               model: session.model,
               prompt_name: session.promptName,
               extended_thinking: session.extendedThinking,
+              user_id: userId,
             });
             // Backfill session_id on any disclaimer acceptance rows recorded
             // before this session row existed.
