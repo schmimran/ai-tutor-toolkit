@@ -223,6 +223,33 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
   });
 
   /**
+   * POST /api/auth/forgot-password
+   *
+   * Sends a Supabase password-reset email. Always returns `{ ok: true }`
+   * regardless of whether the email exists (anti-enumeration). Derives the
+   * redirect URL from the request Origin header.
+   */
+  router.post("/forgot-password", async (req, res) => {
+    const body = req.body as { email?: unknown } | undefined;
+    const email = body?.email;
+    if (typeof email !== "string" || !EMAIL_RE.test(email)) {
+      res.json({ ok: true });
+      return;
+    }
+    const origin =
+      (req.headers.origin as string | undefined) ??
+      `https://${req.headers.host ?? "localhost"}`;
+    anonDb.auth
+      .resetPasswordForEmail(email, {
+        redirectTo: `${origin}/login.html`,
+      })
+      .catch((err: unknown) => {
+        console.error("[auth] forgot-password resetPasswordForEmail failed:", err);
+      });
+    res.json({ ok: true });
+  });
+
+  /**
    * POST /api/auth/refresh
    *
    * Exchanges a refresh token for a new access token pair via the anon

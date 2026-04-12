@@ -33,7 +33,19 @@
         </label>
         <button type="submit" class="login-btn login-btn-primary" id="btn-login">Sign in</button>
         <button type="button" class="login-btn" id="btn-resend-verification" style="display:none">Resend verification email</button>
+        <button type="button" class="login-forgot-link" id="btn-show-forgot">Forgot password?</button>
       </form>
+
+      <!-- ── Forgot password panel ─────────────────────────────────────── -->
+      <div class="login-panel" id="forgot-panel">
+        <button type="button" class="login-forgot-link" id="btn-back-to-login">&larr; Back to sign in</button>
+        <p class="login-label" style="margin:0">Enter your email and we'll send you a reset link.</p>
+        <label class="login-field">
+          <span class="login-label">Email</span>
+          <input type="email" id="forgot-email" class="login-input" autocomplete="email" required>
+        </label>
+        <button type="button" class="login-btn login-btn-primary" id="btn-forgot">Send reset link</button>
+      </div>
 
       <!-- ── Register panel ────────────────────────────────────────────── -->
       <form class="login-panel" id="register-panel" autocomplete="on">

@@ -372,13 +372,14 @@ Always returns `200 { ok: true }` — DB errors are caught and logged server-sid
 
 ---
 
-### POST /api/auth/register, POST /api/auth/login, POST /api/auth/resend-verification, POST /api/auth/refresh, POST /api/auth/logout, GET /api/auth/me
+### POST /api/auth/register, POST /api/auth/login, POST /api/auth/resend-verification, POST /api/auth/forgot-password, POST /api/auth/refresh, POST /api/auth/logout, GET /api/auth/me
 
 Supabase-backed individual-user login flow. **These endpoints are only registered if `SUPABASE_ANON_KEY` is set.** They do not gate `/api/chat`, `/api/sessions`, `/api/transcript`, or `/api/feedback` — the auth gate is enforced client-side via a JWT check in `app.js` that redirects unauthenticated users to `/login.html`.
 
 - `POST /api/auth/register` — body `{ email, password, name, birthdate, gradeLevel, state?, country? }`. Server-side validation (valid email, password ≥ 8, age ≥ 13, valid grade level). Calls `db.auth.admin.createUser({ email, password, email_confirm: false, user_metadata: {...} })`, then immediately sends the Supabase signup verification email via `anonDb.auth.resend({ type: "signup", email })`. Returns `{ ok: true }` on success, `{ ok: false, error: "underage" }` if age < 13, or `{ ok: false, error: "registration_failed" }` for other errors.
 - `POST /api/auth/login` — body `{ email, password }`. Calls `anonDb.auth.signInWithPassword(...)`. Returns `{ ok: true, accessToken, refreshToken, expiresAt }` on success. On failure, returns `{ ok: false, error: "email_not_confirmed" }` (HTTP 401) when the account is unconfirmed so the client can show a "Resend verification" affordance. All other failures return the opaque `{ ok: false, error: "invalid_credentials" }`.
 - `POST /api/auth/resend-verification` — body `{ email }`. Re-sends the Supabase signup confirmation email via `anonDb.auth.resend({ type: "signup", email })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). Errors logged server-side only.
+- `POST /api/auth/forgot-password` — body `{ email }`. Sends a Supabase password-reset email via `anonDb.auth.resetPasswordForEmail(email, { redirectTo })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). The `redirectTo` URL is derived from `req.headers.origin` (or `req.headers.host`). No new env vars required. Errors logged server-side only.
 - `POST /api/auth/refresh` — body `{ refreshToken }`. Calls `anonDb.auth.refreshSession(...)`. Returns `{ ok, accessToken?, refreshToken?, expiresAt? }`.
 - `POST /api/auth/logout` — requires `Authorization: Bearer <accessToken>`. Calls `db.auth.admin.signOut(userId)` (service-role admin API). Returns `{ ok: true }`.
 - `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId }`.
@@ -513,7 +514,7 @@ These apply to every Claude Code session in this repo.
 | `apps/web/public/gallery.js` | Gallery pane logic; exposes `openGallery`, `closeGallery`, `focusUpload`, `addToGallery`, `resetGallery` globals |
 | `apps/web/public/login.html` | Login/register page for the Supabase auth flow. Unauthenticated users are redirected here from `/`. |
 | `apps/web/public/login.css` | Styles for `login.html`. Self-contained dark theme mirroring `styles.css` palette. |
-| `apps/web/public/login.js` | Client logic for the login page: tabbed login/register forms, `/api/auth/*` calls, `sessionStorage` under key `authSession`. Redirects to `/` on successful login; redirects immediately if a valid session already exists. |
+| `apps/web/public/login.js` | Client logic for the login page: tabbed login/register forms, forgot-password panel, `/api/auth/*` calls, `sessionStorage` under key `authSession`. Handles Supabase hash callbacks (`type=signup`, `type=recovery`) on page load. Redirects to `/` on successful login; redirects immediately if a valid session already exists. |
 | `apps/web/public/maintenance.html` | Static maintenance page; served manually when the app is down for planned maintenance |
 | `apps/web/public/manifest.json` | PWA web app manifest — standalone display, theme colors, icon references |
 | `apps/web/public/icons/` | PWA app icons (192×192 and 512×512 PNGs) for home-screen and manifest |
