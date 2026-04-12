@@ -245,3 +245,67 @@ html, body {
 .login-status-output:empty {
   display: none;
 }
+
+/* ── Post-registration "check your email" overlay ───────────────── */
+.verify-overlay {
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+
+.verify-overlay[style*="display: none"],
+.verify-overlay[style*="display:none"] {
+  /* handled by inline style; this is belt-and-suspenders */
+}
+
+.verify-heading {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.verify-body {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.verify-body strong {
+  color: var(--text);
+  word-break: break-all;
+}
+
+.verify-countdown {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.verify-countdown span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.verify-back-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.verify-link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.verify-link-btn:hover {
+  color: var(--accent-hover);
+}
