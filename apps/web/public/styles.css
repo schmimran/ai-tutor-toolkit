@@ -171,6 +171,29 @@
       opacity: 0.6;
     }
 
+    /* ── User identity + logout ────────────────────────────────────────── */
+    .user-identity {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .user-display-name {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-logout {
+      color: var(--text-muted);
+      border-color: var(--border);
+    }
+    .btn-logout:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
     /* ── Config picker dropdown ─────────────────────────────────────────── */
     .config-picker {
       position: fixed;
@@ -857,6 +880,7 @@
       #file-strip  { padding: 8px 12px 0; }
       .empty-chips { display: none; }
       .logo-company { font-size: 1rem; }
+      .user-display-name { display: none; }
     }
 
     /* ── Message appear animation ──────────────────────────────────────────── */

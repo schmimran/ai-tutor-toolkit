@@ -89,6 +89,9 @@
   const btnCloseTx     = $('btn-close-tx');
   const btnCloseTx2    = $('btn-close-tx2');
   const btnCopyTx      = $('btn-copy-tx');
+  const userIdentityEl     = $('user-identity');
+  const userDisplayName    = $('user-display-name');
+  const btnLogout          = $('btn-logout');
   const dragOverlay        = $('drag-overlay');
   const wrappingUpOverlay  = $('wrapping-up-overlay');
   const toast              = $('toast');
@@ -161,7 +164,7 @@
     buildInfoEl.title = `Build ${appConfig.buildVersion}` + (appConfig.buildDate ? ` — ${appConfig.buildDate}` : '');
   }
 
-  // ── Admin badge visibility ────────────────────────────────────────────────
+  // ── Admin badge visibility + user identity ───────────────────────────────
   async function fetchUserInfo() {
     try {
       const authRaw = sessionStorage.getItem('authSession');
@@ -175,16 +178,42 @@
       if (!res.ok) return;
       const data = await res.json();
 
-      if (data.ok && data.isAdmin === true) {
-        modelBadge.classList.add('admin-visible');
-        promptBadge.classList.add('admin-visible');
-        thinkingBadge.classList.add('admin-visible');
+      if (data.ok) {
+        if (data.isAdmin === true) {
+          modelBadge.classList.add('admin-visible');
+          promptBadge.classList.add('admin-visible');
+          thinkingBadge.classList.add('admin-visible');
+        }
+        const displayName = data.name || data.email || '';
+        if (displayName) {
+          userDisplayName.textContent = displayName;
+          userIdentityEl.style.display = '';
+        }
       }
-      // Non-admin or missing isAdmin: badges remain hidden (CSS default).
     } catch {
-      // Network or parse failure: leave badges hidden.
+      // Network or parse failure: leave badges hidden and identity hidden.
     }
   }
+
+  async function handleLogout() {
+    try {
+      const authRaw = sessionStorage.getItem('authSession');
+      if (authRaw) {
+        const auth = JSON.parse(authRaw);
+        if (auth && auth.accessToken) {
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + auth.accessToken }
+          });
+        }
+      }
+    } catch {
+      // Proceed regardless of API result (fail-open).
+    }
+    sessionStorage.removeItem('authSession');
+    window.location.href = '/login.html';
+  }
+
 
   // ── Header button state ───────────────────────────────────────────────────
   function updateHeaderButtons() {
@@ -1027,6 +1056,8 @@
       closeConfigPicker();
     }
   });
+
+  btnLogout.addEventListener('click', handleLogout);
 
   btnSwitchConfirm.addEventListener('click', confirmSwitch);
   btnSwitchCancel.addEventListener('click',  () => { switchConfigOverlay.classList.remove('active'); pendingSwitch = null; });
