@@ -6,7 +6,7 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback } from "../lib/evaluation.js";
+import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "../lib/evaluation.js";
 import { UUID_RE } from "../lib/validation.js";
 
 export interface EmailConfig {
@@ -83,6 +83,12 @@ export function createSessionsRouter(
           } catch (err) {
             console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err);
           }
+          // Send a student-facing copy (fire-and-forget).
+          const summary = session.getSessionSummary();
+          void sendUserTranscriptIfApplicable(
+            sessionId, summary.transcript, summary.startedAt, summary.durationMs,
+            emailConfig.from, db,
+          );
         }
       } finally {
         // Always clean up — even if eval or email throws unexpectedly.

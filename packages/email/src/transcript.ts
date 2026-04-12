@@ -308,3 +308,98 @@ export async function sendTranscript(
   }
   console.log(`[email] Transcript sent (id: ${result.data?.id}).`);
 }
+
+/** Minimal payload for the student-facing transcript email. */
+export interface UserTranscriptPayload {
+  transcript: TranscriptEntry[];
+  startedAt: Date;
+  durationMs: number;
+}
+
+/**
+ * Build a student-friendly HTML email with only the session date and
+ * conversation transcript.  Omits evaluation, feedback, IP/geo, token
+ * counts, model info, session ID, and prompt name.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildUserHtml(payload: UserTranscriptPayload): string {
+  const { transcript, startedAt, durationMs } = payload;
+
+  const transcriptHtml = transcript
+    .map((entry) => {
+      const isStudent = entry.role === "Student";
+      const bg = isStudent ? "#f0f4ff" : "#f9f9f9";
+      const label = isStudent
+        ? "<strong>You</strong>"
+        : "<strong>Tutor</strong>";
+      return `<div style="background:${bg};padding:12px 16px;margin:8px 0;border-radius:6px;white-space:pre-wrap;">${label}<br>${escapeHtml(entry.text)}</div>`;
+    })
+    .join("");
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Your Tutoring Session</title></head>
+<body style="font-family:sans-serif;max-width:800px;margin:0 auto;padding:24px;color:#222;">
+  <h1 style="font-size:1.4rem;border-bottom:2px solid #4f46e5;padding-bottom:8px;">Your Tutoring Session</h1>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+    <tr><td style="padding:6px 0;color:#555;width:120px;">Date</td><td>${formatDate(startedAt)}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Duration</td><td>${formatDuration(durationMs)}</td></tr>
+  </table>
+  <h2 style="font-size:1.1rem;">Conversation</h2>
+  ${transcriptHtml || "<p>No messages.</p>"}
+  <p style="margin-top:32px;font-size:0.85em;color:#888;">This is an automated copy of your tutoring session for your reference.</p>
+</body>
+</html>`;
+}
+
+/**
+ * Send a student-facing transcript email.  This is a slimmed-down version
+ * of sendTranscript that omits evaluation, feedback, and admin-only fields.
+ *
+ * @param to - The student's email address.
+ * @param config - Email config (apiKey and from).  The `to` field on the
+ *   config is ignored; the explicit `to` parameter is used instead.
+ * @param payload - Minimal transcript payload.
+ */
+export async function sendUserTranscript(
+  to: string,
+  config: Pick<TranscriptEmailConfig, "apiKey" | "from">,
+  payload: UserTranscriptPayload,
+): Promise<void> {
+  if (!config.apiKey) {
+    console.warn("[email] RESEND_API_KEY not set — skipping user transcript email.");
+    return;
+  }
+  if (payload.transcript.length === 0) {
+    console.warn("[email] Transcript is empty — skipping user transcript email.");
+    return;
+  }
+
+  const resend = new Resend(config.apiKey);
+
+  let result;
+  try {
+    result = await resend.emails.send({
+      from: config.from,
+      to,
+      subject: `Your tutoring session transcript — ${formatDate(payload.startedAt)}`,
+      html: buildUserHtml(payload),
+    });
+  } catch (err) {
+    console.error("[email] Unexpected error sending user transcript:", err);
+    throw err;
+  }
+
+  if (result.error) {
+    console.error("[email] Resend API error (user transcript):", result.error);
+    throw new Error(`Resend API error: ${result.error.message}`);
+  }
+  console.log(`[email] User transcript sent to ${to} (id: ${result.data?.id}).`);
+}
