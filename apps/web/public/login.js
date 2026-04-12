@@ -229,6 +229,27 @@
       });
   });
 
+  /* ── Verification hash (Supabase email confirmation callback) ────────── */
+  function handleVerificationHash() {
+    var hash = window.location.hash;
+    if (!hash) return false;
+    var params = new URLSearchParams(hash.slice(1));
+    if (params.get('type') !== 'signup') return false;
+    var accessToken = params.get('access_token');
+    if (!accessToken) return false;
+    var expiresAtRaw = params.get('expires_at');
+    var expiresAt = expiresAtRaw ? parseInt(expiresAtRaw, 10) : null;
+    history.replaceState(null, '', window.location.pathname);
+    saveAuth({
+      accessToken: accessToken,
+      refreshToken: params.get('refresh_token') || null,
+      expiresAt: expiresAt,
+    });
+    window.location.replace('/');
+    return true;
+  }
+  if (handleVerificationHash()) return;
+
   /* ── Redirect if already authenticated ───────────────────────────────── */
   var existing = loadAuth();
   if (isAuthValid(existing)) {
