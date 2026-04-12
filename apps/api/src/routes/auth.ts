@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createProfile, getProfile } from "@ai-tutor/db";
+import rateLimit from "express-rate-limit";
 import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
 
 /**
@@ -24,6 +25,35 @@ import { createRequireAuth, type AuthedRequest } from "../middleware/require-aut
 export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Router {
   const router = Router();
   const requireAuth = createRequireAuth(db);
+
+  // ── Rate limiters ────────────────────────────────────────────────────
+  const rateLimitHandler = (_req: unknown, res: { status: (code: number) => { json: (body: unknown) => void } }) => {
+    res.status(429).json({ ok: false, error: "too_many_requests" });
+  };
+
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+  });
+
+  const registerLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+  });
+
+  const resendLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 3,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+  });
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const BIRTHDATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -120,7 +150,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
    * leaking which emails are registered; the one exception is the `underage`
    * error, which is surfaced so the client can show a specific message.
    */
-  router.post("/register", async (req, res) => {
+  router.post("/register", registerLimiter, async (req, res) => {
     const parsed = validateCredentials(req.body);
     if (typeof parsed === "string") {
       res.status(400).json({ ok: false, error: parsed });
@@ -179,7 +209,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
    * is passed through so the client can offer a "resend verification email"
    * affordance (issue #76).
    */
-  router.post("/login", async (req, res) => {
+  router.post("/login", loginLimiter, async (req, res) => {
     const parsed = validateCredentials(req.body);
     if (typeof parsed === "string") {
       res.status(400).json({ ok: false, error: "invalid_credentials" });
@@ -219,7 +249,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
    * email exists, to avoid account enumeration. Errors are logged
    * server-side but never surfaced to the client.
    */
-  router.post("/resend-verification", async (req, res) => {
+  router.post("/resend-verification", resendLimiter, async (req, res) => {
     const body = req.body as { email?: unknown } | undefined;
     const email = body?.email;
     if (typeof email !== "string" || !EMAIL_RE.test(email)) {
@@ -238,7 +268,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
    * regardless of whether the email exists (anti-enumeration). Derives the
    * redirect URL from the request Origin header.
    */
-  router.post("/forgot-password", async (req, res) => {
+  router.post("/forgot-password", resendLimiter, async (req, res) => {
     const body = req.body as { email?: unknown } | undefined;
     const email = body?.email;
     if (typeof email !== "string" || !EMAIL_RE.test(email)) {

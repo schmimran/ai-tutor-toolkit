@@ -208,7 +208,10 @@
     }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
       .then(function (res) {
         btn.disabled = false;
-        if (res.status >= 200 && res.status < 300 && res.body.ok) {
+        if (res.status === 429) {
+          setError('Too many attempts \u2014 please wait a few minutes and try again.');
+        } else if (res.status >= 200 && res.status < 300 && res.body.ok) {
+          setError(null);
           resetRegisterForm();
           showVerifyOverlay(email);
         } else if (res.body && res.body.error === 'underage') {
@@ -245,7 +248,9 @@
     }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
       .then(function (res) {
         btn.disabled = false;
-        if (res.status >= 200 && res.status < 300 && res.body.ok) {
+        if (res.status === 429) {
+          setError('Too many attempts \u2014 please wait a few minutes and try again.');
+        } else if (res.status >= 200 && res.status < 300 && res.body.ok) {
           var auth = {
             email: email,
             accessToken: res.body.accessToken,
@@ -278,8 +283,12 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email }),
     }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
-      .then(function () {
+      .then(function (res) {
         btn.disabled = false;
+        if (res.status === 429) {
+          setError('Too many attempts \u2014 please wait a few minutes and try again.');
+          return;
+        }
         setError(null);
         setSuccess('Verification email sent.');
       }).catch(function (err) {
@@ -304,8 +313,12 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email }),
-    }).then(function () {
+    }).then(function (r) {
       btn.disabled = false;
+      if (r.status === 429) {
+        setError('Too many attempts \u2014 please wait a few minutes and try again.');
+        return;
+      }
       stopCountdown();
       startCountdown();
       var orig = btn.textContent;
