@@ -117,11 +117,6 @@
       updatePromptBadge();
       updateThinkingBadge();
       updateBuildInfo();
-
-      if (appConfig.contactEmail) {
-        const note = $('disclaimer-contact-note');
-        if (note) note.textContent = `Don't have a code? Email ${appConfig.contactEmail} for access.`;
-      }
     } catch { /* no config available */ }
   }
 
@@ -1015,79 +1010,28 @@
     msgInput.setSelectionRange(msgInput.value.length, msgInput.value.length);
   });
 
-  // ── Access wall overlay ───────────────────────────────────────────────────
-  const disclaimerOverlay   = $('disclaimer-overlay');
-  const btnDisclaimerOk     = $('btn-disclaimer-ok');
-  const accessPasscodeInput = $('access-passcode');
-  const accessEmailInput    = $('access-email');
-  const accessTermsInput    = $('access-terms');
-  const accessError         = $('access-error');
-
-  function showAccessError(msg) {
-    accessError.textContent = msg;
-    accessError.style.display = '';
-  }
-
-  function clearAccessError() {
-    accessError.textContent = '';
-    accessError.style.display = 'none';
-  }
-
-  async function dismissDisclaimer() {
-    const passcode = accessPasscodeInput.value.trim();
-    const email    = accessEmailInput.value.trim();
-    const terms    = accessTermsInput.checked;
-
-    if (!passcode) { showAccessError('Please enter the access code.'); return; }
-    if (!email || !email.includes('@')) { showAccessError('Please enter a valid email address.'); return; }
-    if (!terms) { showAccessError('Please accept the terms to continue.'); return; }
-
-    btnDisclaimerOk.disabled = true;
-    clearAccessError();
-
+  // ── Auth gate ─────────────────────────────────────────────────────────────
+  // Redirect to /login.html if no valid auth session exists. This check runs
+  // synchronously before any UI renders.
+  (function () {
     try {
-      const verifyRes  = await fetch('/api/access/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode }),
-      });
-      const verifyData = await verifyRes.json();
-
-      if (!verifyData.ok) {
-        showAccessError('Incorrect access code. Contact the administrator for access.');
-        btnDisclaimerOk.disabled = false;
+      var raw = sessionStorage.getItem('authSession');
+      if (!raw) { window.location.href = '/login.html'; return; }
+      var auth = JSON.parse(raw);
+      if (!auth || !auth.accessToken) { window.location.href = '/login.html'; return; }
+      // Check token expiry (Supabase expiresAt is in Unix seconds)
+      if (auth.expiresAt && Date.now() / 1000 > auth.expiresAt) {
+        sessionStorage.removeItem('authSession');
+        window.location.href = '/login.html';
         return;
       }
-
-      // Fire-and-forget — record acceptance with email; never block the UI.
-      fetch('/api/disclaimer/accept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, email }),
-      }).catch(() => {});
-
-      sessionStorage.setItem('access-granted', '1');
-      disclaimerOverlay.classList.remove('active');
-    } catch {
-      showAccessError('Network error — please try again.');
-      btnDisclaimerOk.disabled = false;
-    }
-  }
-
-  btnDisclaimerOk.addEventListener('click', dismissDisclaimer);
-  accessPasscodeInput.addEventListener('keydown', e => { if (e.key === 'Enter') dismissDisclaimer(); });
-  accessEmailInput.addEventListener('keydown',    e => { if (e.key === 'Enter') dismissDisclaimer(); });
+    } catch (e) { window.location.href = '/login.html'; return; }
+  })();
 
   // ── Init ──────────────────────────────────────────────────────────────────
   showEmpty();
   fetchConfig();
-  // Show access wall only once per browser session
-  if (sessionStorage.getItem('access-granted')) {
-    disclaimerOverlay.classList.remove('active');
-    msgInput.focus();
-  } else {
-    accessPasscodeInput.focus();
-  }
+  msgInput.focus();
 
   // ── iOS viewport stability ────────────────────────────────────────────────
   var isIOS = /iP(hone|od)/.test(navigator.userAgent) ||
@@ -1131,17 +1075,8 @@
     var btnClose = document.getElementById('btn-a2hs-close');
     if (!banner || !btnClose) return;
 
-    var MAX_RETRIES = 30;
-    function tryShow(retries) {
-      var accessWall = document.getElementById('disclaimer-overlay');
-      if (accessWall && accessWall.classList.contains('active')) {
-        if (retries < MAX_RETRIES) setTimeout(function () { tryShow(retries + 1); }, 1000);
-        return;
-      }
-      banner.style.display = '';
-    }
-
-    setTimeout(function () { tryShow(0); }, 2000);
+    // Show the banner after a short delay (page only loads if authenticated).
+    setTimeout(function () { banner.style.display = ''; }, 2000);
 
     btnClose.addEventListener('click', function () {
       banner.style.display = 'none';
