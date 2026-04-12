@@ -386,7 +386,17 @@
 
     try {
       activeAbortController = new AbortController();
-      const resp = await fetch('/api/chat', { method: 'POST', body: fd, signal: activeAbortController.signal });
+      const fetchOpts = { method: 'POST', body: fd, signal: activeAbortController.signal, headers: {} };
+      try {
+        const authRaw = sessionStorage.getItem('authSession');
+        if (authRaw) {
+          const auth = JSON.parse(authRaw);
+          if (auth && auth.accessToken) {
+            fetchOpts.headers['Authorization'] = 'Bearer ' + auth.accessToken;
+          }
+        }
+      } catch (_) { /* ignore — auth is optional */ }
+      const resp = await fetch('/api/chat', fetchOpts);
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: resp.statusText }));
         throw new Error(err.error || resp.statusText);
