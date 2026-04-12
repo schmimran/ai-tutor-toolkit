@@ -1091,10 +1091,61 @@
     } catch (e) { window.location.href = '/login.html'; return; }
   })();
 
+  // ── Proactive token refresh ────────────────────────────────────────────────
+  var refreshTimer = null;
+  var REFRESH_LEAD_MS = 2 * 60 * 1000; // 2 minutes before expiry
+
+  function scheduleTokenRefresh() {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    try {
+      var raw = sessionStorage.getItem('authSession');
+      if (!raw) return;
+      var auth = JSON.parse(raw);
+      if (!auth || !auth.refreshToken || !auth.expiresAt) return;
+      var msUntilExpiry = auth.expiresAt * 1000 - Date.now();
+      var delay = Math.max(0, msUntilExpiry - REFRESH_LEAD_MS);
+      refreshTimer = setTimeout(doTokenRefresh, delay);
+    } catch (e) { /* silent */ }
+  }
+
+  function doTokenRefresh() {
+    var raw = sessionStorage.getItem('authSession');
+    if (!raw) return;
+    var auth;
+    try { auth = JSON.parse(raw); } catch (e) { return; }
+    if (!auth || !auth.refreshToken) return;
+
+    fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: auth.refreshToken }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.ok && res.accessToken) {
+          sessionStorage.setItem('authSession', JSON.stringify({
+            accessToken: res.accessToken,
+            refreshToken: res.refreshToken,
+            expiresAt: res.expiresAt,
+          }));
+          scheduleTokenRefresh(); // re-arm for the next cycle
+        } else {
+          // Refresh token also expired — force re-login
+          sessionStorage.removeItem('authSession');
+          window.location.href = '/login.html?reason=session_expired';
+        }
+      })
+      .catch(function () {
+        // Network failure — do not log out; retry in 30 s (iOS screen lock)
+        refreshTimer = setTimeout(doTokenRefresh, 30000);
+      });
+  }
+
   // ── Init ──────────────────────────────────────────────────────────────────
   showEmpty();
   fetchConfig();
   fetchUserInfo();
+  scheduleTokenRefresh();
   msgInput.focus();
 
   // ── iOS viewport stability ────────────────────────────────────────────────

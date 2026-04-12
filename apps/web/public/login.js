@@ -288,6 +288,12 @@
       });
   });
 
+  /* ── Session-expired notice ────────────────────────────────────────── */
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('reason') === 'session_expired') {
+    setError('Your session expired. Please sign in again.');
+  }
+
   /* ── Verify overlay: resend button ─────────────────────────────────── */
   $('btn-verify-resend').addEventListener('click', function () {
     var email = $('verify-email-address').textContent || '';
