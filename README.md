@@ -56,7 +56,7 @@ That's it.  Hand your student the project link.  They'll see a clean chat interf
 
 This runs the full application on your computer (or on a server — see [Deploying on Render](#deploying-on-render) below).  It gives you a chat interface at a web address, plus session history, email transcripts, and feedback tracking.
 
-The web app requires three services to run: **Anthropic** (AI), **Supabase** (database), and an **access passcode** you choose.  Email transcripts via **Resend** are optional.
+The web app requires three services to run: **Anthropic** (AI), **Supabase** (database and authentication), and a **Supabase anon key** for the login flow.  Email transcripts via **Resend** are optional.
 
 **Before you start:**  You'll need [Node.js](https://nodejs.org) version 20 or later installed.  If you're not sure whether you have it, open a terminal and run `node --version`.  If you see a version number starting with 20 or higher, you're set.
 
@@ -83,9 +83,9 @@ The web app stores session transcripts, messages, and feedback in a database so 
 
 Follow the instructions in [Setting up Supabase](#setting-up-supabase) below, then come back here.
 
-**Step 4: Choose an access passcode**
+**Step 4: Set up the Supabase anon key**
 
-The web app has an access wall — anyone visiting the URL must enter a passcode before they can use the tutor.  Pick a 5-digit code and share it with your student.
+In your Supabase project dashboard, go to **Settings → API**.  Copy the **anon/public** key (not the service_role key — you already have that from Step 3).  This key is used server-side for the login flow and is never exposed to the browser.
 
 **Step 5: Export environment variables**
 
@@ -93,7 +93,7 @@ The web app has an access wall — anyone visiting the URL must enter a passcode
 export ANTHROPIC_API_KEY=sk-ant-...
 export SUPABASE_URL=https://your-project-ref.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=eyJ...
-export ACCESS_PASSCODE=12345  # your 5-digit code
+export SUPABASE_ANON_KEY=eyJ...
 ```
 
 **Step 6: Build and start**
@@ -105,7 +105,7 @@ npm run api
 
 **Step 7: Open and verify**
 
-Open `http://localhost:3000` in your browser.  You'll see the access wall — enter your passcode.  Your student gets a chat interface.  Your API key stays on your computer — it's never sent to the browser.
+Open `http://localhost:3000` in your browser.  You'll see the login page — register an account or sign in.  Your student gets a chat interface.  Your API key stays on your computer — it's never sent to the browser.
 
 To get email transcripts sent to you when sessions end, continue to [Optional: email transcripts](#optional-email-transcripts).
 
@@ -113,7 +113,7 @@ To get email transcripts sent to you when sessions end, continue to [Optional: e
 
 ### Option C: CLI (terminal)
 
-For parents comfortable in a terminal.  No web interface — you type your student's messages at a prompt and see the tutor's responses in the terminal.  Does not require Supabase or an access passcode.  You'll need [Node.js](https://nodejs.org) version 20 or later installed (same as Option B).
+For parents comfortable in a terminal.  No web interface — you type your student's messages at a prompt and see the tutor's responses in the terminal.  Does not require Supabase or user accounts.  You'll need [Node.js](https://nodejs.org) version 20 or later installed (same as Option B).
 
 ```bash
 npm install
@@ -140,7 +140,8 @@ Supabase is a free hosted database.  The web app requires it — the server will
 
 1. In your project dashboard, go to **Settings → API**.
 2. Copy the **Project URL** — this is your `SUPABASE_URL`.
-3. Under **Project API keys**, copy the **service_role** key (the secret one, not `anon`) — this is your `SUPABASE_SERVICE_ROLE_KEY`.  Keep this key secret.  It has full access to your database.
+3. Under **Project API keys**, copy the **service_role** key (the secret one) — this is your `SUPABASE_SERVICE_ROLE_KEY`.  Keep this key secret.  It has full access to your database.
+4. Also copy the **anon/public** key — this is your `SUPABASE_ANON_KEY`.  It is used server-side for the login flow.
 
 **Step 3: Run the schema migration**
 
@@ -155,7 +156,7 @@ export SUPABASE_URL=https://your-project-ref.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 
-Done?  [Continue to Step 4: Choose an access passcode](#option-b-web-app-self-hosted).
+Done?  [Continue to Step 5: Export environment variables](#option-b-web-app-self-hosted).
 
 ---
 
@@ -203,11 +204,11 @@ This table is a quick reference.  If you followed Option B above, you've already
 | `ANTHROPIC_API_KEY` | **yes** | — | Your Anthropic API key. |
 | `SUPABASE_URL` | **yes (web app)** | — | Your Supabase project URL.  Server will not start without it. |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes (web app)** | — | Supabase service role key.  Keep secret. |
-| `ACCESS_PASSCODE` | **yes (web app)** | — | 5-digit passcode for the access wall.  Share with your student. |
+| `SUPABASE_ANON_KEY` | **yes (web app)** | — | Supabase anon/public key.  Required for the login flow. |
 | `RESEND_API_KEY` | no | — | Resend API key.  Emails skipped if absent. |
 | `PARENT_EMAIL` | no | — | Where transcript emails are sent. |
 | `EMAIL_FROM` | no | `tutor@tutor.schmim.com` | Sender address.  Must match a verified Resend domain. |
-| `CONTACT_EMAIL` | no | `wax.spirits8d@icloud.com` | Contact email shown in the access-wall overlay. |
+| `CONTACT_EMAIL` | no | `wax.spirits8d@icloud.com` | Contact email shown on the login page and returned by GET /api/config. |
 | `CORS_ORIGIN` | no | `*` | Allowed origin if you put the app behind a specific URL. |
 | `MODEL` | no | `claude-sonnet-4-6` | Claude model ID. |
 | `EXTENDED_THINKING` | no | `true` | Set to `false` to disable extended thinking (faster, lower cost, weaker tutoring quality). |
@@ -279,7 +280,7 @@ These emerged from multiple iterations and test runs across distinct scenarios:
 Command-line interface with extended thinking, transcript export, and configurable system prompt.
 
 ### Phase 2: Web UI ✅
-Express server with a single-page chat interface, file uploads, transcript export, session management, end-of-session email summaries (with session ID and token usage) sent to the parent via Resend, a live cumulative token counter in the header, an access-wall overlay with passcode entry, and an end-of-session feedback overlay that collects outcome, experience, and optional comment.  Session data is retained in the database for analysis.
+Express server with a single-page chat interface, file uploads, transcript export, session management, end-of-session email summaries (with session ID and token usage) sent to the parent via Resend, a live cumulative token counter in the header, Supabase-backed login/registration with email verification, and an end-of-session feedback overlay that collects outcome, experience, and optional comment.  Session data is retained in the database for analysis.
 
 ### Phase 3: Documentation and deployment ✅
 CLAUDE.md, package READMEs, deployment config (render.yaml, docs/deployment.md).

@@ -23,7 +23,7 @@ npm run cli                # Launch the terminal REPL
 npm run backfill:evaluations  # Backfill session_evaluations for sessions missing a row
 ```
 
-> Copy `env.sh.template` to `env.sh`, fill in your values, then `source env.sh` before running any command.  `ANTHROPIC_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` are required to start the API server.
+> Copy `env.sh.template` to `env.sh`, fill in your values, then `source env.sh` before running any command.  `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are required for the API server.  Without `SUPABASE_ANON_KEY` the auth router will not register and the app will be inaccessible.
 
 ---
 
@@ -107,7 +107,7 @@ packages/core    ← @anthropic-ai/sdk
 packages/db      ← @supabase/supabase-js
 packages/email   ← resend
 
-apps/api         ← packages/core, packages/db, packages/email, express, cors, multer, geoip-lite
+apps/api         ← packages/core, packages/db, packages/email, express, cors, multer, geoip-lite, express-rate-limit
 apps/cli         ← packages/core
 apps/web         ← (no npm deps — CDN only)
 ```
@@ -218,7 +218,7 @@ One row per registered user.  Created at registration time.
 | client_user_agent | text | Nullable |
 | session_id | uuid | FK → sessions(id) ON DELETE SET NULL. Nullable; backfilled after first /api/chat call via linkDisclaimerAcceptance(). |
 | client_session_id | text | Nullable. The client-generated session UUID stored at acceptance time (no FK constraint). Used to backfill session_id. |
-| email | text | Nullable. Email address submitted through the access-wall overlay. |
+| email | text | Nullable. Email address submitted through the disclaimer overlay. |
 
 ---
 
@@ -363,14 +363,14 @@ Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email 
 
 ### POST /api/disclaimer/accept
 
-Record that the user accepted the access-wall overlay.
+Record that the user accepted the disclaimer overlay.
 
 **Request**: `application/json`
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | sessionId | string (UUID) | no | Client's current session ID; links the acceptance to the session for analysis |
-| email | string | no | Email address submitted through the access-wall overlay; stored in disclaimer_acceptances.email |
+| email | string | no | Email address submitted through the disclaimer overlay; stored in disclaimer_acceptances.email |
 
 **Response**: `application/json`
 
@@ -395,6 +395,14 @@ Supabase-backed individual-user login flow. **These endpoints are only registere
 - `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId, isAdmin: boolean, email, name }`. `isAdmin` is read from the `profiles` table; returns `false` for legacy users without a profile row (fail-closed). `email` is the user's email; `name` is from `user_metadata.name` (null if unset).
 
 JWT verification is handled by `createRequireAuth()` (in `apps/api/src/middleware/require-auth.ts`), which reads the bearer token and calls `db.auth.getUser(token)`. The middleware populates `userId`, `userEmail`, and `userName` on the request object. There is no `SUPABASE_JWT_SECRET` — Supabase's own verification API is used.
+
+Rate limiting is applied via `express-rate-limit` to protect auth endpoints from abuse.  Per-endpoint limits:
+- `POST /api/auth/login` — 10 requests per 15 minutes per IP
+- `POST /api/auth/register` — 5 requests per hour per IP
+- `POST /api/auth/resend-verification` — 3 requests per 15 minutes per IP
+- `POST /api/auth/forgot-password` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
+
+All rate-limited endpoints return `429 { ok: false, error: "too_many_requests" }` when the limit is exceeded.  The server sets `trust proxy` to `1` (in `apps/api/src/index.ts`) so `express-rate-limit` keys on the real client IP behind Render's proxy.
 
 ---
 
@@ -506,8 +514,8 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/sessions.ts` | `GET/DELETE /api/sessions/:id` |
 | `apps/api/src/routes/transcript.ts` | `GET /api/transcript/:id` |
 | `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row |
-| `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records access-wall acceptance with IP/geo/user-agent/email |
-| `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — POST `/register`, `/login`, `/resend-verification`, `/refresh`, `/logout` and GET `/me` for the Supabase auth login flow. Registered only if `SUPABASE_ANON_KEY` is set. The frontend redirects unauthenticated users to `/login.html`. |
+| `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records disclaimer acceptance with IP/geo/user-agent/email |
+| `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — POST `/register`, `/login`, `/resend-verification`, `/forgot-password`, `/refresh`, `/logout` and GET `/me` for the Supabase auth login flow. Registered only if `SUPABASE_ANON_KEY` is set. The frontend redirects unauthenticated users to `/login.html`. |
 | `apps/api/src/middleware/require-auth.ts` | `createRequireAuth(db)` — middleware that verifies `Authorization: Bearer <token>` via `db.auth.getUser(token)` and sets `req.userId`. Used by the `/api/auth/me` and `/api/auth/logout` routes. |
 | `apps/api/scripts/gen-build-info.js` | Generates `build-info.json` (commit SHA + timestamp) at build time; called by the API `build` script |
 | `apps/api/build-info.json` | Generated build metadata (gitignored); read at startup by the config route |

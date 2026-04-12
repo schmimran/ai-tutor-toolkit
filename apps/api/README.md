@@ -24,6 +24,7 @@ This is the only process that runs in production.  It:
 | `cors` | CORS middleware |
 | `multer` | Multipart file uploads |
 | `geoip-lite` | IP → city/country lookup (local database) |
+| `express-rate-limit` | Per-endpoint rate limiting for auth routes |
 
 ## API endpoints
 
@@ -35,8 +36,14 @@ This is the only process that runs in production.  It:
 | `DELETE` | `/api/sessions/:id` | End session; runs evaluation, sends transcript email, sets `ended_at` |
 | `GET` | `/api/transcript/:id` | Conversation transcript (prefers in-memory, falls back to DB) |
 | `POST` | `/api/feedback` | Submit end-of-session feedback (one `session_feedback` row) |
-| `POST` | `/api/disclaimer/accept` | Record access-wall acceptance (sessionId, email) |
-| `POST` | `/api/access/verify` | Validate 5-digit passcode |
+| `POST` | `/api/disclaimer/accept` | Record disclaimer acceptance (sessionId, email) |
+| `POST` | `/api/auth/register` | Create a new user account (email verification required) |
+| `POST` | `/api/auth/login` | Sign in with email and password |
+| `POST` | `/api/auth/resend-verification` | Re-send signup verification email |
+| `POST` | `/api/auth/forgot-password` | Send password-reset email |
+| `POST` | `/api/auth/refresh` | Exchange refresh token for new access token |
+| `POST` | `/api/auth/logout` | Revoke all refresh tokens (requires auth) |
+| `GET`  | `/api/auth/me` | Get authenticated user's profile (requires auth) |
 
 For full request/response schemas, see the [API endpoint reference](../../CLAUDE.md#api-endpoint-reference) in CLAUDE.md.
 
@@ -51,7 +58,7 @@ Required environment variables:
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
-| `ACCESS_PASSCODE` | 5-digit passcode for the access wall |
+| `SUPABASE_ANON_KEY` | Supabase anon/public key (required for auth flow) |
 
 For the full table with defaults and optional variables, see the [environment variables reference](../../README.md#environment-variables--full-reference) in the root README.
 
@@ -89,10 +96,11 @@ apps/api/src/
 │   ├── transcript.ts       ← GET /api/transcript/:id
 │   ├── feedback.ts         ← POST /api/feedback
 │   ├── disclaimer.ts       ← POST /api/disclaimer/accept
-│   └── access.ts           ← POST /api/access/verify
+│   └── auth.ts             ← POST/GET /api/auth/* (register, login, refresh, etc.)
 ├── middleware/
 │   ├── cors.ts             ← CORS (origin from CORS_ORIGIN env var)
-│   └── errors.ts           ← Global error handler
+│   ├── errors.ts           ← Global error handler
+│   └── require-auth.ts     ← Bearer token verification middleware
 └── lib/
     ├── evaluation.ts       ← runSessionEvaluation(), buildEvaluationPayload()
     ├── session-store.ts    ← In-memory Map<sessionId, Session>
