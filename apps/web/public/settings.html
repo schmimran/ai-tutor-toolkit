@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Settings — Axiom AI Tutor</title>
+  <meta name="theme-color" content="#0f1117">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/settings.css">
+</head>
+<body>
+  <main class="settings-shell">
+    <div class="settings-card">
+      <div class="settings-header">
+        <h1 class="settings-title">Settings</h1>
+        <a href="/" class="settings-back-link">Back to tutor</a>
+      </div>
+
+      <div id="settings-loading" class="settings-loading">Loading settings...</div>
+      <div id="settings-error" class="settings-error" style="display:none"></div>
+
+      <form id="settings-form" style="display:none" autocomplete="off">
+        <!-- Read-only fields -->
+        <fieldset class="settings-section">
+          <legend class="settings-section-title">Account</legend>
+          <label class="settings-field">
+            <span class="settings-label">Name</span>
+            <input type="text" id="settings-name" class="settings-input" readonly>
+          </label>
+          <label class="settings-field">
+            <span class="settings-label">Birthdate</span>
+            <input type="text" id="settings-birthdate" class="settings-input" readonly>
+          </label>
+        </fieldset>
+
+        <!-- Editable fields -->
+        <fieldset class="settings-section">
+          <legend class="settings-section-title">Preferences</legend>
+          <label class="settings-field">
+            <span class="settings-label">Grade level</span>
+            <select id="settings-grade" class="settings-input">
+              <option value="" disabled>Select grade</option>
+              <option value="6th">6th</option>
+              <option value="7th">7th</option>
+              <option value="8th">8th</option>
+              <option value="9th">9th</option>
+              <option value="10th">10th</option>
+              <option value="11th">11th</option>
+              <option value="12th">12th</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label class="settings-checkbox-row">
+            <input type="checkbox" id="settings-email-transcripts" checked>
+            <span class="settings-checkbox-label">Receive session transcript emails</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="settings-section">
+          <legend class="settings-section-title">Email</legend>
+          <label class="settings-field">
+            <span class="settings-label">Email address</span>
+            <input type="email" id="settings-email" class="settings-input" autocomplete="email">
+          </label>
+          <button type="button" class="settings-btn" id="btn-change-email">Update email</button>
+        </fieldset>
+
+        <div class="settings-actions">
+          <button type="submit" class="settings-btn settings-btn-primary" id="btn-save">Save changes</button>
+        </div>
+
+        <p class="settings-success" id="settings-success" style="display:none"></p>
+        <p class="settings-error-inline" id="settings-error-inline" style="display:none"></p>
+      </form>
+    </div>
+  </main>
+  <script src="/settings.js"></script>
+</body>
+</html>
