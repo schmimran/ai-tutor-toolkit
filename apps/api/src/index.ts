@@ -81,6 +81,7 @@ const emailConfig = {
 const INACTIVITY_MS = 10 * 60 * 1000;
 
 const app = express();
+app.set("trust proxy", 1); // Trust first proxy (Render) for correct req.ip in rate limiting
 
 app.use(corsMiddleware);
 app.use(express.json());
