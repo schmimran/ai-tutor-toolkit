@@ -320,6 +320,42 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
   });
 
   /**
+   * POST /api/auth/change-password
+   *
+   * Updates the authenticated user's password via the service-role admin API.
+   * Body: `{ newPassword: string }` — must be >= 8 characters.
+   *
+   * Note: The current password is NOT verified server-side. Supabase's
+   * `auth.admin.updateUserById` does not support verifying the old password,
+   * and `auth.updateUser` requires a valid client-side session (which we
+   * don't have on the service-role client). The user must already be
+   * authenticated (bearer token verified by requireAuth middleware), which
+   * provides sufficient authorization for this action.
+   */
+  router.post("/change-password", resendLimiter, requireAuth, async (req, res) => {
+    const body = req.body as { newPassword?: unknown } | undefined;
+    const newPassword = body?.newPassword;
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
+      res.status(400).json({ ok: false, error: "weak_password" });
+      return;
+    }
+
+    const userId = (req as AuthedRequest).userId;
+    try {
+      const { error } = await db.auth.admin.updateUserById(userId, { password: newPassword });
+      if (error) {
+        console.error("[auth] change-password updateUserById failed:", error);
+        res.status(500).json({ ok: false, error: "server_error" });
+        return;
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[auth] change-password unexpected error:", err);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
+  /**
    * POST /api/auth/logout
    *
    * Revokes all refresh tokens for the authenticated user via the

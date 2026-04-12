@@ -382,7 +382,7 @@ Always returns `200 { ok: true }` — DB errors are caught and logged server-sid
 
 ---
 
-### POST /api/auth/register, POST /api/auth/login, POST /api/auth/resend-verification, POST /api/auth/forgot-password, POST /api/auth/refresh, POST /api/auth/logout, GET /api/auth/me
+### POST /api/auth/register, POST /api/auth/login, POST /api/auth/resend-verification, POST /api/auth/forgot-password, POST /api/auth/change-password, POST /api/auth/refresh, POST /api/auth/logout, GET /api/auth/me
 
 Supabase-backed individual-user login flow. **These endpoints are only registered if `SUPABASE_ANON_KEY` is set.** They do not gate `/api/chat`, `/api/sessions`, `/api/transcript`, or `/api/feedback` — the auth gate is enforced client-side via a JWT check in `app.js` that redirects unauthenticated users to `/login.html`.
 
@@ -390,6 +390,7 @@ Supabase-backed individual-user login flow. **These endpoints are only registere
 - `POST /api/auth/login` — body `{ email, password }`. Calls `anonDb.auth.signInWithPassword(...)`. Returns `{ ok: true, accessToken, refreshToken, expiresAt }` on success. On failure, returns `{ ok: false, error: "email_not_confirmed" }` (HTTP 401) when the account is unconfirmed so the client can show a "Resend verification" affordance. All other failures return the opaque `{ ok: false, error: "invalid_credentials" }`.
 - `POST /api/auth/resend-verification` — body `{ email }`. Re-sends the Supabase signup confirmation email via `anonDb.auth.resend({ type: "signup", email })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). Errors logged server-side only.
 - `POST /api/auth/forgot-password` — body `{ email }`. Sends a Supabase password-reset email via `anonDb.auth.resetPasswordForEmail(email, { redirectTo })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). The `redirectTo` URL is derived from `req.headers.origin` (or `req.headers.host`). No new env vars required. Errors logged server-side only.
+- `POST /api/auth/change-password` — requires `Authorization: Bearer <accessToken>`. Body `{ newPassword }`. Validates `newPassword` >= 8 characters. Calls `db.auth.admin.updateUserById(userId, { password: newPassword })`. Returns `{ ok: true }` on success, `{ ok: false, error: "weak_password" }` if validation fails. Note: current password is not verified server-side (Supabase admin API limitation); the bearer token provides sufficient authorization.
 - `POST /api/auth/refresh` — body `{ refreshToken }`. Calls `anonDb.auth.refreshSession(...)`. Returns `{ ok, accessToken?, refreshToken?, expiresAt? }`.
 - `POST /api/auth/logout` — requires `Authorization: Bearer <accessToken>`. Calls `db.auth.admin.signOut(userId)` (service-role admin API). Returns `{ ok: true }`.
 - `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId, isAdmin: boolean, email, name }`. `isAdmin` is read from the `profiles` table; returns `false` for legacy users without a profile row (fail-closed). `email` is the user's email; `name` is from `user_metadata.name` (null if unset).
@@ -401,6 +402,7 @@ Rate limiting is applied via `express-rate-limit` to protect auth endpoints from
 - `POST /api/auth/register` — 5 requests per hour per IP
 - `POST /api/auth/resend-verification` — 3 requests per 15 minutes per IP
 - `POST /api/auth/forgot-password` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
+- `POST /api/auth/change-password` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
 
 All rate-limited endpoints return `429 { ok: false, error: "too_many_requests" }` when the limit is exceeded.  The server sets `trust proxy` to `1` (in `apps/api/src/index.ts`) so `express-rate-limit` keys on the real client IP behind Render's proxy.
 
