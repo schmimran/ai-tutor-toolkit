@@ -88,6 +88,16 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
     };
   }
 
+  // Sends (or re-sends) the Supabase signup verification email.
+  // admin.createUser with email_confirm:false does NOT dispatch an email on its
+  // own — only the public resend API does.  Errors are logged but never
+  // surfaced to the caller (anti-enumeration + always-ok contract).
+  function sendVerificationEmail(email: string, context: string): void {
+    anonDb.auth.resend({ type: "signup", email }).catch((err: unknown) => {
+      console.error(`[auth] ${context}:`, err);
+    });
+  }
+
   function computeAgeYears(birthdate: string, today: Date = new Date()): number {
     const [y, m, d] = birthdate.split("-").map((n) => parseInt(n, 10));
     let age = today.getUTCFullYear() - y;
@@ -143,6 +153,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
         res.status(400).json({ ok: false, error: "registration_failed" });
         return;
       }
+      sendVerificationEmail(parsed.email, "initial verification email failed");
       res.json({ ok: true });
     } catch {
       res.status(500).json({ ok: false, error: "server_error" });
@@ -207,11 +218,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
       res.json({ ok: true });
       return;
     }
-    try {
-      await anonDb.auth.resend({ type: "signup", email });
-    } catch {
-      // Swallow — do not surface errors to client.
-    }
+    sendVerificationEmail(email, "resend-verification failed");
     res.json({ ok: true });
   });
 
