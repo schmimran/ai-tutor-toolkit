@@ -321,6 +321,14 @@ export interface UserTranscriptPayload {
  * conversation transcript.  Omits evaluation, feedback, IP/geo, token
  * counts, model info, session ID, and prompt name.
  */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function buildUserHtml(payload: UserTranscriptPayload): string {
   const { transcript, startedAt, durationMs } = payload;
 
@@ -331,7 +339,7 @@ function buildUserHtml(payload: UserTranscriptPayload): string {
       const label = isStudent
         ? "<strong>You</strong>"
         : "<strong>Tutor</strong>";
-      return `<div style="background:${bg};padding:12px 16px;margin:8px 0;border-radius:6px;white-space:pre-wrap;">${label}<br>${entry.text}</div>`;
+      return `<div style="background:${bg};padding:12px 16px;margin:8px 0;border-radius:6px;white-space:pre-wrap;">${label}<br>${escapeHtml(entry.text)}</div>`;
     })
     .join("");
 
