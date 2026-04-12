@@ -43,6 +43,64 @@
     return true;
   }
 
+  /* ── Verify overlay helpers ─────────────────────────────────────────── */
+  var _countdownTimer = null;
+  var _countdownEnd = 0;
+
+  function startCountdown() {
+    _countdownEnd = Date.now() + 60 * 60 * 1000; // 60 minutes
+    tickCountdown();
+    _countdownTimer = setInterval(tickCountdown, 1000);
+  }
+
+  function tickCountdown() {
+    var remaining = Math.max(0, _countdownEnd - Date.now());
+    if (remaining === 0) {
+      $('verify-timer').textContent = 'Expired';
+      stopCountdown();
+      return;
+    }
+    var totalSec = Math.ceil(remaining / 1000);
+    var mm = Math.floor(totalSec / 60);
+    var ss = totalSec % 60;
+    $('verify-timer').textContent =
+      (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+  }
+
+  function stopCountdown() {
+    if (_countdownTimer) { clearInterval(_countdownTimer); _countdownTimer = null; }
+  }
+
+  function showVerifyOverlay(email) {
+    setError(null);
+    setSuccess(null);
+    $('verify-email-address').textContent = email;
+    $('verify-overlay').style.display = 'flex';
+    document.querySelector('.login-tabs').style.display = 'none';
+    $('login-panel').classList.remove('active');
+    $('register-panel').classList.remove('active');
+    startCountdown();
+  }
+
+  function hideVerifyOverlay() {
+    stopCountdown();
+    var email = $('verify-email-address').textContent || '';
+    $('verify-overlay').style.display = 'none';
+    document.querySelector('.login-tabs').style.display = '';
+    // Restore to sign-in tab
+    tabs.forEach(function (t) {
+      var isLogin = t.dataset.tab === 'login';
+      t.classList.toggle('active', isLogin);
+      t.setAttribute('aria-selected', isLogin ? 'true' : 'false');
+    });
+    $('login-panel').classList.add('active');
+    $('register-panel').classList.remove('active');
+    // Pre-fill sign-in email field with the registered email
+    if (email) $('login-email').value = email;
+    setError(null);
+    setSuccess(null);
+  }
+
   /* ── Tabs ──────────────────────────────────────────────────────────── */
   var tabs = document.querySelectorAll('.login-tab');
   var panels = {
@@ -51,6 +109,10 @@
   };
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
+      // Dismiss verify overlay if visible
+      if ($('verify-overlay').style.display !== 'none') {
+        hideVerifyOverlay();
+      }
       var target = tab.dataset.tab;
       tabs.forEach(function (t) {
         var active = t === tab;
@@ -145,13 +207,8 @@
       .then(function (res) {
         btn.disabled = false;
         if (res.status >= 200 && res.status < 300 && res.body.ok) {
-          setError(null);
           resetRegisterForm();
-          // Stay on the register tab and prompt the user to verify their
-          // email (issue #76). Pre-fill the login email field so they can
-          // sign in once they have verified.
-          $('login-email').value = email;
-          setSuccess('Check your inbox to verify your email before logging in.');
+          showVerifyOverlay(email);
         } else if (res.body && res.body.error === 'underage') {
           setError('You must be at least 13 to register.');
         } else {
@@ -227,6 +284,34 @@
         btn.disabled = false;
         setError('Network error: ' + err.message);
       });
+  });
+
+  /* ── Verify overlay: resend button ─────────────────────────────────── */
+  $('btn-verify-resend').addEventListener('click', function () {
+    var email = $('verify-email-address').textContent || '';
+    if (!email) return;
+    var btn = $('btn-verify-resend');
+    btn.disabled = true;
+    fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email }),
+    }).then(function () {
+      btn.disabled = false;
+      stopCountdown();
+      startCountdown();
+      var orig = btn.textContent;
+      btn.textContent = 'Sent!';
+      setTimeout(function () { btn.textContent = orig; }, 2000);
+    }).catch(function () {
+      btn.disabled = false;
+      setError('Network error — please try again.');
+    });
+  });
+
+  /* ── Verify overlay: return to sign in ────────────────────────────── */
+  $('btn-verify-back').addEventListener('click', function () {
+    hideVerifyOverlay();
   });
 
   /* ── Verification hash (Supabase email confirmation callback) ────────── */
