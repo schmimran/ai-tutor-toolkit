@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createProfile, getProfile } from "@ai-tutor/db";
 import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
 
 /**
@@ -137,7 +138,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
     }
 
     try {
-      const { error } = await db.auth.admin.createUser({
+      const { data: createData, error } = await db.auth.admin.createUser({
         email: parsed.email,
         password: parsed.password,
         email_confirm: false,
@@ -152,6 +153,14 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
       if (error) {
         res.status(400).json({ ok: false, error: "registration_failed" });
         return;
+      }
+      // Create a profile row for the new user (non-blocking on failure).
+      if (createData?.user?.id) {
+        try {
+          await createProfile(db, createData.user.id);
+        } catch (profileErr) {
+          console.error("[auth] createProfile failed for user", createData.user.id, profileErr);
+        }
       }
       sendVerificationEmail(parsed.email, "initial verification email failed");
       res.json({ ok: true });
@@ -300,12 +309,20 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
   /**
    * GET /api/auth/me
    *
-   * Smoke-test endpoint — returns the authenticated user's ID so the login
-   * page can verify that the stored access token is working.
+   * Returns the authenticated user's ID and admin status. The profile
+   * lookup uses getProfile which returns null for legacy users (registered
+   * before the profiles table existed) — in that case isAdmin is false
+   * (fail-closed).
    */
-  router.get("/me", requireAuth, (req, res) => {
+  router.get("/me", requireAuth, async (req, res) => {
     const userId = (req as AuthedRequest).userId;
-    res.json({ ok: true, userId });
+    try {
+      const profile = await getProfile(db, userId);
+      res.json({ ok: true, userId, isAdmin: profile?.isAdmin ?? false });
+    } catch (err) {
+      console.error("[auth] getProfile failed for /me:", err);
+      res.json({ ok: true, userId, isAdmin: false });
+    }
   });
 
   return router;

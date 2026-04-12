@@ -13,6 +13,9 @@ export { createSessionEvaluation, upsertSessionEvaluation, getSessionEvaluation 
 
 export { createDisclaimerAcceptance, linkDisclaimerAcceptance } from "./disclaimer-acceptances.js";
 
+export { createProfile, getProfile } from "./profiles.js";
+export type { DbProfile } from "./profiles.js";
+
 export type {
   DbSession,
   DbMessage,

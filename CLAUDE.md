@@ -197,6 +197,16 @@ One row per session.  Written by an automated transcript evaluation job using th
 | rationale | jsonb | {} | Per-criterion rationale strings keyed by column name. |
 | created_at | timestamptz | now() | |
 
+### profiles
+
+One row per registered user.  Created at registration time.
+
+| Column | Type | Default | Notes |
+|--------|------|---------|-------|
+| user_id | uuid | | PK. FK → auth.users(id) ON DELETE CASCADE. |
+| is_admin | boolean | false | Grants access to model/prompt/thinking selectors in the chat header. |
+| created_at | timestamptz | now() | |
+
 ### disclaimer_acceptances
 
 | Column | Type | Notes |
@@ -382,7 +392,7 @@ Supabase-backed individual-user login flow. **These endpoints are only registere
 - `POST /api/auth/forgot-password` — body `{ email }`. Sends a Supabase password-reset email via `anonDb.auth.resetPasswordForEmail(email, { redirectTo })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). The `redirectTo` URL is derived from `req.headers.origin` (or `req.headers.host`). No new env vars required. Errors logged server-side only.
 - `POST /api/auth/refresh` — body `{ refreshToken }`. Calls `anonDb.auth.refreshSession(...)`. Returns `{ ok, accessToken?, refreshToken?, expiresAt? }`.
 - `POST /api/auth/logout` — requires `Authorization: Bearer <accessToken>`. Calls `db.auth.admin.signOut(userId)` (service-role admin API). Returns `{ ok: true }`.
-- `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId }`.
+- `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId, isAdmin: boolean }`. `isAdmin` is read from the `profiles` table; returns `false` for legacy users without a profile row (fail-closed).
 
 JWT verification is handled by `createRequireAuth()` (in `apps/api/src/middleware/require-auth.ts`), which reads the bearer token and calls `db.auth.getUser(token)`. There is no `SUPABASE_JWT_SECRET` — Supabase's own verification API is used.
 
@@ -463,6 +473,7 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/000_schema.sql` | Consolidated database schema (sessions, messages, session_feedback, session_evaluations, disclaimer_acceptances) |
 | `supabase/migrations/001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` column to the sessions table |
 | `supabase/migrations/002_users.sql` | Adds nullable `user_id uuid` column to sessions referencing `auth.users(id) ON DELETE SET NULL`, with partial index `sessions_user_id`. Backs the parallel Supabase-auth login flow (issue #73). |
+| `supabase/migrations/003_profiles.sql` | Creates `profiles` table keyed on `user_id` with `is_admin boolean NOT NULL DEFAULT false`. One row per registered user. |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |
@@ -488,6 +499,7 @@ These apply to every Claude Code session in this repo.
 | `packages/db/src/session-feedback.ts` | `createSessionFeedback()`, `getSessionFeedback()` — session_feedback table CRUD |
 | `packages/db/src/session-evaluations.ts` | `createSessionEvaluation()`, `getSessionEvaluation()` — session_evaluations table CRUD |
 | `packages/db/src/disclaimer-acceptances.ts` | `createDisclaimerAcceptance()` — inserts a disclaimer acceptance row; `linkDisclaimerAcceptance()` — backfills session_id after session is created |
+| `packages/db/src/profiles.ts` | `createProfile(client, userId)` — inserts a profile row for a new user; `getProfile(client, userId)` — returns `{ isAdmin }` or `null` for legacy users |
 | `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend; includes session ID, token usage, evaluation results, and student feedback |
 | `apps/api/src/index.ts` | Express server entry — routes, middleware, inactivity sweep |
 | `apps/api/src/routes/chat.ts` | `POST /api/chat` — streaming chat with file upload |
