@@ -309,19 +309,25 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
   /**
    * GET /api/auth/me
    *
-   * Returns the authenticated user's ID and admin status. The profile
-   * lookup uses getProfile which returns null for legacy users (registered
-   * before the profiles table existed) — in that case isAdmin is false
-   * (fail-closed).
+   * Returns the authenticated user's ID, admin status, email, and display name.
+   * isAdmin is read from the profiles table; returns false for legacy users
+   * without a profile row (fail-closed).
    */
   router.get("/me", requireAuth, async (req, res) => {
-    const userId = (req as AuthedRequest).userId;
+    const authed = req as AuthedRequest;
+    const { userId, userEmail, userName } = authed;
     try {
       const profile = await getProfile(db, userId);
-      res.json({ ok: true, userId, isAdmin: profile?.isAdmin ?? false });
+      res.json({
+        ok: true,
+        userId,
+        isAdmin: profile?.isAdmin ?? false,
+        email: userEmail,
+        name: userName ?? null,
+      });
     } catch (err) {
       console.error("[auth] getProfile failed for /me:", err);
-      res.json({ ok: true, userId, isAdmin: false });
+      res.json({ ok: true, userId, isAdmin: false, email: userEmail, name: userName ?? null });
     }
   });
 

@@ -392,9 +392,9 @@ Supabase-backed individual-user login flow. **These endpoints are only registere
 - `POST /api/auth/forgot-password` — body `{ email }`. Sends a Supabase password-reset email via `anonDb.auth.resetPasswordForEmail(email, { redirectTo })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). The `redirectTo` URL is derived from `req.headers.origin` (or `req.headers.host`). No new env vars required. Errors logged server-side only.
 - `POST /api/auth/refresh` — body `{ refreshToken }`. Calls `anonDb.auth.refreshSession(...)`. Returns `{ ok, accessToken?, refreshToken?, expiresAt? }`.
 - `POST /api/auth/logout` — requires `Authorization: Bearer <accessToken>`. Calls `db.auth.admin.signOut(userId)` (service-role admin API). Returns `{ ok: true }`.
-- `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId, isAdmin: boolean }`. `isAdmin` is read from the `profiles` table; returns `false` for legacy users without a profile row (fail-closed).
+- `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId, isAdmin: boolean, email, name }`. `isAdmin` is read from the `profiles` table; returns `false` for legacy users without a profile row (fail-closed). `email` is the user's email; `name` is from `user_metadata.name` (null if unset).
 
-JWT verification is handled by `createRequireAuth()` (in `apps/api/src/middleware/require-auth.ts`), which reads the bearer token and calls `db.auth.getUser(token)`. There is no `SUPABASE_JWT_SECRET` — Supabase's own verification API is used.
+JWT verification is handled by `createRequireAuth()` (in `apps/api/src/middleware/require-auth.ts`), which reads the bearer token and calls `db.auth.getUser(token)`. The middleware populates `userId`, `userEmail`, and `userName` on the request object. There is no `SUPABASE_JWT_SECRET` — Supabase's own verification API is used.
 
 ---
 

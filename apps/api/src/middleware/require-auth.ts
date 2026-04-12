@@ -7,6 +7,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export interface AuthedRequest extends Request {
   userId: string;
+  userEmail: string;
+  userName: string | null;
 }
 
 /**
@@ -47,6 +49,9 @@ export function createRequireAuth(db: SupabaseClient): RequestHandler {
         return;
       }
       (req as AuthedRequest).userId = data.user.id;
+      (req as AuthedRequest).userEmail = data.user.email ?? "";
+      (req as AuthedRequest).userName =
+        (data.user.user_metadata?.name as string | undefined) ?? null;
       next();
     } catch {
       res.status(401).json({ ok: false, error: "unauthorized" });
