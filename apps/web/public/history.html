@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Session History — Axiom AI Tutor</title>
+  <meta name="theme-color" content="#0f1117">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/history.css">
+</head>
+<body>
+  <main class="history-shell">
+    <div class="history-card">
+      <div class="history-header">
+        <h1 class="history-title">Session History</h1>
+        <a href="/" class="history-back-link">Back to tutor</a>
+      </div>
+
+      <div id="history-loading" class="history-loading">Loading sessions...</div>
+      <div id="history-empty" class="history-empty" style="display:none">No past sessions found.</div>
+      <div id="history-error" class="history-error" style="display:none"></div>
+
+      <ul id="history-list" class="history-list" style="display:none"></ul>
+
+      <!-- Transcript viewer overlay -->
+      <div id="transcript-overlay" class="transcript-overlay" style="display:none">
+        <div class="transcript-panel">
+          <div class="transcript-panel-header">
+            <h2 class="transcript-panel-title" id="transcript-title">Transcript</h2>
+            <button type="button" class="transcript-close-btn" id="transcript-close">Close</button>
+          </div>
+          <div class="transcript-messages" id="transcript-messages"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="/history.js"></script>
+</body>
+</html>

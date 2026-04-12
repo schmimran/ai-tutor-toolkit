@@ -12,6 +12,17 @@ export interface AuthedRequest extends Request {
 }
 
 /**
+ * Request that MAY have passed through `createOptionalAuth`. Unlike
+ * `AuthedRequest`, `userId` is optional — it is set only when a valid
+ * Bearer token is present.
+ */
+export interface OptionalAuthRequest extends Request {
+  userId?: string;
+  userEmail?: string;
+  userName?: string | null;
+}
+
+/**
  * Create an auth-enforcing middleware bound to a Supabase service-role client.
  *
  * The middleware reads `Authorization: Bearer <token>` from the request,
@@ -56,5 +67,43 @@ export function createRequireAuth(db: SupabaseClient): RequestHandler {
     } catch {
       res.status(401).json({ ok: false, error: "unauthorized" });
     }
+  };
+}
+
+/**
+ * Create an optional-auth middleware bound to a Supabase service-role client.
+ *
+ * If a valid `Authorization: Bearer <token>` header is present, sets
+ * `req.userId`, `req.userEmail`, and `req.userName` on the request. If the
+ * header is missing, malformed, or the token is invalid, the middleware
+ * silently continues without populating user fields. It NEVER returns 401.
+ */
+export function createOptionalAuth(db: SupabaseClient): RequestHandler {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    const header = req.headers.authorization;
+    if (!header || typeof header !== "string") {
+      next();
+      return;
+    }
+
+    const match = header.match(/^Bearer\s+(.+)$/i);
+    const token = match?.[1]?.trim();
+    if (!token) {
+      next();
+      return;
+    }
+
+    try {
+      const { data, error } = await db.auth.getUser(token);
+      if (!error && data?.user?.id) {
+        (req as OptionalAuthRequest).userId = data.user.id;
+        (req as OptionalAuthRequest).userEmail = data.user.email ?? "";
+        (req as OptionalAuthRequest).userName =
+          (data.user.user_metadata?.name as string | undefined) ?? null;
+      }
+    } catch {
+      // Token invalid or expired — proceed without auth.
+    }
+    next();
   };
 }
