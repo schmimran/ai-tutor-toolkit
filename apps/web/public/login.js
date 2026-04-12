@@ -361,7 +361,12 @@
         refreshToken: params.get('refresh_token') || null,
         expiresAt: expiresAt,
       });
-      window.location.replace('/');
+      if (type === 'recovery') {
+        sessionStorage.setItem('authRecoveryPending', 'true');
+        window.location.replace('/settings.html?recovery=1');
+      } else {
+        window.location.replace('/');
+      }
       return true;
     }
     return false;
