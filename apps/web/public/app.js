@@ -127,7 +127,6 @@
     const isHaiku = selectedModel.includes('haiku');
     modelBadge.classList.toggle('extended', selectedThinking && !isHaiku);
     modelBadge.title = selectedModel + (selectedThinking && !isHaiku ? ' — extended thinking on' : '');
-    modelBadge.style.display = '';
   }
 
   function updatePromptBadge() {
@@ -135,7 +134,6 @@
     // Strip "tutor-prompt-" prefix for compact display (e.g. "v7").
     const label = selectedPrompt.replace(/^tutor-prompt-/, '');
     promptBadge.textContent = label;
-    promptBadge.style.display = '';
     if (!appConfig.promptSelectionEnabled) {
       promptBadge.classList.add('locked');
       promptBadge.title = selectedPrompt + ' — prompt selection disabled';
@@ -149,7 +147,6 @@
     thinkingBadge.textContent = selectedThinking ? 'thinking: on' : 'thinking: off';
     thinkingBadge.classList.toggle('off', !selectedThinking);
     thinkingBadge.title = (selectedThinking ? 'Extended thinking on' : 'Extended thinking off') + ' — click to toggle';
-    thinkingBadge.style.display = '';
   }
 
   function updateBuildInfo() {
@@ -162,6 +159,31 @@
       ? `${appConfig.buildVersion} · ${dateStr}`
       : appConfig.buildVersion;
     buildInfoEl.title = `Build ${appConfig.buildVersion}` + (appConfig.buildDate ? ` — ${appConfig.buildDate}` : '');
+  }
+
+  // ── Admin badge visibility ────────────────────────────────────────────────
+  async function fetchUserInfo() {
+    try {
+      const authRaw = sessionStorage.getItem('authSession');
+      if (!authRaw) return;
+      const auth = JSON.parse(authRaw);
+      if (!auth || !auth.accessToken) return;
+
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + auth.accessToken }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (data.ok && data.isAdmin === true) {
+        modelBadge.classList.add('admin-visible');
+        promptBadge.classList.add('admin-visible');
+        thinkingBadge.classList.add('admin-visible');
+      }
+      // Non-admin or missing isAdmin: badges remain hidden (CSS default).
+    } catch {
+      // Network or parse failure: leave badges hidden.
+    }
   }
 
   // ── Header button state ───────────────────────────────────────────────────
@@ -1041,6 +1063,7 @@
   // ── Init ──────────────────────────────────────────────────────────────────
   showEmpty();
   fetchConfig();
+  fetchUserInfo();
   msgInput.focus();
 
   // ── iOS viewport stability ────────────────────────────────────────────────

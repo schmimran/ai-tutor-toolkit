@@ -130,6 +130,7 @@
     .model-badge,
     .prompt-badge,
     .thinking-badge {
+      display: none;
       font-family: var(--font-sans);
       font-size: 0.71rem;
       font-weight: 500;
@@ -142,6 +143,11 @@
       cursor: pointer;
       user-select: none;
       transition: border-color 0.15s, color 0.15s;
+    }
+    .model-badge.admin-visible,
+    .prompt-badge.admin-visible,
+    .thinking-badge.admin-visible {
+      display: inline-block;
     }
     .model-badge:hover,
     .prompt-badge:hover,
