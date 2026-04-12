@@ -392,12 +392,13 @@ Returns `{ ok: false }` if the passcode is wrong or if `ACCESS_PASSCODE` is not 
 
 ---
 
-### POST /api/auth/register, POST /api/auth/login, POST /api/auth/refresh, POST /api/auth/logout, GET /api/auth/me
+### POST /api/auth/register, POST /api/auth/login, POST /api/auth/resend-verification, POST /api/auth/refresh, POST /api/auth/logout, GET /api/auth/me
 
 Parallel Supabase-backed individual-user login flow (issue #73). **These endpoints are only registered if `SUPABASE_ANON_KEY` is set.** They do NOT gate `/api/chat`, `/api/sessions`, `/api/transcript`, or `/api/feedback` — those still run on the existing passcode access wall. The new flow is reachable only by typing `/login.html` directly; it is a smoke-test / manual-verification surface.
 
-- `POST /api/auth/register` — body `{ email, password }`. Server-side validation (valid email, password ≥ 8). Calls `db.auth.admin.createUser({ email, password, email_confirm: false })`. Returns `{ ok: true }` on success.
-- `POST /api/auth/login` — body `{ email, password }`. Calls `anonDb.auth.signInWithPassword(...)`. Returns `{ ok: true, accessToken, refreshToken, expiresAt }` on success. On failure, always returns the same opaque `invalid_credentials` error (no distinction between wrong password and unconfirmed email).
+- `POST /api/auth/register` — body `{ email, password, name, birthdate, gradeLevel, state?, country? }`. Server-side validation (valid email, password ≥ 8, age ≥ 13, valid grade level). Calls `db.auth.admin.createUser({ email, password, email_confirm: false, user_metadata: {...} })`, then immediately sends the Supabase signup verification email via `anonDb.auth.resend({ type: "signup", email })`. Returns `{ ok: true }` on success, `{ ok: false, error: "underage" }` if age < 13, or `{ ok: false, error: "registration_failed" }` for other errors.
+- `POST /api/auth/login` — body `{ email, password }`. Calls `anonDb.auth.signInWithPassword(...)`. Returns `{ ok: true, accessToken, refreshToken, expiresAt }` on success. On failure, returns `{ ok: false, error: "email_not_confirmed" }` (HTTP 401) when the account is unconfirmed so the client can show a "Resend verification" affordance. All other failures return the opaque `{ ok: false, error: "invalid_credentials" }`.
+- `POST /api/auth/resend-verification` — body `{ email }`. Re-sends the Supabase signup confirmation email via `anonDb.auth.resend({ type: "signup", email })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). Errors logged server-side only.
 - `POST /api/auth/refresh` — body `{ refreshToken }`. Calls `anonDb.auth.refreshSession(...)`. Returns `{ ok, accessToken?, refreshToken?, expiresAt? }`.
 - `POST /api/auth/logout` — requires `Authorization: Bearer <accessToken>`. Calls `db.auth.admin.signOut(userId)` (service-role admin API). Returns `{ ok: true }`.
 - `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId }`. This is the smoke-test endpoint used by `/login.html`.
@@ -515,7 +516,7 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row |
 | `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records access-wall acceptance with IP/geo/user-agent/email |
 | `apps/api/src/routes/access.ts` | `POST /api/access/verify` — server-side passcode validation against ACCESS_PASSCODE env var |
-| `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — POST `/register`, `/login`, `/refresh`, `/logout` and GET `/me` for the parallel Supabase-auth login flow (issue #73). Registered only if `SUPABASE_ANON_KEY` is set. Does not gate the main app. |
+| `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — POST `/register`, `/login`, `/resend-verification`, `/refresh`, `/logout` and GET `/me` for the parallel Supabase-auth login flow (issue #73). Registered only if `SUPABASE_ANON_KEY` is set. Does not gate the main app. |
 | `apps/api/src/middleware/require-auth.ts` | `createRequireAuth(db)` — middleware that verifies `Authorization: Bearer <token>` via `db.auth.getUser(token)` and sets `req.userId`. Used by the `/api/auth/me` and `/api/auth/logout` routes. |
 | `apps/api/scripts/gen-build-info.js` | Generates `build-info.json` (commit SHA + timestamp) at build time; called by the API `build` script |
 | `apps/api/build-info.json` | Generated build metadata (gitignored); read at startup by the config route |
