@@ -171,27 +171,83 @@
       opacity: 0.6;
     }
 
-    /* ── User identity + logout ────────────────────────────────────────── */
-    .user-identity {
+    /* ── Account trigger + dropdown ───────────────────────────────────── */
+    .account-trigger {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 4px 10px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .account-trigger:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+    .account-caret {
+      width: 10px;
+      height: 6px;
+      flex-shrink: 0;
     }
     .user-display-name {
-      font-size: 0.75rem;
-      color: var(--text-muted);
       white-space: nowrap;
       max-width: 140px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .btn-logout {
-      color: var(--text-muted);
-      border-color: var(--border);
+    .account-dropdown {
+      position: fixed;
+      z-index: 300;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      min-width: 180px;
+      padding: 4px 0;
     }
-    .btn-logout:hover {
+    .account-dropdown-info {
+      padding: 8px 14px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+    .account-dropdown-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+    .account-dropdown-item {
+      display: block;
+      width: 100%;
+      padding: 8px 14px;
+      background: none;
+      border: none;
+      text-align: left;
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    .account-dropdown-item:hover:not(:disabled) {
+      background: var(--surface-alt);
+      color: var(--text);
+    }
+    .account-dropdown-item:disabled {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    .account-dropdown-logout {
       color: var(--danger);
-      border-color: var(--danger);
+    }
+    .account-dropdown-logout:hover {
+      color: var(--danger);
     }
 
     /* ── Config picker dropdown ─────────────────────────────────────────── */
@@ -881,6 +937,7 @@
       .empty-chips { display: none; }
       .logo-company { font-size: 1rem; }
       .user-display-name { display: none; }
+      .account-caret { margin-left: 0; }
     }
 
     /* ── Message appear animation ──────────────────────────────────────────── */

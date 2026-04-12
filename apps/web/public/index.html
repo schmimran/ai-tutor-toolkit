@@ -56,9 +56,17 @@
       </span>
     </span>
     <div class="header-right">
-      <div id="user-identity" class="user-identity" style="display:none">
+      <button id="account-trigger" class="account-trigger" style="display:none" aria-haspopup="true" aria-expanded="false">
         <span id="user-display-name" class="user-display-name"></span>
-        <button id="btn-logout" class="btn btn-sm btn-logout">Log out</button>
+        <svg class="account-caret" width="10" height="6" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      </button>
+      <div id="account-dropdown" class="account-dropdown" style="display:none" role="menu">
+        <div class="account-dropdown-info" id="account-dropdown-info"></div>
+        <div class="account-dropdown-divider"></div>
+        <button class="account-dropdown-item" id="menu-settings" role="menuitem" aria-disabled="true" disabled>Settings</button>
+        <button class="account-dropdown-item" id="menu-history" role="menuitem" aria-disabled="true" disabled>History</button>
+        <div class="account-dropdown-divider"></div>
+        <button class="account-dropdown-item account-dropdown-logout" id="menu-logout" role="menuitem">Log out</button>
       </div>
       <span id="build-info" class="build-info"></span>
       <span id="thinking-badge" class="thinking-badge" style="display:none" title="Extended thinking — click to toggle"></span>

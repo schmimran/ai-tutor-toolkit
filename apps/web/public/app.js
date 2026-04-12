@@ -89,9 +89,11 @@
   const btnCloseTx     = $('btn-close-tx');
   const btnCloseTx2    = $('btn-close-tx2');
   const btnCopyTx      = $('btn-copy-tx');
-  const userIdentityEl     = $('user-identity');
+  const accountTrigger     = $('account-trigger');
+  const accountDropdown    = $('account-dropdown');
+  const accountDropdownInfo = $('account-dropdown-info');
   const userDisplayName    = $('user-display-name');
-  const btnLogout          = $('btn-logout');
+  const menuLogout         = $('menu-logout');
   const dragOverlay        = $('drag-overlay');
   const wrappingUpOverlay  = $('wrapping-up-overlay');
   const toast              = $('toast');
@@ -187,8 +189,10 @@
         const displayName = data.name || data.email || '';
         if (displayName) {
           userDisplayName.textContent = displayName;
-          userIdentityEl.style.display = '';
+          accountTrigger.style.display = '';
         }
+        // Populate dropdown info line with email (or name if no email)
+        accountDropdownInfo.textContent = data.email || displayName;
       }
     } catch {
       // Network or parse failure: leave badges hidden and identity hidden.
@@ -1056,9 +1060,45 @@
         e.target !== modelBadge && e.target !== promptBadge && e.target !== thinkingBadge) {
       closeConfigPicker();
     }
+    if (accountDropdown.style.display !== 'none' &&
+        !accountDropdown.contains(e.target) &&
+        !accountTrigger.contains(e.target)) {
+      closeAccountDropdown();
+    }
   });
 
-  btnLogout.addEventListener('click', handleLogout);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && accountDropdown.style.display !== 'none') {
+      closeAccountDropdown();
+    }
+  });
+
+  // ── Account dropdown ──────────────────────────────────────────────────────
+  function openAccountDropdown() {
+    const rect = accountTrigger.getBoundingClientRect();
+    accountDropdown.style.top  = (rect.bottom + window.scrollY + 6) + 'px';
+    accountDropdown.style.left = Math.max(0, rect.right - 180) + 'px';
+    accountDropdown.style.display = '';
+    accountTrigger.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeAccountDropdown() {
+    accountDropdown.style.display = 'none';
+    accountTrigger.setAttribute('aria-expanded', 'false');
+  }
+
+  accountTrigger.addEventListener('click', () => {
+    if (accountDropdown.style.display !== 'none') {
+      closeAccountDropdown();
+    } else {
+      openAccountDropdown();
+    }
+  });
+
+  menuLogout.addEventListener('click', () => {
+    closeAccountDropdown();
+    handleLogout();
+  });
 
   btnSwitchConfirm.addEventListener('click', confirmSwitch);
   btnSwitchCancel.addEventListener('click',  () => { switchConfigOverlay.classList.remove('active'); pendingSwitch = null; });
