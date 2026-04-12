@@ -122,6 +122,8 @@
       Object.keys(panels).forEach(function (key) {
         panels[key].classList.toggle('active', key === target);
       });
+      // Dismiss forgot-password panel on tab click
+      $('forgot-panel').classList.remove('active');
       setError(null);
       setSuccess(null);
       var resendBtn = $('btn-resend-verification');
@@ -314,26 +316,70 @@
     hideVerifyOverlay();
   });
 
-  /* ── Verification hash (Supabase email confirmation callback) ────────── */
+  /* ── Hash-based token handling (verification + password recovery) ────── */
   function handleVerificationHash() {
     var hash = window.location.hash;
     if (!hash) return false;
     var params = new URLSearchParams(hash.slice(1));
-    if (params.get('type') !== 'signup') return false;
+    var type = params.get('type');
     var accessToken = params.get('access_token');
-    if (!accessToken) return false;
-    var expiresAtRaw = params.get('expires_at');
-    var expiresAt = expiresAtRaw ? parseInt(expiresAtRaw, 10) : null;
-    history.replaceState(null, '', window.location.pathname);
-    saveAuth({
-      accessToken: accessToken,
-      refreshToken: params.get('refresh_token') || null,
-      expiresAt: expiresAt,
-    });
-    window.location.replace('/');
-    return true;
+    if ((type === 'signup' || type === 'recovery') && accessToken) {
+      var expiresAtRaw = params.get('expires_at');
+      var expiresAt = expiresAtRaw ? parseInt(expiresAtRaw, 10) : null;
+      history.replaceState(null, '', window.location.pathname);
+      saveAuth({
+        accessToken: accessToken,
+        refreshToken: params.get('refresh_token') || null,
+        expiresAt: expiresAt,
+      });
+      window.location.replace('/');
+      return true;
+    }
+    return false;
   }
   if (handleVerificationHash()) return;
+
+  /* ── Forgot password panel ─────────────────────────────────────────── */
+  $('btn-show-forgot').addEventListener('click', function () {
+    setError(null);
+    setSuccess(null);
+    $('login-panel').classList.remove('active');
+    $('register-panel').classList.remove('active');
+    $('forgot-panel').classList.add('active');
+  });
+
+  $('btn-back-to-login').addEventListener('click', function () {
+    setError(null);
+    setSuccess(null);
+    $('forgot-panel').classList.remove('active');
+    $('login-panel').classList.add('active');
+    // Restore tab highlights
+    tabs.forEach(function (t) {
+      var isLogin = t.dataset.tab === 'login';
+      t.classList.toggle('active', isLogin);
+      t.setAttribute('aria-selected', isLogin ? 'true' : 'false');
+    });
+  });
+
+  $('btn-forgot').addEventListener('click', function () {
+    var email = $('forgot-email').value.trim();
+    if (!email) { setError('Please enter your email address.'); return; }
+    var btn = $('btn-forgot');
+    btn.disabled = true;
+    $('forgot-email').disabled = true;
+    setError(null);
+    fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email }),
+    }).then(function () {
+      setSuccess('If that address is registered you\'ll receive a reset link shortly.');
+    }).catch(function () {
+      setError('Network error — please try again.');
+      btn.disabled = false;
+      $('forgot-email').disabled = false;
+    });
+  });
 
   /* ── Redirect if already authenticated ───────────────────────────────── */
   var existing = loadAuth();

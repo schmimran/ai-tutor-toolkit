@@ -309,3 +309,19 @@ html, body {
 .verify-link-btn:hover {
   color: var(--accent-hover);
 }
+
+/* ── Forgot-password link ───────────────────────────────────────── */
+.login-forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+}
+.login-forgot-link:hover {
+  color: var(--text);
+}
