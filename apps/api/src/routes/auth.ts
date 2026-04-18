@@ -294,7 +294,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
    * Exchanges a refresh token for a new access token pair via the anon
    * client.
    */
-  router.post("/refresh", async (req, res) => {
+  router.post("/refresh", resendLimiter, async (req, res) => {
     const body = req.body as { refreshToken?: unknown } | undefined;
     const refreshToken = body?.refreshToken;
     if (typeof refreshToken !== "string" || !refreshToken) {
