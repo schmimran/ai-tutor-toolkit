@@ -833,24 +833,6 @@
       border-top: 1px solid var(--border);
     }
 
-    /* Transcript entries */
-    .tx-entry { margin-bottom: 14px; }
-    .tx-entry:last-child { margin-bottom: 0; }
-    .tx-role {
-      font-size: 0.69rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      margin-bottom: 3px;
-      color: var(--text-muted);
-    }
-    .tx-entry.student .tx-role { color: var(--accent); }
-    .tx-text {
-      white-space: pre-wrap;
-      font-size: 0.88rem;
-      line-height: 1.55;
-    }
-
     /* ── Toast notification ────────────────────────────────────────────────── */
     #toast {
       position: fixed;

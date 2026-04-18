@@ -71,7 +71,6 @@
   const btnFbSkip          = $('btn-fb-skip');
   const fbComment          = $('fb-comment');
   const inputRow           = $('input-row');
-  const btnTranscript       = $('btn-transcript');
   const promptBadge    = $('prompt-badge');
   const modelBadge     = $('model-badge');
   const thinkingBadge  = $('thinking-badge');
@@ -84,11 +83,6 @@
   const btnSwitchConfirm    = $('btn-switch-confirm');
   const btnSwitchCancel     = $('btn-switch-cancel');
   const btnSwitchCancelX    = $('btn-switch-cancel-x');
-  const modalTranscript = $('modal-transcript');
-  const txBody         = $('tx-body');
-  const btnCloseTx     = $('btn-close-tx');
-  const btnCloseTx2    = $('btn-close-tx2');
-  const btnCopyTx      = $('btn-copy-tx');
   const accountTrigger     = $('account-trigger');
   const accountDropdown    = $('account-dropdown');
   const accountDropdownInfo = $('account-dropdown-info');
@@ -223,7 +217,6 @@
   // ── Header button state ───────────────────────────────────────────────────
   function updateHeaderButtons() {
     const hasMessages = msgList.length > 0;
-    btnTranscript.disabled       = !hasMessages;
     btnEndSessionHeader.disabled = !hasMessages;
   }
 
@@ -814,47 +807,6 @@
   }
 
   // ── Transcript modal ──────────────────────────────────────────────────────
-  async function openTranscript() {
-    modalTranscript.classList.add('active');
-    txBody.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem">Loading…</p>';
-    try {
-      const res = await fetch(`/api/transcript/${sessionId}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { transcript } = await res.json();
-      if (!transcript?.length) {
-        txBody.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem">No messages yet.</p>';
-        return;
-      }
-      txBody.innerHTML = transcript.map(e => `
-        <div class="tx-entry ${e.role === 'Student' ? 'student' : ''}">
-          <div class="tx-role">${escHtml(e.role)}</div>
-          <div class="tx-text">${escHtml(e.text)}</div>
-        </div>`).join('');
-    } catch {
-      txBody.innerHTML = '<p style="color:var(--danger);font-size:.88rem">Could not load transcript.</p>';
-    }
-  }
-
-  function closeTranscript() {
-    modalTranscript.classList.remove('active');
-  }
-
-  async function copyTranscript() {
-    const entries = txBody.querySelectorAll('.tx-entry');
-    if (!entries.length) return;
-    const text = Array.from(entries).map(el => {
-      const role    = el.querySelector('.tx-role')?.textContent ?? '';
-      const content = el.querySelector('.tx-text')?.textContent ?? '';
-      return `${role}:\n${content}`;
-    }).join('\n\n');
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast('Copied to clipboard!');
-    } catch {
-      showToast('Copy failed — try selecting text manually.');
-    }
-  }
-
   // ── New session ───────────────────────────────────────────────────────────
   async function newSession() {
     if (isStreaming) return;
@@ -1005,14 +957,6 @@
 
   btnEndSession.addEventListener('click', endSession);
   btnEndSessionHeader.addEventListener('click', endSession);
-  btnTranscript.addEventListener('click', openTranscript);
-
-  btnCloseTx.addEventListener('click', closeTranscript);
-  btnCloseTx2.addEventListener('click', closeTranscript);
-  btnCopyTx.addEventListener('click', copyTranscript);
-  modalTranscript.addEventListener('click', e => {
-    if (e.target === modalTranscript) closeTranscript();
-  });
 
   // Feedback card option toggle
   fbCard.addEventListener('click', e => {
