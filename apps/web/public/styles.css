@@ -983,14 +983,12 @@
       align-items: center;
       justify-content: center;
       animation: float 4s ease-in-out infinite;
+      box-shadow: 0 0 24px var(--accent-glow);
     }
     .empty-icon {
-      font-size: 2rem;
+      width: 48px;
+      height: 48px;
       opacity: 1;
-      background: linear-gradient(135deg, var(--accent), var(--tutor-accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
     .empty-heading {
       font-family: var(--font-heading);

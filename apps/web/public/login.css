@@ -53,6 +53,42 @@ html, body {
   font-weight: 700;
 }
 
+.login-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-logo-mark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.login-logo-text {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.1;
+  gap: 2px;
+}
+
+.login-logo-company {
+  font-size: 1.4rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6d8ef5, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-logo-product {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .login-subtitle {
   margin: 0 0 1.25rem 0;
   color: var(--text-muted);
