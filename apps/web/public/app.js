@@ -87,6 +87,8 @@
   const accountDropdown    = $('account-dropdown');
   const accountDropdownInfo = $('account-dropdown-info');
   const userDisplayName    = $('user-display-name');
+  const menuSettings       = $('menu-settings');
+  const menuHistory        = $('menu-history');
   const menuLogout         = $('menu-logout');
   const dragOverlay        = $('drag-overlay');
   const wrappingUpOverlay  = $('wrapping-up-overlay');
@@ -1039,6 +1041,14 @@
     }
   });
 
+  menuSettings.addEventListener('click', () => {
+    closeAccountDropdown();
+    window.location.href = '/settings.html';
+  });
+  menuHistory.addEventListener('click', () => {
+    closeAccountDropdown();
+    window.location.href = '/history.html';
+  });
   menuLogout.addEventListener('click', () => {
     closeAccountDropdown();
     handleLogout();
