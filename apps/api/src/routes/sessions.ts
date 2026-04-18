@@ -9,6 +9,7 @@ import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "../lib/evaluation.js";
 import { UUID_RE } from "../lib/validation.js";
+import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
 
 export interface EmailConfig {
   apiKey: string | undefined;
@@ -24,13 +25,15 @@ export function createSessionsRouter(
   defaultExtendedThinking: boolean,
 ): Router {
   const router = Router();
+  const requireAuth = createRequireAuth(db);
 
   /**
    * GET /api/sessions/:sessionId
    *
-   * Returns session metadata from the database.
+   * Returns session metadata. Requires auth; the session must belong to the
+   * caller.
    */
-  router.get("/:sessionId", async (req, res, next) => {
+  router.get("/:sessionId", requireAuth, async (req, res, next) => {
     try {
       const { sessionId } = req.params;
       if (!UUID_RE.test(sessionId)) {
@@ -38,7 +41,7 @@ export function createSessionsRouter(
         return;
       }
       const row = await getDbSession(db, sessionId);
-      if (!row) {
+      if (!row || row.user_id !== (req as AuthedRequest).userId) {
         res.status(404).json({ error: "Session not found." });
         return;
       }
@@ -58,11 +61,16 @@ export function createSessionsRouter(
    * from memory and marks ended_at.  Used when the user switches model/prompt
    * mid-session and the transcript should be discarded.
    */
-  router.delete("/:sessionId", async (req, res, next) => {
+  router.delete("/:sessionId", requireAuth, async (req, res, next) => {
     try {
       const { sessionId } = req.params;
       if (!UUID_RE.test(sessionId)) {
         res.status(400).json({ error: "sessionId must be a valid UUID." });
+        return;
+      }
+      const dbRow = await getDbSession(db, sessionId);
+      if (!dbRow || dbRow.user_id !== (req as AuthedRequest).userId) {
+        res.status(404).json({ error: "Session not found." });
         return;
       }
       const discard = req.query["discard"] === "true";

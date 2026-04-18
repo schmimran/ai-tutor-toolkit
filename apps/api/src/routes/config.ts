@@ -49,6 +49,8 @@ export function createConfigRouter(
       promptSelectionEnabled: process.env.ALLOW_PROMPT_SELECTION === "true",
       buildVersion: buildInfo?.commitShort ?? null,
       buildDate: buildInfo?.builtAt ?? null,
+      supabaseUrl: process.env.SUPABASE_URL ?? null,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? null,
     });
   });
 

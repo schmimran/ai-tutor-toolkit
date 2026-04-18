@@ -1,52 +1,22 @@
 /* settings.js — client logic for /settings.html.
  *
- * Single IIFE, no bundler. Fetches GET /api/auth/settings on load and
- * provides forms to update grade level, email transcripts preference,
- * and email address.
+ * Uses supabase-js directly for reads/updates:
+ *   - user object (name/email/birthdate/grade_level/app_metadata) via auth.getUser()
+ *   - email_transcripts_enabled via a RLS-protected select/update on profiles
+ *   - password change via auth.updateUser({ password, currentPassword })
+ *   - email change via auth.updateUser({ email }) — Supabase emails the new
+ *     address to confirm the change.
+ *
+ * Recovery detection: supabase-js fires PASSWORD_RECOVERY on the auth state
+ * when a recovery hash is consumed. We show the recovery banner when
+ * `?recovery=1` is in the URL or when that event fires.
  */
 (function () {
   "use strict";
 
-  // ── Auth helpers ──────────────────────────────────────────────────────────
-  function getAuthSession() {
-    var raw = sessionStorage.getItem("authSession") || localStorage.getItem("authSession");
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch { return null; }
-  }
-
-  function saveAuthSession(obj) {
-    var store = sessionStorage.getItem("authSession") ? sessionStorage : localStorage;
-    store.setItem("authSession", JSON.stringify(obj));
-  }
-
   var isRecovery = new URLSearchParams(window.location.search).get("recovery") === "1";
-  var auth = null;
 
-  if (isRecovery) {
-    var rawRecovery = sessionStorage.getItem("authRecoveryToken");
-    if (rawRecovery) {
-      try { auth = JSON.parse(rawRecovery); } catch { auth = null; }
-    }
-    if (!auth || !auth.accessToken) {
-      window.location.replace("/login.html");
-      return;
-    }
-  } else {
-    auth = getAuthSession();
-    if (!auth || !auth.accessToken) {
-      window.location.replace("/login.html");
-      return;
-    }
-  }
-
-  function authHeaders() {
-    return {
-      Authorization: "Bearer " + auth.accessToken,
-      "Content-Type": "application/json",
-    };
-  }
-
-  // ── DOM refs ──────────────────────────────────────────────────────────────
+  // DOM refs.
   var loadingEl = document.getElementById("settings-loading");
   var errorEl = document.getElementById("settings-error");
   var formEl = document.getElementById("settings-form");
@@ -57,6 +27,8 @@
   var emailEl = document.getElementById("settings-email");
   var changeEmailBtn = document.getElementById("btn-change-email");
   var changePasswordBtn = document.getElementById("btn-change-password");
+  var currentPasswordEl = document.getElementById("settings-current-password");
+  var currentPasswordField = document.getElementById("current-password-field");
   var newPasswordEl = document.getElementById("settings-new-password");
   var confirmPasswordEl = document.getElementById("settings-confirm-password");
   var recoveryBannerEl = document.getElementById("recovery-banner");
@@ -64,10 +36,10 @@
   var successEl = document.getElementById("settings-success");
   var errorInlineEl = document.getElementById("settings-error-inline");
 
-  // Track original values to detect changes.
   var original = {};
+  var client = null;
+  var userId = null;
 
-  // ── Formatting helpers ────────────────────────────────────────────────────
   function formatBirthdate(iso) {
     if (!iso) return "";
     var parts = iso.split("-");
@@ -81,218 +53,166 @@
     errorInlineEl.style.display = "none";
     setTimeout(function () { successEl.style.display = "none"; }, 4000);
   }
-
   function showError(msg) {
     errorInlineEl.textContent = msg;
     errorInlineEl.style.display = "";
     successEl.style.display = "none";
   }
-
   function clearMessages() {
     successEl.style.display = "none";
     errorInlineEl.style.display = "none";
   }
 
-  // ── Load settings ─────────────────────────────────────────────────────────
-  function loadSettings() {
-    fetch("/api/auth/settings", { headers: authHeaders() })
-      .then(function (res) {
-        if (res.status === 401) {
-          window.location.replace("/login.html");
-          return null;
-        }
-        if (!res.ok) throw new Error("Failed to load settings.");
-        return res.json();
-      })
-      .then(function (data) {
-        if (!data) return;
-        loadingEl.style.display = "none";
-        formEl.style.display = "";
-
-        nameEl.value = data.name || "";
-        birthdateEl.value = formatBirthdate(data.birthdate);
-        emailEl.value = data.email || "";
-
-        if (data.gradeLevel) {
-          gradeEl.value = data.gradeLevel;
-        }
-        emailTranscriptsEl.checked = data.emailTranscriptsEnabled !== false;
-
-        original.gradeLevel = data.gradeLevel || "";
-        original.emailTranscriptsEnabled = data.emailTranscriptsEnabled !== false;
-        original.email = data.email || "";
-
-        // Recovery mode: show banner, swap the back link to avoid accidental
-        // app access before password is changed.
-        if (isRecovery) {
-          recoveryBannerEl.style.display = "";
-          var backLinkEl = document.getElementById("btn-back-link");
-          if (backLinkEl) {
-            backLinkEl.textContent = "Cancel — go to login";
-            backLinkEl.href = "/login.html";
-          }
-          newPasswordEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      })
-      .catch(function (err) {
-        loadingEl.style.display = "none";
-        errorEl.textContent = err.message || "Failed to load settings.";
-        errorEl.style.display = "";
-      });
+  function applyRecoveryUI() {
+    recoveryBannerEl.style.display = "";
+    // Current password isn't needed when arriving via recovery link — Supabase
+    // accepts updateUser({ password }) because the session itself was just
+    // issued by the recovery flow.
+    if (currentPasswordField) currentPasswordField.style.display = "none";
+    var backLinkEl = document.getElementById("btn-back-link");
+    if (backLinkEl) {
+      backLinkEl.textContent = "Cancel — go to login";
+      backLinkEl.href = "/login.html";
+    }
+    if (newPasswordEl) newPasswordEl.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
-  // ── Save settings (grade + email transcripts) ─────────────────────────────
-  formEl.addEventListener("submit", function (e) {
+  async function loadSettings() {
+    try {
+      var session = await window.auth.requireSession();
+      client = window.auth.getClient();
+      userId = session.user.id;
+
+      // PASSWORD_RECOVERY fires when supabase-js processes a recovery hash — set
+      // isRecovery so the password-change path skips the current-password field.
+      client.auth.onAuthStateChange(function (event) {
+        if (event === "PASSWORD_RECOVERY") { isRecovery = true; applyRecoveryUI(); }
+      });
+
+      var user = session.user;
+      var meta = user.user_metadata || {};
+
+      nameEl.value = meta.name || "";
+      birthdateEl.value = formatBirthdate(meta.birthdate);
+      emailEl.value = user.email || "";
+      if (meta.grade_level) gradeEl.value = meta.grade_level;
+
+      // Profile row (RLS limits to the caller's own row).
+      var profileRes = await client
+        .from("profiles")
+        .select("email_transcripts_enabled")
+        .eq("user_id", userId)
+        .maybeSingle();
+      var emailTranscriptsEnabled = true;
+      if (profileRes.data && profileRes.data.email_transcripts_enabled !== null) {
+        emailTranscriptsEnabled = profileRes.data.email_transcripts_enabled;
+      }
+      emailTranscriptsEl.checked = emailTranscriptsEnabled;
+
+      original.gradeLevel = meta.grade_level || "";
+      original.emailTranscriptsEnabled = emailTranscriptsEnabled;
+      original.email = user.email || "";
+
+      loadingEl.style.display = "none";
+      formEl.style.display = "";
+
+      if (isRecovery) applyRecoveryUI();
+    } catch (err) {
+      loadingEl.style.display = "none";
+      errorEl.textContent = (err && err.message) || "Failed to load settings.";
+      errorEl.style.display = "";
+    }
+  }
+
+  // Save grade + email_transcripts_enabled.
+  formEl.addEventListener("submit", async function (e) {
     e.preventDefault();
     clearMessages();
-
-    var payload = {};
-    var gradeVal = gradeEl.value;
-    if (gradeVal && gradeVal !== original.gradeLevel) {
-      payload.gradeLevel = gradeVal;
-    }
-    var transcriptsVal = emailTranscriptsEl.checked;
-    if (transcriptsVal !== original.emailTranscriptsEnabled) {
-      payload.emailTranscriptsEnabled = transcriptsVal;
-    }
-
-    if (Object.keys(payload).length === 0) {
-      showSuccess("No changes to save.");
-      return;
-    }
-
     saveBtn.disabled = true;
-    fetch("/api/auth/settings", {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(payload),
-    })
-      .then(function (res) {
-        if (res.status === 401) {
-          window.location.replace("/login.html");
-          return null;
-        }
-        return res.json();
-      })
-      .then(function (data) {
-        if (!data) return;
-        saveBtn.disabled = false;
-        if (data.ok) {
-          if (payload.gradeLevel) original.gradeLevel = payload.gradeLevel;
-          if (payload.emailTranscriptsEnabled !== undefined) {
-            original.emailTranscriptsEnabled = payload.emailTranscriptsEnabled;
-          }
-          showSuccess("Settings saved.");
-        } else {
-          showError(data.error || "Failed to save settings.");
-        }
-      })
-      .catch(function () {
-        saveBtn.disabled = false;
-        showError("Network error. Please try again.");
-      });
+    try {
+      var gradeVal = gradeEl.value;
+      var transcriptsVal = emailTranscriptsEl.checked;
+      var updates = [];
+
+      if (gradeVal && gradeVal !== original.gradeLevel) {
+        // supabase-js merges `data` into user_metadata server-side — no need to read first.
+        updates.push(
+          client.auth.updateUser({ data: { grade_level: gradeVal } }).then(function (r) {
+            if (r.error) throw r.error;
+            original.gradeLevel = gradeVal;
+          })
+        );
+      }
+      if (transcriptsVal !== original.emailTranscriptsEnabled) {
+        updates.push(
+          client.from("profiles").update({ email_transcripts_enabled: transcriptsVal })
+            .eq("user_id", userId).then(function (r) {
+              if (r.error) throw r.error;
+              original.emailTranscriptsEnabled = transcriptsVal;
+            })
+        );
+      }
+
+      await Promise.all(updates);
+      showSuccess("Settings saved.");
+    } catch (err) {
+      showError((err && err.message) || "Failed to save settings.");
+    } finally {
+      saveBtn.disabled = false;
+    }
   });
 
-  // ── Change email ──────────────────────────────────────────────────────────
-  changeEmailBtn.addEventListener("click", function () {
+  changeEmailBtn.addEventListener("click", async function () {
     clearMessages();
     var newEmail = emailEl.value.trim();
-    if (!newEmail) {
-      showError("Please enter an email address.");
-      return;
-    }
-    if (newEmail === original.email) {
-      showSuccess("Email unchanged.");
-      return;
-    }
-
+    if (!newEmail) { showError("Please enter an email address."); return; }
+    if (newEmail === original.email) { showSuccess("Email unchanged."); return; }
     changeEmailBtn.disabled = true;
-    fetch("/api/auth/change-email", {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ newEmail: newEmail }),
-    })
-      .then(function (res) {
-        if (res.status === 401) {
-          window.location.replace("/login.html");
-          return null;
-        }
-        return res.json();
-      })
-      .then(function (data) {
-        if (!data) return;
-        changeEmailBtn.disabled = false;
-        if (data.ok) {
-          original.email = newEmail;
-          showSuccess("Email updated.");
-        } else {
-          showError(data.error || "Failed to update email.");
-        }
-      })
-      .catch(function () {
-        changeEmailBtn.disabled = false;
-        showError("Network error. Please try again.");
-      });
+    try {
+      var res = await client.auth.updateUser({ email: newEmail });
+      if (res.error) throw res.error;
+      showSuccess("A confirmation link has been sent to " + newEmail + ". Click it to complete the change.");
+    } catch (err) {
+      showError((err && err.message) || "Failed to update email.");
+    } finally {
+      changeEmailBtn.disabled = false;
+    }
   });
 
-  // ── Change password ───────────────────────────────────────────────────────
-  changePasswordBtn.addEventListener("click", function () {
+  changePasswordBtn.addEventListener("click", async function () {
     clearMessages();
     var newPwd = newPasswordEl.value;
     var confirmPwd = confirmPasswordEl.value;
-    if (!newPwd) {
-      showError("Please enter a new password.");
-      return;
-    }
-    if (newPwd.length < 8) {
-      showError("Password must be at least 8 characters.");
-      return;
-    }
-    if (newPwd !== confirmPwd) {
-      showError("Passwords do not match.");
-      return;
-    }
+    var currentPwd = currentPasswordEl.value;
+
+    if (!newPwd) { showError("Please enter a new password."); return; }
+    if (newPwd.length < 8) { showError("Password must be at least 8 characters."); return; }
+    if (newPwd !== confirmPwd) { showError("Passwords do not match."); return; }
+    // Current password is required except in recovery mode.
+    if (!isRecovery && !currentPwd) { showError("Please enter your current password."); return; }
 
     changePasswordBtn.disabled = true;
-    fetch("/api/auth/change-password", {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ newPassword: newPwd, refreshToken: auth.refreshToken || null }),
-    })
-      .then(function (res) {
-        if (res.status === 401) {
-          window.location.replace("/login.html");
-          return null;
-        }
-        return res.json();
-      })
-      .then(function (data) {
-        if (!data) return;
-        changePasswordBtn.disabled = false;
-        if (data.ok) {
-          newPasswordEl.value = "";
-          confirmPasswordEl.value = "";
-          if (isRecovery) {
-            sessionStorage.removeItem("authRecoveryToken");
-            window.location.replace("/login.html?reason=password_changed");
-          } else {
-            if (data.accessToken) {
-              auth = { accessToken: data.accessToken, refreshToken: data.refreshToken || null, expiresAt: data.expiresAt || null };
-              saveAuthSession(auth);
-            }
-            recoveryBannerEl.style.display = "none";
-            showSuccess("Password changed successfully.");
-          }
-        } else {
-          showError(data.error || "Failed to change password.");
-        }
-      })
-      .catch(function () {
-        changePasswordBtn.disabled = false;
-        showError("Network error. Please try again.");
-      });
+    try {
+      var update = { password: newPwd };
+      if (!isRecovery) update.currentPassword = currentPwd;
+      var res = await client.auth.updateUser(update);
+      if (res.error) throw res.error;
+      newPasswordEl.value = "";
+      confirmPasswordEl.value = "";
+      if (currentPasswordEl) currentPasswordEl.value = "";
+      if (isRecovery) {
+        // Sign the user out of the recovery session and send them to login.
+        try { await client.auth.signOut(); } catch (e) { /* ignore */ }
+        window.location.replace("/login.html?reason=password_changed");
+      } else {
+        showSuccess("Password changed successfully.");
+      }
+    } catch (err) {
+      showError((err && err.message) || "Failed to change password.");
+    } finally {
+      changePasswordBtn.disabled = false;
+    }
   });
 
-  // ── Init ──────────────────────────────────────────────────────────────────
   loadSettings();
 })();

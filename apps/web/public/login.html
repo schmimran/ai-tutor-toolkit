@@ -31,10 +31,6 @@
           <span class="login-label">Password</span>
           <input type="password" id="login-password" class="login-input" autocomplete="current-password" required minlength="8">
         </label>
-        <label class="login-checkbox-row">
-          <input type="checkbox" id="login-remember">
-          <span class="login-checkbox-label">Remember me</span>
-        </label>
         <button type="submit" class="login-btn login-btn-primary" id="btn-login">Sign in</button>
         <button type="button" class="login-btn" id="btn-resend-verification" style="display:none">Resend verification email</button>
         <button type="button" class="login-forgot-link" id="btn-show-forgot">Forgot password?</button>
@@ -100,27 +96,13 @@
         <button type="submit" class="login-btn login-btn-primary" id="btn-register">Create account</button>
       </form>
 
-      <!-- ── Post-registration verification overlay ───────────────────── -->
-      <div id="verify-overlay" class="verify-overlay" style="display:none">
-        <h2 class="verify-heading">Check your email</h2>
-        <p class="verify-body">
-          We sent a verification link to <strong id="verify-email-address"></strong>.
-          Click the link in that email to activate your account.
-        </p>
-        <p class="verify-countdown">
-          Link expires in <span id="verify-timer">60:00</span>.
-        </p>
-        <button type="button" class="login-btn login-btn-primary" id="btn-verify-resend">Resend email</button>
-        <p class="verify-back-note">
-          Already verified? <button type="button" class="verify-link-btn" id="btn-verify-back">Return to sign in</button>
-        </p>
-      </div>
-
       <p class="login-error" id="login-error" style="display:none"></p>
       <p class="login-success" id="login-success" style="display:none"></p>
       <p class="login-contact-note" id="login-contact-note"></p>
     </div>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/auth.js"></script>
   <script src="/login.js"></script>
 </body>
 </html>

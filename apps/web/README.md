@@ -56,7 +56,7 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | Session feedback | Session-level outcome, experience, and comment collected at session end. |
 | New session | One-click reset with automatic prior session cleanup (`DELETE /api/sessions/:id`) |
 | Model indicator | Shows current model and extended thinking status (from `/api/config`) |
-| Disclaimer overlay | Shown on first visit; acceptance recorded via `POST /api/disclaimer/accept` |
+| Auth gate | Unauthenticated users are redirected to `/login.html`. Auth is required everywhere. |
 
 ## API calls made by the frontend
 

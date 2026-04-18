@@ -1,13 +1,15 @@
 import { Router } from "express";
-import { createSessionFeedback } from "@ai-tutor/db";
+import { createSessionFeedback, getSession as getDbSession } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { UUID_RE } from "../lib/validation.js";
+import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
 
 const VALID_OUTCOMES = new Set(["solved", "partial", "stuck"]);
 const VALID_EXPERIENCES = new Set(["positive", "neutral", "negative"]);
 
 export function createFeedbackRouter(db: SupabaseClient): Router {
   const router = Router();
+  const requireAuth = createRequireAuth(db);
 
   /**
    * POST /api/feedback
@@ -22,7 +24,7 @@ export function createFeedbackRouter(db: SupabaseClient): Router {
    *
    * Saves one session_feedback row to the database.
    */
-  router.post("/", async (req, res, next) => {
+  router.post("/", requireAuth, async (req, res, next) => {
     try {
       const { sessionId, source, outcome, experience, comment, skipped } =
         req.body as {
@@ -60,6 +62,12 @@ export function createFeedbackRouter(db: SupabaseClient): Router {
       }
       if (typeof comment === "string" && comment.length > 2000) {
         res.status(400).json({ error: "Comment too long (max 2000 characters)." });
+        return;
+      }
+
+      const dbRow = await getDbSession(db, sessionId);
+      if (!dbRow || dbRow.user_id !== (req as AuthedRequest).userId) {
+        res.status(404).json({ error: "Session not found." });
         return;
       }
 

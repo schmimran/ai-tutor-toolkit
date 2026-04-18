@@ -162,56 +162,33 @@
   }
 
   // ── Admin badge visibility + user identity ───────────────────────────────
+  // Pulls the user object from the live Supabase session. `is_admin` lives in
+  // app_metadata and is set via SQL (never writable by the client).
   async function fetchUserInfo() {
     try {
-      const authRaw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
-      if (!authRaw) return;
-      const auth = JSON.parse(authRaw);
-      if (!auth || !auth.accessToken) return;
+      const session = await window.auth.getSession();
+      const user = (session && session.user) || {};
+      const appMeta = user.app_metadata || {};
+      const userMeta = user.user_metadata || {};
 
-      const res = await fetch('/api/auth/me', {
-        headers: { 'Authorization': 'Bearer ' + auth.accessToken }
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-
-      if (data.ok) {
-        if (data.isAdmin === true) {
-          modelBadge.classList.add('admin-visible');
-          promptBadge.classList.add('admin-visible');
-          thinkingBadge.classList.add('admin-visible');
-        }
-        const displayName = data.name || data.email || '';
-        if (displayName) {
-          userDisplayName.textContent = displayName;
-          accountTrigger.style.display = '';
-        }
-        // Populate dropdown info line with email (or name if no email)
-        accountDropdownInfo.textContent = data.email || displayName;
+      if (appMeta.is_admin === true) {
+        modelBadge.classList.add('admin-visible');
+        promptBadge.classList.add('admin-visible');
+        thinkingBadge.classList.add('admin-visible');
       }
+      const displayName = userMeta.name || user.email || '';
+      if (displayName) {
+        userDisplayName.textContent = displayName;
+        accountTrigger.style.display = '';
+      }
+      accountDropdownInfo.textContent = user.email || displayName;
     } catch {
-      // Network or parse failure: leave badges hidden and identity hidden.
+      // Leave badges hidden on failure.
     }
   }
 
   async function handleLogout() {
-    try {
-      const authRaw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
-      if (authRaw) {
-        const auth = JSON.parse(authRaw);
-        if (auth && auth.accessToken) {
-          await fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + auth.accessToken }
-          });
-        }
-      }
-    } catch {
-      // Proceed regardless of API result (fail-open).
-    }
-    sessionStorage.removeItem('authSession');
-    localStorage.removeItem('authSession');
-    window.location.href = '/login.html';
+    await window.auth.signOut();
   }
 
 
@@ -438,16 +415,7 @@
     try {
       activeAbortController = new AbortController();
       const fetchOpts = { method: 'POST', body: fd, signal: activeAbortController.signal, headers: {} };
-      try {
-        const authRaw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
-        if (authRaw) {
-          const auth = JSON.parse(authRaw);
-          if (auth && auth.accessToken) {
-            fetchOpts.headers['Authorization'] = 'Bearer ' + auth.accessToken;
-          }
-        }
-      } catch (_) { /* ignore — auth is optional */ }
-      const resp = await fetch('/api/chat', fetchOpts);
+      const resp = await window.auth.authedFetch('/api/chat', fetchOpts);
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: resp.statusText }));
         throw new Error(err.error || resp.statusText);
@@ -523,11 +491,11 @@
 
   // ── Session DELETE helpers ────────────────────────────────────────────────
   function deleteSession(id) {
-    return fetch(`/api/sessions/${id}`, { method: 'DELETE' }).catch(() => {});
+    return window.auth.authedFetch(`/api/sessions/${id}`, { method: 'DELETE' }).catch(() => {});
   }
 
   function discardSession(id) {
-    return fetch(`/api/sessions/${id}?discard=true`, { method: 'DELETE' }).catch(() => {});
+    return window.auth.authedFetch(`/api/sessions/${id}?discard=true`, { method: 'DELETE' }).catch(() => {});
   }
 
   // ── Config picker (model / prompt / thinking) ─────────────────────────────
@@ -798,7 +766,7 @@
     }
 
     try {
-      await fetch('/api/feedback', {
+      await window.auth.authedFetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -1072,86 +1040,23 @@
   });
 
   // ── Auth gate ─────────────────────────────────────────────────────────────
-  // Redirect to /login.html if no valid auth session exists. This check runs
-  // synchronously before any UI renders.
-  (function () {
-    try {
-      var raw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
-      if (!raw) { window.location.href = '/login.html'; return; }
-      var auth = JSON.parse(raw);
-      if (!auth || !auth.accessToken) { window.location.href = '/login.html'; return; }
-      // Check token expiry (Supabase expiresAt is in Unix seconds)
-      if (auth.expiresAt && Date.now() / 1000 > auth.expiresAt) {
-        sessionStorage.removeItem('authSession');
-        localStorage.removeItem('authSession');
-        window.location.href = '/login.html';
-        return;
-      }
-    } catch (e) { window.location.href = '/login.html'; return; }
-  })();
-
-  // ── Proactive token refresh ────────────────────────────────────────────────
-  var refreshTimer = null;
-  var REFRESH_LEAD_MS = 2 * 60 * 1000; // 2 minutes before expiry
-
-  /** Return whichever storage currently holds the auth session (sessionStorage wins). */
-  function authStorage() {
-    return sessionStorage.getItem('authSession') ? sessionStorage : localStorage;
-  }
-
-  function scheduleTokenRefresh() {
-    if (refreshTimer) clearTimeout(refreshTimer);
-    try {
-      var raw = sessionStorage.getItem('authSession') || localStorage.getItem('authSession');
-      if (!raw) return;
-      var auth = JSON.parse(raw);
-      if (!auth || !auth.refreshToken || !auth.expiresAt) return;
-      var msUntilExpiry = auth.expiresAt * 1000 - Date.now();
-      var delay = Math.max(0, msUntilExpiry - REFRESH_LEAD_MS);
-      refreshTimer = setTimeout(doTokenRefresh, delay);
-    } catch (e) { /* silent */ }
-  }
-
-  function doTokenRefresh() {
-    var store = authStorage();
-    var raw = store.getItem('authSession');
-    if (!raw) return;
-    var auth;
-    try { auth = JSON.parse(raw); } catch (e) { return; }
-    if (!auth || !auth.refreshToken) return;
-
-    fetch('/api/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: auth.refreshToken }),
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (res) {
-        if (res.ok && res.accessToken) {
-          store.setItem('authSession', JSON.stringify({
-            accessToken: res.accessToken,
-            refreshToken: res.refreshToken,
-            expiresAt: res.expiresAt,
-          }));
-          scheduleTokenRefresh(); // re-arm for the next cycle
-        } else {
-          // Refresh token also expired — force re-login
-          sessionStorage.removeItem('authSession');
-          localStorage.removeItem('authSession');
-          window.location.href = '/login.html?reason=session_expired';
+  // Redirect to /login.html if no valid session exists. supabase-js handles
+  // token storage, refresh, and cross-tab sync; we just check for a session
+  // and listen for sign-out events.
+  window.auth.requireSession().then(function () {
+    window.auth.init().then(function () {
+      window.auth.getClient().auth.onAuthStateChange(function (event) {
+        if (event === 'SIGNED_OUT') {
+          window.location.href = '/login.html';
         }
-      })
-      .catch(function () {
-        // Network failure — do not log out; retry in 30 s (iOS screen lock)
-        refreshTimer = setTimeout(doTokenRefresh, 30000);
       });
-  }
+    });
+    fetchConfig();
+    fetchUserInfo();
+  });
 
   // ── Init ──────────────────────────────────────────────────────────────────
   showEmpty();
-  fetchConfig();
-  fetchUserInfo();
-  scheduleTokenRefresh();
   msgInput.focus();
 
   // ── iOS viewport stability ────────────────────────────────────────────────

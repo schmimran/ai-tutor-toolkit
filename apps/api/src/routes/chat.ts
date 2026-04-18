@@ -6,12 +6,12 @@ import {
   createMessage,
   createSession,
   updateSession,
-  linkDisclaimerAcceptance,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOrCreateSession } from "../lib/session-store.js";
 import { initSSE, sendEvent } from "../lib/stream.js";
 import { extractClientInfo } from "../lib/geo.js";
+import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
 
 /** Accepted MIME types for file uploads. */
 const ALLOWED_MIME_TYPES = new Set([
@@ -91,6 +91,7 @@ export function createChatRouter(
   defaultExtendedThinking: boolean
 ): Router {
   const router = Router();
+  const requireAuth = createRequireAuth(db);
 
   /**
    * POST /api/chat
@@ -109,8 +110,10 @@ export function createChatRouter(
    */
   router.post(
     "/",
+    requireAuth,
     upload.array("files"),
     async (req, res, next) => {
+      const userId = (req as AuthedRequest).userId;
       try {
         const {
           sessionId,
@@ -164,27 +167,6 @@ export function createChatRouter(
             session.extendedThinking = defaultExtendedThinking;
           }
 
-          // Resolve user_id from Bearer token (best-effort; never 401 on this route).
-          let userId: string | null = null;
-          try {
-            const authHeader = req.headers.authorization;
-            if (authHeader && typeof authHeader === "string") {
-              const match = authHeader.match(/^Bearer\s+(.+)$/i);
-              if (match) {
-                const token = match[1].trim();
-                if (token) {
-                  const { data, error } = await db.auth.getUser(token);
-                  if (!error && data?.user?.id) {
-                    userId = data.user.id;
-                  }
-                }
-              }
-            }
-          } catch {
-            // Swallow — user_id is optional.
-          }
-
-          // Upsert the session row in the database.
           try {
             await createSession(db, {
               id: sessionId,
@@ -197,9 +179,6 @@ export function createChatRouter(
               extended_thinking: session.extendedThinking,
               user_id: userId,
             });
-            // Backfill session_id on any disclaimer acceptance rows recorded
-            // before this session row existed.
-            await linkDisclaimerAcceptance(db, sessionId);
           } catch (err) {
             console.error("[chat] Could not create DB session row:", err);
           }

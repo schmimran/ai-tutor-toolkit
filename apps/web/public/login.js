@@ -1,14 +1,16 @@
 /* login.js — logic for the /login.html entry point.
  *
- * This page gates the main app at /. Users must sign in or register here
- * before accessing the chat. After a successful login, the browser is
- * redirected to / with the auth session stored in sessionStorage.
+ * Uses window.auth (apps/web/public/auth.js) for all Supabase interaction.
+ * Calls the three rate-limited server proxies (/api/auth/register, /login,
+ * /forgot-password) directly because they do server-side validation and
+ * rate limiting that can't be done from the client.
+ *
+ * After a successful login the browser is redirected to /. Supabase-js
+ * handles session storage and the signup/recovery hash callbacks.
  */
 
 (function () {
   'use strict';
-
-  var AUTH_KEY = 'authSession';
 
   function $(id) { return document.getElementById(id); }
 
@@ -18,110 +20,14 @@
     el.textContent = msg;
     el.style.display = '';
   }
-
-  function setError(msg) { setMessage('login-error', msg); }
+  function setError(msg)   { setMessage('login-error', msg); }
   function setSuccess(msg) { setMessage('login-success', msg); }
-
-  function loadAuth() {
-    try {
-      var raw = sessionStorage.getItem(AUTH_KEY);
-      if (raw) return JSON.parse(raw);
-      raw = localStorage.getItem(AUTH_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
-  }
-
-  /** Detect which storage holds the current session (sessionStorage wins). */
-  function authStorage() {
-    return sessionStorage.getItem(AUTH_KEY) ? sessionStorage : localStorage;
-  }
-
-  function saveAuth(obj, persistent) {
-    var store = persistent ? localStorage : sessionStorage;
-    store.setItem(AUTH_KEY, JSON.stringify(obj));
-  }
-
-  function clearAuth() {
-    sessionStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(AUTH_KEY);
-  }
-
-  function isAuthValid(auth) {
-    if (!auth || !auth.accessToken) return false;
-    if (auth.expiresAt && Date.now() / 1000 > auth.expiresAt) return false;
-    return true;
-  }
-
-  /* ── Verify overlay helpers ─────────────────────────────────────────── */
-  var _countdownTimer = null;
-  var _countdownEnd = 0;
-
-  function startCountdown() {
-    _countdownEnd = Date.now() + 60 * 60 * 1000; // 60 minutes
-    tickCountdown();
-    _countdownTimer = setInterval(tickCountdown, 1000);
-  }
-
-  function tickCountdown() {
-    var remaining = Math.max(0, _countdownEnd - Date.now());
-    if (remaining === 0) {
-      $('verify-timer').textContent = 'Expired';
-      stopCountdown();
-      return;
-    }
-    var totalSec = Math.ceil(remaining / 1000);
-    var mm = Math.floor(totalSec / 60);
-    var ss = totalSec % 60;
-    $('verify-timer').textContent =
-      (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
-  }
-
-  function stopCountdown() {
-    if (_countdownTimer) { clearInterval(_countdownTimer); _countdownTimer = null; }
-  }
-
-  function showVerifyOverlay(email) {
-    setError(null);
-    setSuccess(null);
-    $('verify-email-address').textContent = email;
-    $('verify-overlay').style.display = 'flex';
-    document.querySelector('.login-tabs').style.display = 'none';
-    $('login-panel').classList.remove('active');
-    $('register-panel').classList.remove('active');
-    startCountdown();
-  }
-
-  function hideVerifyOverlay() {
-    stopCountdown();
-    var email = $('verify-email-address').textContent || '';
-    $('verify-overlay').style.display = 'none';
-    document.querySelector('.login-tabs').style.display = '';
-    // Restore to sign-in tab
-    tabs.forEach(function (t) {
-      var isLogin = t.dataset.tab === 'login';
-      t.classList.toggle('active', isLogin);
-      t.setAttribute('aria-selected', isLogin ? 'true' : 'false');
-    });
-    $('login-panel').classList.add('active');
-    $('register-panel').classList.remove('active');
-    // Pre-fill sign-in email field with the registered email
-    if (email) $('login-email').value = email;
-    setError(null);
-    setSuccess(null);
-  }
 
   /* ── Tabs ──────────────────────────────────────────────────────────── */
   var tabs = document.querySelectorAll('.login-tab');
-  var panels = {
-    login: $('login-panel'),
-    register: $('register-panel'),
-  };
+  var panels = { login: $('login-panel'), register: $('register-panel') };
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
-      // Dismiss verify overlay if visible
-      if ($('verify-overlay').style.display !== 'none') {
-        hideVerifyOverlay();
-      }
       var target = tab.dataset.tab;
       tabs.forEach(function (t) {
         var active = t === tab;
@@ -131,16 +37,14 @@
       Object.keys(panels).forEach(function (key) {
         panels[key].classList.toggle('active', key === target);
       });
-      // Dismiss forgot-password panel on tab click
       $('forgot-panel').classList.remove('active');
       setError(null);
       setSuccess(null);
-      var resendBtn = $('btn-resend-verification');
-      if (resendBtn) resendBtn.style.display = 'none';
+      $('btn-resend-verification').style.display = 'none';
     });
   });
 
-  /* ── Config (contact email) ────────────────────────────────────────── */
+  /* ── Contact email from config ─────────────────────────────────────── */
   fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
     var email = (cfg && cfg.contactEmail) || '';
     if (email) {
@@ -148,9 +52,33 @@
     }
   }).catch(function () { /* silent */ });
 
+  /* ── Redirect if already signed in / on SIGNED_IN. Supabase-js consumes
+       signup/recovery hash callbacks automatically via detectSessionInUrl. */
+  window.auth.init().then(function () {
+    var client = window.auth.getClient();
+    client.auth.onAuthStateChange(function (event) {
+      if (event === 'PASSWORD_RECOVERY') {
+        window.location.replace('/settings.html?recovery=1');
+        return;
+      }
+      if (event === 'SIGNED_IN') {
+        // Do NOT redirect on recovery — PASSWORD_RECOVERY fires first above.
+        if (window.location.hash.indexOf('type=recovery') === -1) {
+          window.location.replace('/');
+        }
+      }
+    });
+    // Cover the case where a session already existed before this page loaded.
+    client.auth.getSession().then(function (res) {
+      var session = res && res.data ? res.data.session : null;
+      if (session && window.location.hash.indexOf('type=recovery') === -1) {
+        window.location.replace('/');
+      }
+    });
+  });
+
   /* ── Register ──────────────────────────────────────────────────────── */
   function computeAgeYears(birthdate) {
-    // birthdate in YYYY-MM-DD format
     var parts = birthdate.split('-');
     if (parts.length !== 3) return NaN;
     var y = parseInt(parts[0], 10);
@@ -159,20 +87,15 @@
     var today = new Date();
     var age = today.getFullYear() - y;
     var monthDiff = (today.getMonth() + 1) - m;
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) {
-      age -= 1;
-    }
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) age -= 1;
     return age;
   }
 
   function resetRegisterForm() {
-    $('register-name').value = '';
-    $('register-email').value = '';
-    $('register-password').value = '';
-    $('register-birthdate').value = '';
-    $('register-grade').value = '';
-    $('register-state').value = '';
-    $('register-country').value = '';
+    ['register-name','register-email','register-password','register-birthdate',
+     'register-grade','register-state','register-country'].forEach(function (id) {
+      $(id).value = '';
+    });
     $('register-terms').checked = false;
   }
 
@@ -193,7 +116,6 @@
     if (!gradeLevel) { setError('Please select a grade level.'); return; }
     if (!terms) { setError('Please accept the terms to continue.'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-
     var age = computeAgeYears(birthdate);
     if (!isFinite(age) || age < 13) {
       setError('You must be at least 13 to register.');
@@ -205,24 +127,19 @@
     fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: email,
-        password: password,
-        name: name,
-        birthdate: birthdate,
-        gradeLevel: gradeLevel,
-        state: state,
-        country: country,
-      }),
+      body: JSON.stringify({ email: email, password: password, name: name,
+        birthdate: birthdate, gradeLevel: gradeLevel, state: state, country: country }),
     }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
       .then(function (res) {
         btn.disabled = false;
         if (res.status === 429) {
-          setError('Too many attempts \u2014 please wait a few minutes and try again.');
+          setError('Too many attempts — please wait a few minutes and try again.');
         } else if (res.status >= 200 && res.status < 300 && res.body.ok) {
-          setError(null);
           resetRegisterForm();
-          showVerifyOverlay(email);
+          setSuccess('Account created. Check your email for a verification link, then sign in.');
+          // Switch to sign-in tab and pre-fill email
+          document.querySelector('.login-tab[data-tab="login"]').click();
+          $('login-email').value = email;
         } else if (res.body && res.body.error === 'underage') {
           setError('You must be at least 13 to register.');
         } else {
@@ -235,11 +152,7 @@
   });
 
   /* ── Login ─────────────────────────────────────────────────────────── */
-  function setResendVisible(visible) {
-    var btn = $('btn-resend-verification');
-    if (!btn) return;
-    btn.style.display = visible ? '' : 'none';
-  }
+  function setResendVisible(visible) { $('btn-resend-verification').style.display = visible ? '' : 'none'; }
 
   $('login-panel').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -258,19 +171,21 @@
       .then(function (res) {
         btn.disabled = false;
         if (res.status === 429) {
-          setError('Too many attempts \u2014 please wait a few minutes and try again.');
-        } else if (res.status >= 200 && res.status < 300 && res.body.ok) {
-          var remember = $('login-remember').checked;
-          var auth = {
-            email: email,
-            accessToken: res.body.accessToken,
-            refreshToken: res.body.refreshToken,
-            expiresAt: res.body.expiresAt,
-          };
-          saveAuth(auth, remember);
-          window.location.href = '/';
+          setError('Too many attempts — please wait a few minutes and try again.');
           return;
-        } else if (res.body && res.body.error === 'email_not_confirmed') {
+        }
+        if (res.status >= 200 && res.status < 300 && res.body.ok) {
+          // Hand the tokens to supabase-js so it owns the session from here on.
+          return window.auth.init().then(function () {
+            return window.auth.getClient().auth.setSession({
+              access_token: res.body.accessToken,
+              refresh_token: res.body.refreshToken,
+            });
+          }).then(function () {
+            window.location.href = '/';
+          });
+        }
+        if (res.body && res.body.error === 'email_not_confirmed') {
           setError('Please verify your email first.');
           setResendVisible(true);
         } else {
@@ -282,32 +197,25 @@
       });
   });
 
-  /* ── Resend verification email ─────────────────────────────────────── */
+  /* ── Resend verification ───────────────────────────────────────────── */
   $('btn-resend-verification').addEventListener('click', function () {
     var email = $('login-email').value.trim();
     if (!email) { setError('Enter your email above, then click resend.'); return; }
     var btn = $('btn-resend-verification');
     btn.disabled = true;
-    fetch('/api/auth/resend-verification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email }),
-    }).then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
-      .then(function (res) {
-        btn.disabled = false;
-        if (res.status === 429) {
-          setError('Too many attempts \u2014 please wait a few minutes and try again.');
-          return;
-        }
-        setError(null);
-        setSuccess('Verification email sent.');
-      }).catch(function (err) {
-        btn.disabled = false;
-        setError('Network error: ' + err.message);
-      });
+    window.auth.init().then(function () {
+      return window.auth.getClient().auth.resend({ type: 'signup', email: email });
+    }).then(function () {
+      btn.disabled = false;
+      setError(null);
+      setSuccess('Verification email sent.');
+    }).catch(function () {
+      btn.disabled = false;
+      setError('Network error — please try again.');
+    });
   });
 
-  /* ── Session-expired notice ────────────────────────────────────────── */
+  /* ── URL reason banners ────────────────────────────────────────────── */
   var urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('reason') === 'session_expired') {
     setError('Your session expired. Please sign in again.');
@@ -316,87 +224,18 @@
     setSuccess('Password changed. Please sign in with your new password.');
   }
 
-  /* ── Verify overlay: resend button ─────────────────────────────────── */
-  $('btn-verify-resend').addEventListener('click', function () {
-    var email = $('verify-email-address').textContent || '';
-    if (!email) return;
-    var btn = $('btn-verify-resend');
-    btn.disabled = true;
-    fetch('/api/auth/resend-verification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email }),
-    }).then(function (r) {
-      btn.disabled = false;
-      if (r.status === 429) {
-        setError('Too many attempts \u2014 please wait a few minutes and try again.');
-        return;
-      }
-      stopCountdown();
-      startCountdown();
-      var orig = btn.textContent;
-      btn.textContent = 'Sent!';
-      setTimeout(function () { btn.textContent = orig; }, 2000);
-    }).catch(function () {
-      btn.disabled = false;
-      setError('Network error — please try again.');
-    });
-  });
-
-  /* ── Verify overlay: return to sign in ────────────────────────────── */
-  $('btn-verify-back').addEventListener('click', function () {
-    hideVerifyOverlay();
-  });
-
-  /* ── Hash-based token handling (verification + password recovery) ────── */
-  function handleVerificationHash() {
-    var hash = window.location.hash;
-    if (!hash) return false;
-    var params = new URLSearchParams(hash.slice(1));
-    var type = params.get('type');
-    var accessToken = params.get('access_token');
-    if ((type === 'signup' || type === 'recovery') && accessToken) {
-      var expiresAtRaw = params.get('expires_at');
-      var expiresAt = expiresAtRaw ? parseInt(expiresAtRaw, 10) : null;
-      history.replaceState(null, '', window.location.pathname);
-      if (type === 'recovery') {
-        // Store the recovery token separately — never in authSession — so it
-        // cannot be used to access the main app before the password is changed.
-        sessionStorage.setItem('authRecoveryToken', JSON.stringify({
-          accessToken: accessToken,
-          refreshToken: params.get('refresh_token') || null,
-          expiresAt: expiresAt,
-        }));
-        window.location.replace('/settings.html?recovery=1');
-      } else {
-        saveAuth({
-          accessToken: accessToken,
-          refreshToken: params.get('refresh_token') || null,
-          expiresAt: expiresAt,
-        });
-        window.location.replace('/');
-      }
-      return true;
-    }
-    return false;
-  }
-  if (handleVerificationHash()) return;
-
-  /* ── Forgot password panel ─────────────────────────────────────────── */
+  /* ── Forgot password ───────────────────────────────────────────────── */
   $('btn-show-forgot').addEventListener('click', function () {
-    setError(null);
-    setSuccess(null);
+    setError(null); setSuccess(null);
     $('login-panel').classList.remove('active');
     $('register-panel').classList.remove('active');
     $('forgot-panel').classList.add('active');
   });
 
   $('btn-back-to-login').addEventListener('click', function () {
-    setError(null);
-    setSuccess(null);
+    setError(null); setSuccess(null);
     $('forgot-panel').classList.remove('active');
     $('login-panel').classList.add('active');
-    // Restore tab highlights
     tabs.forEach(function (t) {
       var isLogin = t.dataset.tab === 'login';
       t.classList.toggle('active', isLogin);
@@ -416,20 +255,11 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email }),
     }).then(function () {
-      setSuccess('If that address is registered you\'ll receive a reset link shortly.');
+      setSuccess("If that address is registered you'll receive a reset link shortly.");
     }).catch(function () {
       setError('Network error — please try again.');
       btn.disabled = false;
       $('forgot-email').disabled = false;
     });
   });
-
-  /* ── Redirect if already authenticated ───────────────────────────────── */
-  var existing = loadAuth();
-  if (isAuthValid(existing)) {
-    window.location.href = '/';
-    return;
-  }
-  // Expired or malformed — clear stale data
-  if (existing) clearAuth();
 })();

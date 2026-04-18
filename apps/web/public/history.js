@@ -6,23 +6,6 @@
 (function () {
   "use strict";
 
-  // ── Auth helpers ──────────────────────────────────────────────────────────
-  function getAuthSession() {
-    var raw = sessionStorage.getItem("authSession") || localStorage.getItem("authSession");
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch { return null; }
-  }
-
-  var auth = getAuthSession();
-  if (!auth || !auth.accessToken) {
-    window.location.replace("/login.html");
-    return;
-  }
-
-  function authHeaders() {
-    return { Authorization: "Bearer " + auth.accessToken };
-  }
-
   // ── DOM refs ──────────────────────────────────────────────────────────────
   var loadingEl = document.getElementById("history-loading");
   var emptyEl = document.getElementById("history-empty");
@@ -74,12 +57,8 @@
 
   // ── Load sessions ─────────────────────────────────────────────────────────
   function loadSessions() {
-    fetch("/api/history", { headers: authHeaders() })
+    window.auth.authedFetch("/api/history")
       .then(function (res) {
-        if (res.status === 401) {
-          window.location.replace("/login.html");
-          return null;
-        }
         if (!res.ok) throw new Error("Failed to load sessions");
         return res.json();
       })
@@ -164,13 +143,9 @@
     messagesEl.innerHTML = "<div class=\"history-loading\">Loading transcript...</div>";
     overlayEl.style.display = "";
 
-    fetch("/api/transcript/" + sessionId, { headers: authHeaders() })
+    window.auth.authedFetch("/api/transcript/" + sessionId)
       .then(function (res) {
-        if (res.status === 401) {
-          window.location.replace("/login.html");
-          return null;
-        }
-        if (res.status === 403) throw new Error("Access denied.");
+        if (res.status === 404 || res.status === 403) throw new Error("Access denied.");
         if (!res.ok) throw new Error("Failed to load transcript.");
         return res.json();
       })
@@ -227,5 +202,5 @@
   });
 
   // ── Init ──────────────────────────────────────────────────────────────────
-  loadSessions();
+  window.auth.requireSession().then(loadSessions);
 })();

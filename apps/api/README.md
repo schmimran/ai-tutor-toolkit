@@ -30,20 +30,18 @@ This is the only process that runs in production.  It:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/chat` | Stream a tutor response (SSE, multipart/form-data with optional file uploads) |
-| `GET` | `/api/config` | Non-secret runtime config (model, extended thinking, inactivity timeout) |
-| `GET` | `/api/sessions/:id` | Session metadata from DB |
-| `DELETE` | `/api/sessions/:id` | End session; runs evaluation, sends transcript email, sets `ended_at` |
-| `GET` | `/api/transcript/:id` | Conversation transcript (prefers in-memory, falls back to DB) |
-| `POST` | `/api/feedback` | Submit end-of-session feedback (one `session_feedback` row) |
-| `POST` | `/api/disclaimer/accept` | Record disclaimer acceptance (sessionId, email) |
+| `POST` | `/api/chat` | Stream a tutor response (SSE, multipart/form-data with optional file uploads). Requires auth. |
+| `GET` | `/api/config` | Non-secret runtime config (model, extended thinking, inactivity timeout, supabase URL + anon key) |
+| `GET` | `/api/sessions/:id` | Session metadata from DB. Requires auth + ownership. |
+| `DELETE` | `/api/sessions/:id` | End session; runs evaluation, sends transcript email, sets `ended_at`. Requires auth + ownership. |
+| `GET` | `/api/transcript/:id` | Conversation transcript. Requires auth + ownership. |
+| `POST` | `/api/feedback` | Submit end-of-session feedback. Requires auth + ownership. |
+| `GET` | `/api/history` | List the authenticated user's past ended sessions. |
 | `POST` | `/api/auth/register` | Create a new user account (email verification required) |
 | `POST` | `/api/auth/login` | Sign in with email and password |
-| `POST` | `/api/auth/resend-verification` | Re-send signup verification email |
 | `POST` | `/api/auth/forgot-password` | Send password-reset email |
-| `POST` | `/api/auth/refresh` | Exchange refresh token for new access token |
-| `POST` | `/api/auth/logout` | Revoke all refresh tokens (requires auth) |
-| `GET`  | `/api/auth/me` | Get authenticated user's profile (requires auth) |
+
+All other auth operations (session refresh, logout, change-password, change-email, resend-verification, /me, settings) are handled client-side via `@supabase/supabase-js` — see `apps/web/public/auth.js`.
 
 For full request/response schemas, see the [API endpoint reference](../../CLAUDE.md#api-endpoint-reference) in CLAUDE.md.
 
@@ -95,8 +93,8 @@ apps/api/src/
 │   ├── sessions.ts         ← GET/DELETE /api/sessions/:id
 │   ├── transcript.ts       ← GET /api/transcript/:id
 │   ├── feedback.ts         ← POST /api/feedback
-│   ├── disclaimer.ts       ← POST /api/disclaimer/accept
-│   └── auth.ts             ← POST/GET /api/auth/* (register, login, refresh, etc.)
+│   ├── history.ts          ← GET  /api/history
+│   └── auth.ts             ← POST /api/auth/register, /login, /forgot-password (rate-limited proxies only)
 ├── middleware/
 │   ├── cors.ts             ← CORS (origin from CORS_ORIGIN env var)
 │   ├── errors.ts           ← Global error handler
