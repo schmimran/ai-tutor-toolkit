@@ -289,6 +289,7 @@ Get session metadata.
   "id": "uuid",
   "started_at": "2024-01-01T00:00:00Z",
   "last_activity_at": "2024-01-01T00:10:00Z",
+  "ended_at": null,
   "client_ip": "1.2.3.4",
   "client_geo": { "city": "...", "country": "..." },
   "client_user_agent": "Mozilla/...",
@@ -332,6 +333,25 @@ Get conversation transcript.  Prefers in-memory session; falls back to DB.
   ]
 }
 ```
+
+---
+
+### POST /api/transcript/:sessionId/email
+
+Email a copy of the session transcript to the authenticated user's registered address via Resend.  Auth-gated; the session must belong to the caller.  Rate-limited to 3 requests per 15 minutes per IP.
+
+**Response**: `application/json`
+
+```json
+{ "ok": true }
+```
+
+Error responses:
+- `400 { "ok": false, "error": "invalid_session_id" | "empty_transcript" | "no_user_email" }`
+- `404 { "ok": false, "error": "not_found" }` — session missing or not owned by caller
+- `429 { "ok": false, "error": "too_many_requests" }`
+- `500 { "ok": false, "error": "failed" }` — Resend error
+- `503 { "ok": false, "error": "email_not_configured" }` — `RESEND_API_KEY` is not set
 
 ---
 
@@ -480,6 +500,7 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/chat.ts` | `POST /api/chat` — streaming chat with file upload |
 | `apps/api/src/routes/sessions.ts` | `GET/DELETE /api/sessions/:id` |
 | `apps/api/src/routes/transcript.ts` | `GET /api/transcript/:id` |
+| `apps/api/src/routes/transcript-email.ts` | `POST /api/transcript/:id/email` — rate-limited, auth-gated, ownership-checked. Sends the transcript to the caller's registered email via `sendUserTranscript`. |
 | `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row (requires auth + ownership) |
 | `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — rate-limited proxies for `POST /register`, `/login`, `/forgot-password`. All other auth operations are client-side via supabase-js. Registered only if `SUPABASE_ANON_KEY` is set. |
 | `apps/api/src/middleware/require-auth.ts` | `createRequireAuth(db)` — verifies `Authorization: Bearer <token>` via `db.auth.getUser(token)` and sets `req.userId`, `req.userEmail`, `req.userName`, `req.isAdmin` (from `app_metadata.is_admin` JWT claim). |
