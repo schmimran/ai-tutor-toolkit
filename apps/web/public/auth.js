@@ -35,6 +35,7 @@
     }
     return window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
       auth: {
+        storage: window.localStorage,
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
