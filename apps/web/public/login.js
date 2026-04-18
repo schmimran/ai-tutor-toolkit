@@ -312,6 +312,9 @@
   if (urlParams.get('reason') === 'session_expired') {
     setError('Your session expired. Please sign in again.');
   }
+  if (urlParams.get('reason') === 'password_changed') {
+    setSuccess('Password changed. Please sign in with your new password.');
+  }
 
   /* ── Verify overlay: resend button ─────────────────────────────────── */
   $('btn-verify-resend').addEventListener('click', function () {
@@ -356,15 +359,21 @@
       var expiresAtRaw = params.get('expires_at');
       var expiresAt = expiresAtRaw ? parseInt(expiresAtRaw, 10) : null;
       history.replaceState(null, '', window.location.pathname);
-      saveAuth({
-        accessToken: accessToken,
-        refreshToken: params.get('refresh_token') || null,
-        expiresAt: expiresAt,
-      });
       if (type === 'recovery') {
-        sessionStorage.setItem('authRecoveryPending', 'true');
+        // Store the recovery token separately — never in authSession — so it
+        // cannot be used to access the main app before the password is changed.
+        sessionStorage.setItem('authRecoveryToken', JSON.stringify({
+          accessToken: accessToken,
+          refreshToken: params.get('refresh_token') || null,
+          expiresAt: expiresAt,
+        }));
         window.location.replace('/settings.html?recovery=1');
       } else {
+        saveAuth({
+          accessToken: accessToken,
+          refreshToken: params.get('refresh_token') || null,
+          expiresAt: expiresAt,
+        });
         window.location.replace('/');
       }
       return true;

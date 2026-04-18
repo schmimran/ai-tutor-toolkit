@@ -333,7 +333,7 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
    * provides sufficient authorization for this action.
    */
   router.post("/change-password", resendLimiter, requireAuth, async (req, res) => {
-    const body = req.body as { newPassword?: unknown } | undefined;
+    const body = req.body as { newPassword?: unknown; refreshToken?: unknown } | undefined;
     const newPassword = body?.newPassword;
     if (typeof newPassword !== "string" || newPassword.length < 8) {
       res.status(400).json({ ok: false, error: "weak_password" });
@@ -341,12 +341,27 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
     }
 
     const userId = (req as AuthedRequest).userId;
+    const refreshToken = typeof body?.refreshToken === "string" && body.refreshToken ? body.refreshToken : null;
     try {
       const { error } = await db.auth.admin.updateUserById(userId, { password: newPassword });
       if (error) {
         console.error("[auth] change-password updateUserById failed:", error);
         res.status(500).json({ ok: false, error: "server_error" });
         return;
+      }
+      // updateUserById invalidates all existing tokens. If the client supplied
+      // a refresh token, issue a fresh session so the UI stays authenticated.
+      if (refreshToken) {
+        const { data: refreshed, error: refreshError } = await anonDb.auth.refreshSession({ refresh_token: refreshToken });
+        if (!refreshError && refreshed?.session) {
+          res.json({
+            ok: true,
+            accessToken: refreshed.session.access_token,
+            refreshToken: refreshed.session.refresh_token,
+            expiresAt: refreshed.session.expires_at,
+          });
+          return;
+        }
       }
       res.json({ ok: true });
     } catch (err) {
