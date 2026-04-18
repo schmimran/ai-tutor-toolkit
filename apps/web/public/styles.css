@@ -1,19 +1,20 @@
     /* ── CSS variables ─────────────────────────────────────────────────────── */
     :root {
-      --bg:            #0f1117;
-      --surface:       #1a1d27;
+      --bg:            #0e0f1a;
+      --surface:       #181a2e;
       --surface-alt:   #252836;
       --surface-raise: #2e3247;
       --border:        #2e3247;
       --border-bright: #4a4f6a;
       --text:          #e8eaf6;
-      --text-muted:    #6b7194;
-      --accent:        #7c6af7;
-      --accent-light:  #2d2860;
+      --text-muted:    #9499c0;
+      --accent:        #6d8ef5;
+      /* Warm periwinkle tinted surface used for accent backgrounds (pills, chips, hover states). */
+      --accent-light:  #1e2a52;
       --accent-dark:   #5b4dd4;
-      --accent-glow:   rgba(124, 106, 247, 0.25);
-      --tutor-accent:  #22d3ee;
-      --tutor-bg:      #0e1e26;
+      --accent-glow:   rgba(109, 142, 245, 0.25);
+      --tutor-accent:  #f59e0b;
+      --tutor-bg:      #1a1600;
       --tutor-border:  #1a3a48;
       --user-bg:       #1e1a40;
       --user-border:   #3d3572;
@@ -134,7 +135,7 @@
       font-family: var(--font-sans);
       font-size: 0.71rem;
       font-weight: 500;
-      color: var(--text-muted);
+      color: var(--text);
       background: var(--surface-alt);
       padding: 3px 10px;
       border-radius: var(--radius-pill);
@@ -177,11 +178,11 @@
       align-items: center;
       gap: 4px;
       background: none;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-bright);
       border-radius: var(--radius-md);
       padding: 4px 10px;
       cursor: pointer;
-      color: var(--text-muted);
+      color: var(--text);
       font-family: var(--font-sans);
       font-size: 0.75rem;
       transition: color 0.15s, border-color 0.15s;
@@ -199,7 +200,6 @@
       width: 16px;
       height: 16px;
       flex-shrink: 0;
-      opacity: 0.7;
     }
     .user-display-name {
       white-space: nowrap;
@@ -716,17 +716,16 @@
     /* ── Inline end-session button ─────────────────────────────────────────── */
     #btn-end-session-inline {
       height: 40px;
-      color: var(--danger);
+      min-height: 44px;
+      color: var(--text-muted);
       border-color: var(--border-bright);
       background: transparent;
-      opacity: 0.6;
       flex-shrink: 0;
     }
     #btn-end-session-inline:not(:disabled):hover {
       background: rgba(248, 113, 113, 0.1);
       border-color: var(--danger);
       color: var(--danger);
-      opacity: 1;
     }
     #btn-end-session-inline:disabled {
       opacity: 0.25;
@@ -787,7 +786,7 @@
     .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent) 0%, #9c6af7 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, #8ba8f8 100%);
       border-color: transparent;
       color: #fff;
     }
@@ -808,10 +807,17 @@
       padding: 8px;
       width: 40px;
       height: 40px;
+      min-width: 44px;
+      min-height: 44px;
       font-size: 1rem;
     }
 
     #btn-attach, #btn-send { height: 40px; }
+    #btn-attach {
+      min-width: 44px;
+      min-height: 44px;
+      border: 1px solid var(--border);
+    }
     #btn-send { padding: 0 16px; }
 
     /* ── Modal backdrop ────────────────────────────────────────────────────── */
@@ -971,7 +977,7 @@
       width: 72px;
       height: 72px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-light), #0e1e26);
+      background: linear-gradient(135deg, var(--accent-light), var(--tutor-bg));
       border: 2px solid var(--border-bright);
       display: flex;
       align-items: center;
@@ -1014,14 +1020,15 @@
       font-family: var(--font-sans);
       font-size: 0.82rem;
       font-weight: 500;
-      padding: 6px 14px;
+      padding: 8px 16px;
       cursor: pointer;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
     }
     .empty-chip:hover {
       background: var(--accent-light);
       border-color: var(--accent);
       color: var(--text);
+      box-shadow: 0 0 10px var(--accent-glow);
     }
     @keyframes float {
       0%, 100% { transform: translateY(0); }

@@ -6,13 +6,13 @@
  */
 
 :root {
-  --bg: #0f1117;
-  --card: #1a1d27;
+  --bg: #0e0f1a;
+  --card: #181a2e;
   --border: #2a2e3a;
   --text: #e7e9ee;
-  --text-muted: #9aa0ad;
-  --accent: #7c6af7;
-  --accent-hover: #8d7dfa;
+  --text-muted: #b4b9c8;
+  --accent: #6d8ef5;
+  --accent-hover: #8ba8f8;
   --danger: #ef4444;
   --success: #22c55e;
 }
@@ -120,6 +120,11 @@ html, body {
 
 .login-input:focus {
   border-color: var(--accent);
+}
+
+.login-input::placeholder {
+  opacity: 1;
+  color: var(--text-muted);
 }
 
 .login-hint {
