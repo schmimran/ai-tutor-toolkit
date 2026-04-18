@@ -42,7 +42,7 @@ export function createConfigRouter(
       model: config.model,
       extendedThinking: config.extendedThinking,
       inactivityMs,
-      contactEmail: process.env.CONTACT_EMAIL ?? "wax.spirits8d@icloud.com",
+      contactEmail: process.env.CONTACT_EMAIL ?? "",
       availableModels: [...ALLOWED_MODELS],
       availablePrompts: [...promptMap.keys()],
       defaultPrompt: defaultPromptName,

@@ -261,7 +261,7 @@ Get non-secret runtime config.
   "model": "claude-sonnet-4-6",
   "extendedThinking": true,
   "inactivityMs": 600000,
-  "contactEmail": "wax.spirits8d@icloud.com",
+  "contactEmail": "",
   "availableModels": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-6"],
   "availablePrompts": ["tutor-prompt-v7", "tutor-prompt-v6"],
   "defaultPrompt": "tutor-prompt-v7",
@@ -409,7 +409,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
-| CONTACT_EMAIL | no | wax.spirits8d@icloud.com | api | Contact email returned by GET /api/config and shown on the login page |
+| CONTACT_EMAIL | no | `""` | api | Contact email returned by GET /api/config and shown on the login page. Defaults to empty string — required before going public. The login page hides the contact line when this value is empty. |
 | ALLOW_PROMPT_SELECTION | no | — (locked) | api | Set `"true"` to allow users to switch prompt versions via the header badge; omitting locks the picker (fail-closed). Surfaced as `promptSelectionEnabled` in `GET /api/config`. |
 | SUPABASE_ANON_KEY | **yes (API)** | — | db, api | Supabase anon/public key. Required for the `/api/auth/*` endpoints that back the login flow at `/login.html`. Still held server-side only — never exposed via `/api/config`. When unset, the auth router is not registered and the app will be inaccessible (the login page cannot authenticate). |
 

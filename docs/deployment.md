@@ -57,7 +57,7 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `RESEND_API_KEY` | no | Resend dashboard → API Keys | **Yes** |
 | `PARENT_EMAIL` | no | Your email address (where transcripts will be sent) | No |
 | `EMAIL_FROM` | no | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |
-| `CONTACT_EMAIL` | no | Contact email shown on the login page and returned by GET /api/config | No |
+| `CONTACT_EMAIL` | no | Contact email shown on the login page and returned by GET /api/config. Defaults to `""` — required before going public. The contact line is hidden when absent. | No |
 | `MODEL` | no | Default: `claude-sonnet-4-6` | No |
 | `EXTENDED_THINKING` | no | Default: `true`; set `false` to disable | No |
 | `SYSTEM_PROMPT_PATH` | no | Default: `templates/tutor-prompt-v7.md` | No |
