@@ -19,6 +19,7 @@ import { errorHandler } from "./middleware/errors.js";
 import { createChatRouter } from "./routes/chat.js";
 import { createSessionsRouter } from "./routes/sessions.js";
 import { createTranscriptRouter } from "./routes/transcript.js";
+import { createTranscriptEmailRouter } from "./routes/transcript-email.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createConfigRouter } from "./routes/config.js";
 import { createAuthRouter } from "./routes/auth.js";
@@ -123,6 +124,7 @@ app.use(express.static(path.join(__dirname, "../../web/public")));
 // Routes
 app.use("/api/chat", createChatRouter(tutorClient, db, promptMap, defaultPromptName, config.model, config.extendedThinking));
 app.use("/api/sessions", createSessionsRouter(db, emailConfig, config.model, defaultPromptName, config.extendedThinking));
+app.use("/api/transcript", createTranscriptEmailRouter(db, { apiKey: emailConfig.apiKey, from: emailConfig.from }));
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));

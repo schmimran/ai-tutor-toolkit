@@ -29,8 +29,14 @@
         <div class="transcript-panel">
           <div class="transcript-panel-header">
             <h2 class="transcript-panel-title" id="transcript-title">Transcript</h2>
+            <div class="transcript-actions" id="transcript-actions" style="display:none">
+              <button type="button" class="transcript-action-btn" id="transcript-email-btn">Email me this</button>
+              <button type="button" class="transcript-action-btn" id="transcript-pdf-btn">Download PDF</button>
+              <button type="button" class="transcript-action-btn" id="transcript-xlsx-btn">Download Excel</button>
+            </div>
             <button type="button" class="transcript-close-btn" id="transcript-close">Close</button>
           </div>
+          <div class="transcript-action-status" id="transcript-action-status" style="display:none"></div>
           <div class="transcript-messages" id="transcript-messages"></div>
         </div>
       </div>
@@ -38,6 +44,8 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.103.3/dist/umd/supabase.js"></script>
   <script src="/auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="/history.js"></script>
 </body>
 </html>
