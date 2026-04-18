@@ -99,9 +99,17 @@ app.use(
         styleSrc: ["'self'", "cdn.jsdelivr.net", "fonts.googleapis.com", "'unsafe-inline'"],
         fontSrc: ["'self'", "fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'", "fonts.googleapis.com", "fonts.gstatic.com"],
+        connectSrc: [
+          "'self'",
+          "fonts.googleapis.com",
+          "fonts.gstatic.com",
+          ...(process.env.SUPABASE_URL ? [process.env.SUPABASE_URL] : []),
+        ],
       },
     },
+    xContentTypeOptions: true,
+    strictTransportSecurity: { maxAge: 31536000, includeSubDomains: true },
+    xFrameOptions: { action: "deny" },
   }),
 );
 
