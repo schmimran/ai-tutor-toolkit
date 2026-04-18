@@ -717,17 +717,15 @@
     #btn-end-session-inline {
       height: 40px;
       min-height: 44px;
-      color: var(--danger);
+      color: var(--text-muted);
       border-color: var(--border-bright);
       background: transparent;
-      opacity: 0.6;
       flex-shrink: 0;
     }
     #btn-end-session-inline:not(:disabled):hover {
       background: rgba(248, 113, 113, 0.1);
       border-color: var(--danger);
       color: var(--danger);
-      opacity: 1;
     }
     #btn-end-session-inline:disabled {
       opacity: 0.25;
@@ -815,7 +813,11 @@
     }
 
     #btn-attach, #btn-send { height: 40px; }
-    #btn-attach { min-width: 44px; min-height: 44px; }
+    #btn-attach {
+      min-width: 44px;
+      min-height: 44px;
+      border: 1px solid var(--border);
+    }
     #btn-send { padding: 0 16px; }
 
     /* ── Modal backdrop ────────────────────────────────────────────────────── */

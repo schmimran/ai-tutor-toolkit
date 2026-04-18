@@ -548,11 +548,23 @@
   }
 
   function setInputDisabled(disabled) {
-    btnSend.disabled          = disabled;
     msgInput.disabled         = disabled;
     btnAttach.disabled        = disabled;
+    updateSendState();
     // When re-enabling after streaming, respect the "has messages" gate
     btnEndSessionInline.disabled = disabled || msgList.length === 0;
+  }
+
+  /**
+   * Single source of truth for Send button state.
+   *
+   * Disables Send when the input is empty or we're mid-stream or session is
+   * ended / otherwise locked. All callers that previously wrote directly to
+   * btnSend.disabled should go through this instead.
+   */
+  function updateSendState() {
+    const empty = !msgInput.value.trim() && attachments.length === 0;
+    btnSend.disabled = empty || isStreaming || sessionEnded || msgInput.disabled;
   }
 
   // ── Session DELETE helpers ────────────────────────────────────────────────
@@ -683,8 +695,8 @@
     msgInput.value = '';
     msgInput.placeholder = 'What are you stuck on?';
     msgInput.disabled = false;
-    btnSend.disabled = false;
     btnAttach.disabled = false;
+    updateSendState();
     updateHeaderButtons();
     resizeInput();
   }
@@ -799,9 +811,9 @@
 
   function lockSession(message) {
     msgInput.disabled = true;
-    btnSend.disabled  = true;
     btnAttach.disabled = true;
     btnEndSessionInline.disabled = true;
+    updateSendState();
     btnEndSessionInline.classList.remove('end-ready');
     msgInput.placeholder = 'Session ended.';
     showToast(message, 5000);
@@ -935,9 +947,13 @@
 
   function renderStrip() {
     fileStrip.innerHTML = '';
-    if (!attachments.length) { fileStrip.classList.remove('active'); return; }
-    fileStrip.classList.add('active');
-    for (const a of attachments) fileStrip.appendChild(a.chipEl);
+    if (!attachments.length) {
+      fileStrip.classList.remove('active');
+    } else {
+      fileStrip.classList.add('active');
+      for (const a of attachments) fileStrip.appendChild(a.chipEl);
+    }
+    updateSendState();
   }
 
   // ── Drag and drop ─────────────────────────────────────────────────────────
@@ -986,7 +1002,8 @@
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
 
-  msgInput.addEventListener('input', resizeInput);
+  msgInput.addEventListener('input', () => { resizeInput(); updateSendState(); });
+  updateSendState();
 
   btnAttach.addEventListener('click', () => {
     if (!sessionEnded) fileInput.click();
