@@ -89,6 +89,35 @@ export async function getSessionsByUser(
 }
 
 /**
+ * Fetch feedback (outcome + experience) for a batch of session IDs.
+ * Returns a map keyed by session_id.  Sessions with no feedback row are
+ * absent from the map.
+ */
+export async function getFeedbackForSessions(
+  client: SupabaseClient,
+  sessionIds: string[],
+): Promise<Map<string, { outcome: string | null; experience: string | null }>> {
+  if (sessionIds.length === 0) return new Map();
+
+  const { data, error } = await client
+    .from("session_feedback")
+    .select("session_id, outcome, experience")
+    .in("session_id", sessionIds);
+
+  if (error) throw new Error(`getFeedbackForSessions: ${error.message}`);
+
+  const map = new Map<string, { outcome: string | null; experience: string | null }>();
+  for (const row of (data ?? []) as Array<{
+    session_id: string;
+    outcome: string | null;
+    experience: string | null;
+  }>) {
+    map.set(row.session_id, { outcome: row.outcome, experience: row.experience });
+  }
+  return map;
+}
+
+/**
  * Mark a session as ended by setting ended_at to now.
  * Session data (messages, feedback) is retained for analysis.
  */
