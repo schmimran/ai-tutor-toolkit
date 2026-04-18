@@ -2,8 +2,8 @@ import { evaluateTranscript } from "@ai-tutor/core";
 import type { EvaluationResult, Session } from "@ai-tutor/core";
 import type { TranscriptEmailPayload } from "@ai-tutor/email";
 import { sendUserTranscript } from "@ai-tutor/email";
-import { upsertSessionEvaluation, updateSession, getSessionFeedback, createSessionFeedback, getUserEmailForSession } from "@ai-tutor/db";
-import type { DbSessionFeedback } from "@ai-tutor/db";
+import { upsertSessionEvaluation, updateSession, getSessionFeedback, createSessionFeedback, getUserProfileForSession } from "@ai-tutor/db";
+import type { DbSessionFeedback, UserSessionInfo } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DIMENSION_LABELS: Record<string, string> = {
@@ -44,6 +44,7 @@ export function buildTranscriptEmailPayload(
   evalResult: EvaluationResult | null,
   feedback: DbSessionFeedback | null,
   fallbacks?: { model?: string; promptName?: string; extendedThinking?: boolean },
+  userInfo?: UserSessionInfo | null,
 ): TranscriptEmailPayload {
   const summary = session.getSessionSummary();
   return {
@@ -60,6 +61,7 @@ export function buildTranscriptEmailPayload(
     model: session.model ?? fallbacks?.model,
     promptName: session.promptName ?? fallbacks?.promptName,
     extendedThinking: session.extendedThinking ?? fallbacks?.extendedThinking,
+    userInfo: userInfo ?? null,
   };
 }
 
@@ -156,11 +158,17 @@ export async function sendUserTranscriptIfApplicable(
   db: SupabaseClient,
 ): Promise<void> {
   try {
-    const email = await getUserEmailForSession(db, sessionId);
-    if (!email) return;
+    const profile = await getUserProfileForSession(db, sessionId);
+    if (!profile) return;
+    if (!profile.emailTranscriptsEnabled) {
+      console.log(
+        `[email] User transcript suppressed for ${sessionId} (emailTranscriptsEnabled=false).`
+      );
+      return;
+    }
 
     const apiKey = process.env.RESEND_API_KEY;
-    await sendUserTranscript(email, { apiKey, from: emailFrom }, {
+    await sendUserTranscript(profile.email, { apiKey, from: emailFrom }, {
       transcript: transcript as Array<{ role: "Student" | "Tutor"; text: string }>,
       startedAt,
       durationMs,

@@ -11,6 +11,7 @@ import {
   createSupabaseClient,
   createSupabaseAnonClient,
   markSessionEnded,
+  getUserInfoForSession,
 } from "@ai-tutor/db";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/errors.js";
@@ -127,14 +128,16 @@ setInterval(() => {
       if (!session.emailSent && session.transcript.length > 0) {
         void (async () => {
           try {
-            const [evalResult, feedback] = await Promise.all([
+            const [evalResult, feedback, userInfo] = await Promise.all([
               runSessionEvaluation(db, sessionId, session.transcript),
               getOrCreateTimeoutFeedback(db, sessionId, "sweep"),
+              getUserInfoForSession(db, sessionId).catch(() => null),
             ]);
 
             const payload = buildTranscriptEmailPayload(
               session, sessionId, evalResult, feedback,
-              { model: config.model, promptName: defaultPromptName, extendedThinking: config.extendedThinking }
+              { model: config.model, promptName: defaultPromptName, extendedThinking: config.extendedThinking },
+              userInfo,
             );
             await sendTranscript(emailConfig, payload);
             if (emailConfig.apiKey && emailConfig.to) {

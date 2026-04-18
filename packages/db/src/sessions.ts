@@ -68,6 +68,79 @@ export async function getUserEmailForSession(
   }
 }
 
+export interface UserSessionInfo {
+  email: string;
+  name: string | null;
+}
+
+/**
+ * Look up the name and email of the authenticated user who owns a session.
+ * Returns null if the session has no user_id or if any lookup fails.
+ */
+export async function getUserInfoForSession(
+  client: SupabaseClient,
+  sessionId: string,
+): Promise<UserSessionInfo | null> {
+  try {
+    const session = await getSession(client, sessionId);
+    if (!session?.user_id) return null;
+
+    const { data, error } = await client.auth.admin.getUserById(session.user_id);
+    if (error || !data?.user?.email) return null;
+
+    return {
+      email: data.user.email,
+      name: (data.user.user_metadata?.name as string | undefined) ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export interface UserSessionProfile {
+  email: string;
+  name: string | null;
+  emailTranscriptsEnabled: boolean;
+}
+
+/**
+ * Look up the user's email, name, and transcript preference for a session.
+ * Returns null if the session has no user_id or if any lookup fails.
+ * emailTranscriptsEnabled defaults to true for users without a profiles row.
+ */
+export async function getUserProfileForSession(
+  client: SupabaseClient,
+  sessionId: string,
+): Promise<UserSessionProfile | null> {
+  try {
+    const session = await getSession(client, sessionId);
+    if (!session?.user_id) return null;
+
+    const [authResult, profileResult] = await Promise.all([
+      client.auth.admin.getUserById(session.user_id),
+      client
+        .from("profiles")
+        .select("email_transcripts_enabled")
+        .eq("user_id", session.user_id)
+        .maybeSingle(),
+    ]);
+
+    if (authResult.error || !authResult.data?.user?.email) return null;
+
+    const profileData = profileResult.data as
+      | { email_transcripts_enabled: boolean | null }
+      | null;
+
+    return {
+      email: authResult.data.user.email,
+      name: (authResult.data.user.user_metadata?.name as string | undefined) ?? null,
+      emailTranscriptsEnabled: profileData?.email_transcripts_enabled ?? true,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Return ended sessions belonging to a specific user, most recent first.
  * Used by the history page to list past tutoring sessions.
