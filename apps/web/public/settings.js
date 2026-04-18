@@ -14,10 +14,29 @@
     try { return JSON.parse(raw); } catch { return null; }
   }
 
-  var auth = getAuthSession();
-  if (!auth || !auth.accessToken) {
-    window.location.replace("/login.html");
-    return;
+  function saveAuthSession(obj) {
+    var store = sessionStorage.getItem("authSession") ? sessionStorage : localStorage;
+    store.setItem("authSession", JSON.stringify(obj));
+  }
+
+  var isRecovery = new URLSearchParams(window.location.search).get("recovery") === "1";
+  var auth = null;
+
+  if (isRecovery) {
+    var rawRecovery = sessionStorage.getItem("authRecoveryToken");
+    if (rawRecovery) {
+      try { auth = JSON.parse(rawRecovery); } catch { auth = null; }
+    }
+    if (!auth || !auth.accessToken) {
+      window.location.replace("/login.html");
+      return;
+    }
+  } else {
+    auth = getAuthSession();
+    if (!auth || !auth.accessToken) {
+      window.location.replace("/login.html");
+      return;
+    }
   }
 
   function authHeaders() {
@@ -103,10 +122,15 @@
         original.emailTranscriptsEnabled = data.emailTranscriptsEnabled !== false;
         original.email = data.email || "";
 
-        // Detect password recovery redirect from login.js (?recovery=1).
-        if (new URLSearchParams(window.location.search).get("recovery") === "1") {
+        // Recovery mode: show banner, swap the back link to avoid accidental
+        // app access before password is changed.
+        if (isRecovery) {
           recoveryBannerEl.style.display = "";
-          sessionStorage.removeItem("authRecoveryPending");
+          var backLinkEl = document.getElementById("btn-back-link");
+          if (backLinkEl) {
+            backLinkEl.textContent = "Cancel — go to login";
+            backLinkEl.href = "/login.html";
+          }
           newPasswordEl.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       })
@@ -233,7 +257,7 @@
     fetch("/api/auth/change-password", {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ newPassword: newPwd }),
+      body: JSON.stringify({ newPassword: newPwd, refreshToken: auth.refreshToken || null }),
     })
       .then(function (res) {
         if (res.status === 401) {
@@ -248,8 +272,17 @@
         if (data.ok) {
           newPasswordEl.value = "";
           confirmPasswordEl.value = "";
-          recoveryBannerEl.style.display = "none";
-          showSuccess("Password changed successfully.");
+          if (isRecovery) {
+            sessionStorage.removeItem("authRecoveryToken");
+            window.location.replace("/login.html?reason=password_changed");
+          } else {
+            if (data.accessToken) {
+              auth = { accessToken: data.accessToken, refreshToken: data.refreshToken || null, expiresAt: data.expiresAt || null };
+              saveAuthSession(auth);
+            }
+            recoveryBannerEl.style.display = "none";
+            showSuccess("Password changed successfully.");
+          }
         } else {
           showError(data.error || "Failed to change password.");
         }
