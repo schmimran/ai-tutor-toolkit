@@ -186,8 +186,10 @@ export function createAuthRouter(db: SupabaseClient, anonDb: SupabaseClient): Ro
       res.json({ ok: true });
       return;
     }
+    // Use CORS_ORIGIN if set; fall back to Host header.
+    // Never use req.headers.origin — it can be spoofed by non-browser clients.
     const origin =
-      (req.headers.origin as string | undefined) ??
+      process.env.CORS_ORIGIN ??
       `https://${req.headers.host ?? "localhost"}`;
     anonDb.auth
       .resetPasswordForEmail(email, {

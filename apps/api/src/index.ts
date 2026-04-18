@@ -98,7 +98,13 @@ app.use(
         styleSrc: ["'self'", "cdn.jsdelivr.net", "fonts.googleapis.com", "'unsafe-inline'"],
         fontSrc: ["'self'", "fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'", "fonts.googleapis.com", "fonts.gstatic.com"],
+        // supabase-js makes fetch() calls to the Supabase project URL from the browser.
+        connectSrc: [
+          "'self'",
+          "fonts.googleapis.com",
+          "fonts.gstatic.com",
+          ...(process.env.SUPABASE_URL ? [process.env.SUPABASE_URL] : []),
+        ],
       },
     },
   }),
