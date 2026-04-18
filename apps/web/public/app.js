@@ -176,12 +176,20 @@
         promptBadge.classList.add('admin-visible');
         thinkingBadge.classList.add('admin-visible');
       }
-      const displayName = userMeta.name || user.email || '';
-      if (displayName) {
-        userDisplayName.textContent = displayName;
+
+      // Always show the account trigger for authenticated users. Fall back
+      // down the chain: explicit name → email local-part → "Account".
+      // Only the first word of the name appears in the trigger so the pill
+      // stays compact; the full email still shows in the dropdown info row.
+      if (user && (user.id || user.email)) {
+        const fullName = (userMeta.name || '').trim();
+        const emailPrefix = user.email ? String(user.email).split('@')[0] : '';
+        const displayName = fullName || emailPrefix || 'Account';
+        const firstName = displayName.split(/\s+/)[0] || 'Account';
+        userDisplayName.textContent = firstName;
         accountTrigger.style.display = '';
+        accountDropdownInfo.textContent = user.email || displayName;
       }
-      accountDropdownInfo.textContent = user.email || displayName;
     } catch {
       // Leave badges hidden on failure.
     }
