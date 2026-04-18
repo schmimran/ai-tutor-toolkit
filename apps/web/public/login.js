@@ -74,7 +74,6 @@
     var btn = $('btn-resend-signup');
     var remaining = 60;
     btn.disabled = true;
-    var label = btn.textContent;
     btn.textContent = 'Resend verification email (' + remaining + 's)';
     if (resendCooldownTimer) clearInterval(resendCooldownTimer);
     resendCooldownTimer = setInterval(function () {
@@ -87,7 +86,6 @@
       } else {
         btn.textContent = 'Resend verification email (' + remaining + 's)';
       }
-      void label; // no-op, keep original label capture for clarity
     }, 1000);
   }
 
@@ -124,9 +122,6 @@
     startResendCooldown();
   }
 
-  // Expose for the resend click handler + external callers.
-  window.__showVerifyPanel = showVerifyPanel;
-
   $('btn-resend-signup').addEventListener('click', function () {
     var email = $('verify-email').textContent.trim();
     if (!email) return;
@@ -136,6 +131,7 @@
     window.auth.init().then(function () {
       return window.auth.getClient().auth.resend({ type: 'signup', email: email });
     }).then(function () {
+      setSuccess('Verification email sent — check your inbox.');
       startResendCooldown();
     }).catch(function () {
       // Re-enable immediately so the user can retry.
