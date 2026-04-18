@@ -22,10 +22,8 @@ export { createSessionFeedback, getSessionFeedback } from "./session-feedback.js
 
 export { createSessionEvaluation, upsertSessionEvaluation, getSessionEvaluation } from "./session-evaluations.js";
 
-export { createDisclaimerAcceptance, linkDisclaimerAcceptance } from "./disclaimer-acceptances.js";
-
-export { createProfile, getProfile, updateProfile } from "./profiles.js";
-export type { DbProfile, DbProfileUpdate } from "./profiles.js";
+export { getProfile } from "./profiles.js";
+export type { DbProfile } from "./profiles.js";
 
 export type {
   DbSession,
@@ -33,8 +31,6 @@ export type {
   DbSessionInsert,
   DbMessageInsert,
   DbSessionUpdate,
-  DbDisclaimerAcceptance,
-  DbDisclaimerAcceptanceInsert,
   DbSessionFeedback,
   DbSessionFeedbackInsert,
   DbSessionEvaluation,

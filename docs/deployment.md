@@ -188,13 +188,30 @@ There are no automated unit or integration tests in this repo.
 
 ---
 
+## Supabase dashboard checklist
+
+After running `supabase/migrations/005_auth_redesign.sql`, configure the project via the Supabase dashboard:
+
+1. **Authentication → URL Configuration** — add your production and local origins to "Redirect URLs" (e.g. `https://tutor.schmim.com/login.html`, `http://localhost:3000/login.html`). Without this, the signup/recovery email links will bounce.
+2. **Authentication → Email Templates** — verify that the Confirm signup, Magic link, Reset password, and Change email templates point to `/login.html` (or `/settings.html` for the email-change confirmation). Supabase's defaults usually work.
+3. **Authentication → Providers → Email** — set password minimum length to 8, enable HIBP leaked-password protection (Pro tier required).
+4. **Seed admin users** — for each account that needs admin access, run:
+   ```sql
+   UPDATE auth.users
+     SET raw_app_meta_data = raw_app_meta_data || '{"is_admin": true}'::jsonb
+     WHERE email = 'admin@example.com';
+   ```
+   `is_admin` lives in `app_metadata` (immutable from the client) and is read from the JWT `app_metadata.is_admin` claim.
+
+---
+
 ## Session lifecycle
 
 Understanding how a tutoring session moves through the system:
 
 1. **Client generates a UUID.**  The browser creates a session ID via `crypto.randomUUID()` and stores it in memory (not localStorage).
 
-2. **First chat message.**  `POST /api/chat` creates the in-memory `Session` object and a `sessions` row in Supabase.  Client IP, geolocation, and user-agent are captured.  The disclaimer acceptance record (if any) is linked to this session via `linkDisclaimerAcceptance()`.
+2. **First chat message.**  `POST /api/chat` requires a Supabase Bearer token. On the first turn, the in-memory `Session` object and a `sessions` row in Supabase are created with the authenticated `user_id`. Client IP, geolocation, and user-agent are captured.
 
 3. **Each turn.**  The student sends a message, the tutor streams a response via SSE.  After each turn:
    - User and assistant messages are persisted to the `messages` table

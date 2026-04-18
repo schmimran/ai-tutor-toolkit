@@ -70,6 +70,10 @@
         <fieldset class="settings-section">
           <legend class="settings-section-title">Security</legend>
           <div id="recovery-banner" class="settings-recovery-banner" style="display:none">Enter a new password to complete your password reset.</div>
+          <label class="settings-field" id="current-password-field">
+            <span class="settings-label">Current password</span>
+            <input type="password" id="settings-current-password" class="settings-input" autocomplete="current-password" placeholder="Your existing password">
+          </label>
           <label class="settings-field">
             <span class="settings-label">New password</span>
             <input type="password" id="settings-new-password" class="settings-input" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
@@ -90,6 +94,8 @@
       </form>
     </div>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/auth.js"></script>
   <script src="/settings.js"></script>
 </body>
 </html>
