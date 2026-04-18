@@ -404,6 +404,7 @@ Rate limiting is applied via `express-rate-limit` to protect auth endpoints from
 - `POST /api/auth/resend-verification` — 3 requests per 15 minutes per IP
 - `POST /api/auth/forgot-password` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
 - `POST /api/auth/change-password` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
+- `POST /api/auth/refresh` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
 
 All rate-limited endpoints return `429 { ok: false, error: "too_many_requests" }` when the limit is exceeded.  The server sets `trust proxy` to `1` (in `apps/api/src/index.ts`) so `express-rate-limit` keys on the real client IP behind Render's proxy.
 
