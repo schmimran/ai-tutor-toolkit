@@ -61,7 +61,7 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `MODEL` | no | Default: `claude-sonnet-4-6` | No |
 | `EXTENDED_THINKING` | no | Default: `true`; set `false` to disable | No |
 | `SYSTEM_PROMPT_PATH` | no | Default: `templates/tutor-prompt-v7.md` | No |
-| `CORS_ORIGIN` | no | Your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`) | No |
+| `CORS_ORIGIN` | no | Default: `false` (fail-closed). When unset, all cross-origin requests are rejected. Set explicitly to your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`). Required for every deployment that serves cross-origin traffic. | No |
 | `ALLOW_PROMPT_SELECTION` | no | Set to `true` to enable the in-app prompt-version picker. Omit (or set to anything else) to lock the picker. Defaults fail-closed. | No |
 
 You can skip `RESEND_API_KEY`, `PARENT_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.

@@ -421,7 +421,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | RESEND_API_KEY | no | — | email, api | Resend API key (email skipped if absent) |
 | PARENT_EMAIL | no | — | api | Recipient for transcript/feedback emails |
 | EMAIL_FROM | no | tutor@tutor.schmim.com | email, api | Sender address |
-| CORS_ORIGIN | no | * | api | Allowed CORS origin |
+| CORS_ORIGIN | no | false (fail-closed) | api | Allowed CORS origin. When unset, all cross-origin requests are rejected. Set explicitly for all deployments. |
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |

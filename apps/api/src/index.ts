@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 import { fileURLToPath } from "url";
 import path from "path";
 import fs from "fs";
@@ -84,6 +85,25 @@ const INACTIVITY_MS = 10 * 60 * 1000;
 
 const app = express();
 app.set("trust proxy", 1); // Trust first proxy (Render) for correct req.ip in rate limiting
+
+// Security headers. CSP allows the CDN scripts/styles the plain-HTML frontend
+// loads (KaTeX, marked, DOMPurify), Google Fonts, and data: font URIs (KaTeX
+// ships inline data: fonts). `'unsafe-inline'` in scriptSrc is a temporary
+// allowance — inline event handlers still exist in apps/web/public/index.html.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "cdn.jsdelivr.net", "'unsafe-inline'"],
+        styleSrc: ["'self'", "cdn.jsdelivr.net", "fonts.googleapis.com", "'unsafe-inline'"],
+        fontSrc: ["'self'", "fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        connectSrc: ["'self'", "fonts.googleapis.com", "fonts.gstatic.com"],
+      },
+    },
+  }),
+);
 
 app.use(corsMiddleware);
 app.use(express.json());
