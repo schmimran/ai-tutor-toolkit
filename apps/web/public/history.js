@@ -15,6 +15,16 @@
   var messagesEl = document.getElementById("transcript-messages");
   var titleEl = document.getElementById("transcript-title");
   var closeBtn = document.getElementById("transcript-close");
+  var actionsEl = document.getElementById("transcript-actions");
+  var statusEl = document.getElementById("transcript-action-status");
+  var emailBtn = document.getElementById("transcript-email-btn");
+  var pdfBtn = document.getElementById("transcript-pdf-btn");
+  var xlsxBtn = document.getElementById("transcript-xlsx-btn");
+
+  // ── Module state ──────────────────────────────────────────────────────────
+  var currentSessionId = null;
+  var currentTranscriptData = null;
+  var currentStartedAt = null;
 
   // ── Formatting helpers ────────────────────────────────────────────────────
   function formatPromptName(name) {
@@ -142,6 +152,11 @@
     titleEl.textContent = "Transcript — " + formatDate(startedAt);
     messagesEl.innerHTML = "<div class=\"history-loading\">Loading transcript...</div>";
     overlayEl.style.display = "";
+    currentSessionId = sessionId;
+    currentTranscriptData = null;
+    currentStartedAt = startedAt;
+    actionsEl.style.display = "none";
+    clearStatus();
 
     window.auth.authedFetch("/api/transcript/" + sessionId)
       .then(function (res) {
@@ -157,6 +172,9 @@
           messagesEl.innerHTML = "<div class=\"history-empty\">No messages in this session.</div>";
           return;
         }
+
+        currentTranscriptData = data.transcript;
+        actionsEl.style.display = "";
 
         data.transcript.forEach(function (msg) {
           var div = document.createElement("div");
@@ -187,7 +205,157 @@
   function closeTranscript() {
     overlayEl.style.display = "none";
     messagesEl.innerHTML = "";
+    currentSessionId = null;
+    currentTranscriptData = null;
+    currentStartedAt = null;
+    actionsEl.style.display = "none";
+    clearStatus();
   }
+
+  // ── Export actions ────────────────────────────────────────────────────────
+  function setActionsDisabled(disabled) {
+    emailBtn.disabled = disabled;
+    pdfBtn.disabled = disabled;
+    xlsxBtn.disabled = disabled;
+  }
+
+  function showStatus(text, kind) {
+    statusEl.textContent = text;
+    statusEl.className = "transcript-action-status" + (kind ? " " + kind : "");
+    statusEl.style.display = "";
+  }
+
+  function clearStatus() {
+    statusEl.textContent = "";
+    statusEl.style.display = "none";
+    statusEl.className = "transcript-action-status";
+  }
+
+  function filenameBase() {
+    var prefix = currentSessionId ? currentSessionId.split("-")[0] : "session";
+    var d = new Date();
+    var pad = function (n) { return n < 10 ? "0" + n : String(n); };
+    var stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    return "transcript-" + prefix + "-" + stamp;
+  }
+
+  function emailTranscript() {
+    if (!currentSessionId) return;
+    setActionsDisabled(true);
+    showStatus("Sending…");
+
+    window.auth.authedFetch("/api/transcript/" + currentSessionId + "/email", {
+      method: "POST",
+    })
+      .then(function (res) {
+        return res.json().catch(function () { return { ok: false }; }).then(function (body) {
+          return { status: res.status, body: body };
+        });
+      })
+      .then(function (r) {
+        if (r.status === 200 && r.body && r.body.ok) {
+          showStatus("Sent!", "success");
+          return;
+        }
+        if (r.status === 429) {
+          showStatus("Too many requests. Try again in a few minutes.", "error");
+          return;
+        }
+        if (r.status === 503) {
+          showStatus("Email is not configured on this server.", "error");
+          return;
+        }
+        showStatus("Could not send. Try again later.", "error");
+      })
+      .catch(function () {
+        showStatus("Could not send. Try again later.", "error");
+      })
+      .then(function () {
+        setActionsDisabled(false);
+      });
+  }
+
+  function downloadPdf() {
+    if (!currentTranscriptData || !window.jspdf) {
+      showStatus("PDF library not loaded.", "error");
+      return;
+    }
+    setActionsDisabled(true);
+    try {
+      var doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter" });
+      var margin = 48;
+      var pageHeight = doc.internal.pageSize.getHeight();
+      var pageWidth = doc.internal.pageSize.getWidth();
+      var maxWidth = pageWidth - margin * 2;
+      var y = margin;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("Tutor session transcript", margin, y);
+      y += 20;
+      if (currentStartedAt) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text(formatDate(currentStartedAt), margin, y);
+        y += 16;
+      }
+      y += 6;
+
+      currentTranscriptData.forEach(function (msg) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        if (y > pageHeight - margin) { doc.addPage(); y = margin; }
+        doc.text(msg.role, margin, y);
+        y += 14;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        var lines = doc.splitTextToSize(msg.text || "", maxWidth);
+        for (var i = 0; i < lines.length; i++) {
+          if (y > pageHeight - margin) { doc.addPage(); y = margin; }
+          doc.text(lines[i], margin, y);
+          y += 13;
+        }
+        y += 8;
+      });
+
+      doc.save(filenameBase() + ".pdf");
+      showStatus("PDF downloaded.", "success");
+    } catch (err) {
+      showStatus("PDF generation failed.", "error");
+      console.error("[history] PDF error:", err);
+    } finally {
+      setActionsDisabled(false);
+    }
+  }
+
+  function downloadXlsx() {
+    if (!currentTranscriptData || !window.XLSX) {
+      showStatus("Excel library not loaded.", "error");
+      return;
+    }
+    setActionsDisabled(true);
+    try {
+      var rows = [["Role", "Message"]];
+      currentTranscriptData.forEach(function (msg) {
+        rows.push([msg.role, msg.text || ""]);
+      });
+      var ws = window.XLSX.utils.aoa_to_sheet(rows);
+      var wb = window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(wb, ws, "Transcript");
+      window.XLSX.writeFile(wb, filenameBase() + ".xlsx");
+      showStatus("Excel downloaded.", "success");
+    } catch (err) {
+      showStatus("Excel generation failed.", "error");
+      console.error("[history] XLSX error:", err);
+    } finally {
+      setActionsDisabled(false);
+    }
+  }
+
+  emailBtn.addEventListener("click", emailTranscript);
+  pdfBtn.addEventListener("click", downloadPdf);
+  xlsxBtn.addEventListener("click", downloadXlsx);
 
   closeBtn.addEventListener("click", closeTranscript);
 

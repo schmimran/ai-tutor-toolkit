@@ -204,6 +204,60 @@ html, body {
   background: #323745;
 }
 
+.transcript-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex: 1;
+  justify-content: flex-end;
+  margin-right: 0.5rem;
+}
+
+.transcript-action-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.transcript-action-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.transcript-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transcript-action-status {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 0.4rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.transcript-action-status.success {
+  color: var(--success);
+}
+
+.transcript-action-status.error {
+  color: var(--danger);
+}
+
+@media (max-width: 480px) {
+  .transcript-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+
 .transcript-messages {
   flex: 1;
   overflow-y: auto;
