@@ -10,7 +10,7 @@
   --card: #181a2e;
   --border: #2a2e3a;
   --text: #e7e9ee;
-  --text-muted: #9aa0ad;
+  --text-muted: #b4b9c8;
   --accent: #6d8ef5;
   --accent-hover: #8ba8f8;
   --danger: #ef4444;
@@ -120,6 +120,11 @@ html, body {
 
 .login-input:focus {
   border-color: var(--accent);
+}
+
+.login-input::placeholder {
+  opacity: 1;
+  color: var(--text-muted);
 }
 
 .login-hint {

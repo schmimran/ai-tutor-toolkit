@@ -7,7 +7,7 @@
       --border:        #2e3247;
       --border-bright: #4a4f6a;
       --text:          #e8eaf6;
-      --text-muted:    #6b7194;
+      --text-muted:    #9499c0;
       --accent:        #6d8ef5;
       /* Warm periwinkle tinted surface used for accent backgrounds (pills, chips, hover states). */
       --accent-light:  #1e2a52;
@@ -135,7 +135,7 @@
       font-family: var(--font-sans);
       font-size: 0.71rem;
       font-weight: 500;
-      color: var(--text-muted);
+      color: var(--text);
       background: var(--surface-alt);
       padding: 3px 10px;
       border-radius: var(--radius-pill);
@@ -717,6 +717,7 @@
     /* ── Inline end-session button ─────────────────────────────────────────── */
     #btn-end-session-inline {
       height: 40px;
+      min-height: 44px;
       color: var(--danger);
       border-color: var(--border-bright);
       background: transparent;
@@ -809,10 +810,13 @@
       padding: 8px;
       width: 40px;
       height: 40px;
+      min-width: 44px;
+      min-height: 44px;
       font-size: 1rem;
     }
 
     #btn-attach, #btn-send { height: 40px; }
+    #btn-attach { min-width: 44px; min-height: 44px; }
     #btn-send { padding: 0 16px; }
 
     /* ── Modal backdrop ────────────────────────────────────────────────────── */
