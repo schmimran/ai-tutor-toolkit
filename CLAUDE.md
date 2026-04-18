@@ -289,6 +289,7 @@ Get session metadata.
   "id": "uuid",
   "started_at": "2024-01-01T00:00:00Z",
   "last_activity_at": "2024-01-01T00:10:00Z",
+  "ended_at": null,
   "client_ip": "1.2.3.4",
   "client_geo": { "city": "...", "country": "..." },
   "client_user_agent": "Mozilla/...",

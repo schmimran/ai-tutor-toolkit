@@ -348,6 +348,64 @@
     scrollBottom();
   }
 
+  function appendTutorRestored(text) {
+    hideEmpty();
+    const id = `m${++msgCounter}`;
+    const div = document.createElement('div');
+    div.className = 'msg tutor';
+    div.id = id;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = 'Tutor';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+
+    div.appendChild(label);
+    div.appendChild(bubble);
+    messagesEl.appendChild(div);
+
+    const entry = { id, role: 'tutor', dbId: null, bubbleEl: bubble };
+    msgList.push(entry);
+    finalizeTutor(entry, text);
+    updateHeaderButtons();
+    return entry;
+  }
+
+  /**
+   * Restore a previously active session after returning from another page.
+   * Verifies the session is still open server-side and replays its messages
+   * from the DB. All failure paths silently fall back to a fresh session.
+   */
+  async function restoreSession(savedId) {
+    try {
+      const sessionRes = await window.auth.authedFetch(`/api/sessions/${savedId}`);
+      if (!sessionRes.ok) return;
+      const meta = await sessionRes.json();
+      if (meta.ended_at) return;
+
+      const txRes = await window.auth.authedFetch(`/api/transcript/${savedId}`);
+      if (!txRes.ok) return;
+      const { transcript } = await txRes.json();
+      if (!transcript || transcript.length === 0) return;
+
+      sessionId = savedId;
+      for (const entry of transcript) {
+        if (entry.role === 'Student') {
+          appendUserMsg(entry.text, []);
+        } else {
+          appendTutorRestored(entry.text);
+        }
+      }
+      resetInactivityTimer();
+    } catch {
+      /* silently fall through — start fresh */
+    } finally {
+      sessionStorage.removeItem('resumeSessionId');
+    }
+  }
+
   function scrollBottom() {
     chatArea.scrollTop = chatArea.scrollHeight;
   }
@@ -585,6 +643,7 @@
     if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; }
     if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
     stopCountdownDisplay();
+    sessionStorage.removeItem('resumeSessionId');
     sessionId       = crypto.randomUUID();
     msgList         = [];
     for (const u of sessionUploads) {
@@ -1012,12 +1071,20 @@
     }
   });
 
+  function saveResumeIfActive() {
+    if (msgList.length > 0 && !sessionEnded) {
+      sessionStorage.setItem('resumeSessionId', sessionId);
+    }
+  }
+
   menuSettings.addEventListener('click', () => {
     closeAccountDropdown();
+    saveResumeIfActive();
     window.location.href = '/settings.html';
   });
   menuHistory.addEventListener('click', () => {
     closeAccountDropdown();
+    saveResumeIfActive();
     window.location.href = '/history.html';
   });
   menuLogout.addEventListener('click', () => {
@@ -1043,7 +1110,7 @@
   // Redirect to /login.html if no valid session exists. supabase-js handles
   // token storage, refresh, and cross-tab sync; we just check for a session
   // and listen for sign-out events.
-  window.auth.requireSession().then(function () {
+  window.auth.requireSession().then(async function () {
     window.auth.init().then(function () {
       window.auth.getClient().auth.onAuthStateChange(function (event) {
         if (event === 'SIGNED_OUT') {
@@ -1051,8 +1118,10 @@
         }
       });
     });
-    fetchConfig();
+    await fetchConfig();
     fetchUserInfo();
+    const savedId = sessionStorage.getItem('resumeSessionId');
+    if (savedId) await restoreSession(savedId);
   });
 
   // ── Init ──────────────────────────────────────────────────────────────────
