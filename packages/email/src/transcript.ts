@@ -162,7 +162,7 @@ function buildStudentFeedbackHtml(
       ? (experienceLabels[studentFeedback.experience] ?? studentFeedback.experience)
       : "—";
     const commentRow = studentFeedback.comment
-      ? `<tr><td style="padding:6px 0;color:#555;width:120px;">Comment</td><td>${studentFeedback.comment}</td></tr>`
+      ? `<tr><td style="padding:6px 0;color:#555;width:120px;">Comment</td><td>${escapeHtml(studentFeedback.comment)}</td></tr>`
       : "";
 
     body = `
@@ -210,7 +210,7 @@ function buildHtml(payload: TranscriptEmailPayload): string {
       ? `<ul>${files
           .map(
             (f) =>
-              `<li>${f.filename} (${f.mimetype}, ${(f.buffer.length / 1024).toFixed(1)} KB)</li>`
+              `<li>${escapeHtml(f.filename)} (${escapeHtml(f.mimetype)}, ${(f.buffer.length / 1024).toFixed(1)} KB)</li>`
           )
           .join("")}</ul>`
       : "<p>None</p>";
@@ -222,7 +222,7 @@ function buildHtml(payload: TranscriptEmailPayload): string {
       const label = isStudent
         ? "<strong>Student</strong>"
         : "<strong>Tutor</strong>";
-      return `<div style="background:${bg};padding:12px 16px;margin:8px 0;border-radius:6px;white-space:pre-wrap;">${label}<br>${entry.text}</div>`;
+      return `<div style="background:${bg};padding:12px 16px;margin:8px 0;border-radius:6px;white-space:pre-wrap;">${label}<br>${escapeHtml(entry.text)}</div>`;
     })
     .join("");
 
@@ -241,9 +241,9 @@ function buildHtml(payload: TranscriptEmailPayload): string {
     <tr><td style="padding:6px 0;color:#555;">Duration</td><td>${formatDuration(durationMs)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Exchanges</td><td>${exchangeCount}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Tokens</td><td>${tokenUsage ? formatTokens(tokenUsage) : "N/A"}</td></tr>
-    <tr><td style="padding:6px 0;color:#555;">IP</td><td>${clientInfo.ip ?? "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">IP</td><td>${clientInfo.ip ? escapeHtml(clientInfo.ip) : "unknown"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Location</td><td>${formatGeo(clientInfo.geo)}</td></tr>
-    <tr><td style="padding:6px 0;color:#555;">User agent</td><td style="font-size:0.85em;">${clientInfo.userAgent ?? "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">User agent</td><td style="font-size:0.85em;">${clientInfo.userAgent ? escapeHtml(clientInfo.userAgent) : "unknown"}</td></tr>
   </table>
   <h2 style="font-size:1.1rem;">Uploaded files</h2>
   ${filesHtml}
