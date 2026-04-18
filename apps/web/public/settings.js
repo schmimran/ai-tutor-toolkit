@@ -4,8 +4,9 @@
  *   - user object (name/email/birthdate/grade_level/app_metadata) via auth.getUser()
  *   - email_transcripts_enabled via a RLS-protected select/update on profiles
  *   - password change via auth.updateUser({ password, currentPassword })
- *   - email change via auth.updateUser({ email }) — Supabase emails the new
- *     address to confirm the change.
+ *   - email change via auth.updateUser({ email }, { emailRedirectTo }) — Supabase
+ *     emails the new address to confirm; USER_UPDATED/EMAIL_CHANGE on
+ *     onAuthStateChange refreshes the displayed email after confirmation.
  *
  * Recovery detection: supabase-js fires PASSWORD_RECOVERY on the auth state
  * when a recovery hash is consumed. We show the recovery banner when
@@ -85,8 +86,22 @@
 
       // PASSWORD_RECOVERY fires when supabase-js processes a recovery hash — set
       // isRecovery so the password-change path skips the current-password field.
-      client.auth.onAuthStateChange(function (event) {
-        if (event === "PASSWORD_RECOVERY") { isRecovery = true; applyRecoveryUI(); }
+      client.auth.onAuthStateChange(async function (event, sess) {
+        if (event === "PASSWORD_RECOVERY") { isRecovery = true; applyRecoveryUI(); return; }
+        if (event === "USER_UPDATED" || event === "EMAIL_CHANGE") {
+          var freshUser = sess && sess.user;
+          if (!freshUser) {
+            try {
+              var res = await client.auth.getUser();
+              freshUser = res && res.data && res.data.user;
+            } catch (e) { /* ignore */ }
+          }
+          if (freshUser && freshUser.email && freshUser.email !== original.email) {
+            emailEl.value = freshUser.email;
+            original.email = freshUser.email;
+            showSuccess("Email address updated successfully.");
+          }
+        }
       });
 
       var user = session.user;
@@ -169,7 +184,10 @@
     if (newEmail === original.email) { showSuccess("Email unchanged."); return; }
     changeEmailBtn.disabled = true;
     try {
-      var res = await client.auth.updateUser({ email: newEmail });
+      var res = await client.auth.updateUser(
+        { email: newEmail },
+        { emailRedirectTo: window.location.origin + "/settings.html" }
+      );
       if (res.error) throw res.error;
       showSuccess("A confirmation link has been sent to " + newEmail + ". Click it to complete the change.");
     } catch (err) {
