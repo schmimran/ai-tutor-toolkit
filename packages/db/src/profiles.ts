@@ -49,8 +49,6 @@ export async function getProfile(
 /**
  * Update a user's profile settings. Uses upsert semantics so it works for
  * legacy users who may not have a profiles row yet.
- *
- * // TODO: wire emailTranscriptsEnabled to evaluation.ts sweep in follow-on issue
  */
 export async function updateProfile(
   client: SupabaseClient,

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   getSession as getDbSession,
   markSessionEnded,
+  getUserInfoForSession,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSession, removeSession } from "../lib/session-store.js";
@@ -69,12 +70,14 @@ export function createSessionsRouter(
 
       try {
         if (!discard && session && !session.emailSent && session.transcript.length > 0) {
-          const [evalResult, feedback] = await Promise.all([
+          const [evalResult, feedback, userInfo] = await Promise.all([
             runSessionEvaluation(db, sessionId, session.transcript),
             getOrCreateTimeoutFeedback(db, sessionId, "sessions"),
+            getUserInfoForSession(db, sessionId).catch(() => null),
           ]);
           const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback,
-            { model: defaultModel, promptName: defaultPromptName, extendedThinking: defaultExtendedThinking });
+            { model: defaultModel, promptName: defaultPromptName, extendedThinking: defaultExtendedThinking },
+            userInfo);
           try {
             await sendTranscript(emailConfig, payload);
             if (emailConfig.apiKey && emailConfig.to) {

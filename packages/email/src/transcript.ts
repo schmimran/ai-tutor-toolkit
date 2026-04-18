@@ -45,6 +45,9 @@ export interface TranscriptEmailPayload {
     comment: string | null;
     skipped: boolean;
   } | null;
+
+  /** Authenticated user who initiated the session.  Null for anonymous sessions. */
+  userInfo?: { email: string; name: string | null } | null;
 }
 
 /** Maximum total attachment size Resend accepts (40 MB in bytes). */
@@ -189,9 +192,18 @@ function buildHtml(payload: TranscriptEmailPayload): string {
     model,
     promptName,
     extendedThinking,
+    userInfo,
   } = payload;
 
   const exchangeCount = Math.floor(transcript.length / 2);
+
+  const userRow = userInfo
+    ? `<tr><td style="padding:6px 0;color:#555;width:160px;">User</td><td>${
+        userInfo.name
+          ? `${escapeHtml(userInfo.name)} &lt;${escapeHtml(userInfo.email)}&gt;`
+          : escapeHtml(userInfo.email)
+      }</td></tr>`
+    : `<tr><td style="padding:6px 0;color:#555;width:160px;">User</td><td style="color:#999;">Anonymous</td></tr>`;
 
   const filesHtml =
     files.length > 0
@@ -221,6 +233,7 @@ function buildHtml(payload: TranscriptEmailPayload): string {
   <h1 style="font-size:1.4rem;border-bottom:2px solid #4f46e5;padding-bottom:8px;">Tutor Session Summary</h1>
   <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
     <tr><td style="padding:6px 0;color:#555;width:160px;">Session ID</td><td style="font-size:0.85em;">${sessionId ?? "unknown"}</td></tr>
+    ${userRow}
     <tr><td style="padding:6px 0;color:#555;">Model</td><td>${model ?? "unknown"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Prompt</td><td>${promptName ?? "unknown"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Extended thinking</td><td>${extendedThinking === undefined ? "unknown" : extendedThinking ? "On" : "Off"}</td></tr>
