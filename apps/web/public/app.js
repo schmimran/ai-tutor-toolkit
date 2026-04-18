@@ -93,6 +93,13 @@
   const wrappingUpOverlay  = $('wrapping-up-overlay');
   const toast              = $('toast');
   const inactivityTimerEl  = $('inactivity-timer');
+  const sidebar            = $('sidebar');
+  const btnSidebarToggle   = $('btn-sidebar-toggle');
+  const sidebarBackdrop    = $('sidebar-backdrop');
+  const sidebarUserRow     = $('sidebar-user-row');
+  const sidebarDisplayName = $('sidebar-display-name');
+  const sidebarAvatarInitials = $('sidebar-avatar-initials');
+  const sidebarGrade       = $('sidebar-grade');
 
   // ── Config ────────────────────────────────────────────────────────────────
   async function fetchConfig() {
@@ -189,6 +196,15 @@
         userDisplayName.textContent = firstName;
         accountTrigger.style.display = '';
         accountDropdownInfo.textContent = user.email || displayName;
+
+        // Populate sidebar user row
+        if (sidebarUserRow) {
+          const grade = userMeta.grade_level || '';
+          sidebarDisplayName.textContent = fullName || emailPrefix || 'Account';
+          sidebarAvatarInitials.textContent = (fullName || emailPrefix || 'A')[0].toUpperCase();
+          sidebarGrade.textContent = grade ? `Grade ${grade}` : '';
+          sidebarUserRow.style.display = '';
+        }
       }
     } catch {
       // Leave badges hidden on failure.
@@ -1130,6 +1146,28 @@
     msgInput.focus();
     msgInput.setSelectionRange(msgInput.value.length, msgInput.value.length);
   });
+
+  // ── Sidebar ───────────────────────────────────────────────────────────────
+  const SIDEBAR_KEY = 'sidebar-collapsed';
+
+  function initSidebar() {
+    if (localStorage.getItem(SIDEBAR_KEY) === 'true') sidebar.classList.add('collapsed');
+  }
+
+  if (btnSidebarToggle) {
+    btnSidebarToggle.addEventListener('click', () => {
+      const collapsed = sidebar.classList.toggle('collapsed');
+      localStorage.setItem(SIDEBAR_KEY, collapsed);
+    });
+  }
+
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', () => {
+      sidebar.classList.remove('mobile-open');
+    });
+  }
+
+  initSidebar();
 
   // ── Auth gate ─────────────────────────────────────────────────────────────
   // Redirect to /login.html if no valid session exists. supabase-js handles

@@ -4,48 +4,136 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Session History — Axiom AI Tutor</title>
-  <meta name="theme-color" content="#0f1117">
+  <meta name="theme-color" content="#b91c1c">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/history.css">
 </head>
 <body>
-  <main class="history-shell">
-    <div class="history-card">
-      <div class="history-header">
-        <h1 class="history-title">Session History</h1>
-        <a href="/" class="history-back-link">Back to tutor</a>
-      </div>
 
-      <div id="history-loading" class="history-loading">Loading sessions...</div>
-      <div id="history-empty" class="history-empty" style="display:none">No past sessions found.</div>
-      <div id="history-error" class="history-error" style="display:none"></div>
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="app-header">
+    <button class="menu-btn" id="btn-sidebar-toggle" aria-label="Toggle navigation"
+            style="width:36px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;flex-shrink:0;border-radius:8px;border:none;background:transparent;padding:0;">
+      <span style="display:block;width:20px;height:2px;background:rgba(255,255,255,0.6);border-radius:2px;"></span>
+      <span style="display:block;width:20px;height:2px;background:rgba(255,255,255,0.6);border-radius:2px;"></span>
+      <span style="display:block;width:20px;height:2px;background:rgba(255,255,255,0.6);border-radius:2px;"></span>
+    </button>
+    <div class="logo-box">
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" fill="white" opacity=".88"/>
+        <rect x="12.5" y="27.5" width="7" height="1.5" rx=".75" fill="white" opacity=".6"/>
+        <rect x="14" y="29.5" width="4" height="1.5" rx=".75" fill="white" opacity=".35"/>
+        <path d="M18 11.5L13.5 17H16.5L13.5 22L20 15.5H17L19.5 11.5Z" fill="rgba(255,220,60,.9)"/>
+      </svg>
+    </div>
+    <div class="header-wordmark">
+      <span class="brand-name">Axiom</span>
+      <span class="brand-sub">AI Tutor</span>
+    </div>
+    <div class="header-divider"></div>
+    <span class="page-title">History</span>
+    <div class="header-spacer"></div>
+  </div>
 
-      <ul id="history-list" class="history-list" style="display:none"></ul>
+  <!-- ── App body ───────────────────────────────────────────────────────── -->
+  <div class="app-body">
 
-      <!-- Transcript viewer overlay -->
-      <div id="transcript-overlay" class="transcript-overlay" style="display:none">
-        <div class="transcript-panel">
-          <div class="transcript-panel-header">
-            <h2 class="transcript-panel-title" id="transcript-title">Transcript</h2>
-            <div class="transcript-actions" id="transcript-actions" style="display:none">
-              <button type="button" class="transcript-action-btn" id="transcript-email-btn">Email me this</button>
-              <button type="button" class="transcript-action-btn" id="transcript-pdf-btn">Download PDF</button>
-              <button type="button" class="transcript-action-btn" id="transcript-xlsx-btn">Download Excel</button>
-            </div>
-            <button type="button" class="transcript-close-btn" id="transcript-close">Close</button>
-          </div>
-          <div class="transcript-action-status" id="transcript-action-status" style="display:none"></div>
-          <div class="transcript-messages" id="transcript-messages"></div>
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <nav class="page-sidebar" id="page-sidebar" aria-label="Main navigation">
+      <div class="nav-group">
+        <div class="nav-group-label">Learn</div>
+        <a href="/" class="nav-link">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
+          <span class="nav-link-text">Tutor</span>
+        </a>
+        <a href="/history.html" class="nav-link active" aria-current="page">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+          <span class="nav-link-text">Session History</span>
+        </a>
+        <div class="nav-link nav-disabled">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
+          <span class="nav-link-text">Practice Sets</span>
+          <span class="nl-soon">soon</span>
+        </div>
+        <div class="nav-link nav-disabled">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+          <span class="nav-link-text">My Progress</span>
+          <span class="nl-soon">soon</span>
         </div>
       </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Account</div>
+        <a href="/settings.html" class="nav-link">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+          <span class="nav-link-text">Settings</span>
+        </a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user-row" id="sidebar-user-row" style="display:none">
+          <div class="s-avatar" id="sidebar-avatar-initials">?</div>
+          <div class="s-user-info">
+            <div class="s-name" id="sidebar-display-name"></div>
+            <div class="s-grade" id="sidebar-grade"></div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── Page content ────────────────────────────────────────────────── -->
+    <div class="page-content">
+      <main class="history-shell">
+        <div class="history-card">
+          <div class="history-header">
+            <h1 class="history-title">Session History</h1>
+          </div>
+
+          <div id="history-loading" class="history-loading">Loading sessions...</div>
+          <div id="history-empty" class="history-empty" style="display:none">No past sessions found.</div>
+          <div id="history-error" class="history-error" style="display:none"></div>
+
+          <ul id="history-list" class="history-list" style="display:none"></ul>
+
+          <!-- Transcript viewer overlay -->
+          <div id="transcript-overlay" class="transcript-overlay" style="display:none">
+            <div class="transcript-panel">
+              <div class="transcript-panel-header">
+                <h2 class="transcript-panel-title" id="transcript-title">Transcript</h2>
+                <div class="transcript-actions" id="transcript-actions" style="display:none">
+                  <button type="button" class="transcript-action-btn" id="transcript-email-btn">Email me this</button>
+                  <button type="button" class="transcript-action-btn" id="transcript-pdf-btn">Download PDF</button>
+                  <button type="button" class="transcript-action-btn" id="transcript-xlsx-btn">Download Excel</button>
+                </div>
+                <button type="button" class="transcript-close-btn" id="transcript-close">Close</button>
+              </div>
+              <div class="transcript-action-status" id="transcript-action-status" style="display:none"></div>
+              <div class="transcript-messages" id="transcript-messages"></div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
-  </main>
+
+  </div><!-- /.app-body -->
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.103.3/dist/umd/supabase.js"></script>
   <script src="/auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="/history.js"></script>
+  <script>
+    // Sidebar toggle for this page
+    (function() {
+      var sidebar = document.getElementById('page-sidebar');
+      var toggle  = document.getElementById('btn-sidebar-toggle');
+      var KEY     = 'sidebar-collapsed';
+      if (localStorage.getItem(KEY) === 'true') sidebar.classList.add('collapsed');
+      toggle.addEventListener('click', function() {
+        var c = sidebar.classList.toggle('collapsed');
+        localStorage.setItem(KEY, c);
+      });
+    })();
+  </script>
 </body>
 </html>

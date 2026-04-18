@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Axiom">
-  <meta name="theme-color" content="#0f1117">
+  <meta name="theme-color" content="#b91c1c">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
@@ -26,7 +26,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/gallery.css">
@@ -36,43 +36,32 @@
 
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <header>
-    <span class="header-title">
-      <span class="header-logo">
-        <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="logo-grad-hdr" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#6d8ef5"/>
-              <stop offset="100%" stop-color="#f59e0b"/>
-            </linearGradient>
-          </defs>
-          <g stroke="url(#logo-grad-hdr)" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M 10,16 Q 10,7 16,7 Q 22,7 22,16 Q 22,18.5 20,20 L 20,22 Q 20,23 19,23 L 13,23 Q 12,23 12,22 L 12,20 Q 10,18.5 10,16 Z" stroke-width="1.8"/>
-            <path d="M 13,25 L 19,25" stroke-width="1.8"/>
-            <path d="M 14,27 L 18,27" stroke-width="1.8"/>
-            <ellipse cx="16" cy="15" rx="11" ry="4.5" transform="rotate(-20 16 15)" stroke-width="1.1" opacity="0.85"/>
-          </g>
-        </svg>
-        <span class="logo-wordmark">
+    <button class="menu-btn" id="btn-sidebar-toggle" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="header-title">
+      <div class="header-logo">
+        <div class="logo-box">
+          <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" fill="white" opacity=".88"/>
+            <rect x="12.5" y="27.5" width="7" height="1.5" rx=".75" fill="white" opacity=".6"/>
+            <rect x="14" y="29.5" width="4" height="1.5" rx=".75" fill="white" opacity=".35"/>
+            <path d="M18 11.5L13.5 17H16.5L13.5 22L20 15.5H17L19.5 11.5Z" fill="rgba(255,220,60,.9)"/>
+          </svg>
+        </div>
+        <div class="logo-wordmark">
           <span class="logo-company">Axiom</span>
           <span class="logo-product">AI Tutor</span>
-        </span>
-      </span>
-    </span>
+        </div>
+      </div>
+      <div class="header-divider"></div>
+      <span class="header-page-title">Tutor</span>
+    </div>
+
     <div class="header-right">
-      <span id="build-info" class="build-info"></span>
-      <span id="thinking-badge" class="thinking-badge" style="display:none" title="Extended thinking — click to toggle"></span>
-      <span id="prompt-badge" class="prompt-badge" style="display:none" title="Active prompt — click to switch"></span>
-      <span id="model-badge" class="model-badge" style="display:none" title="Active model — click to switch"></span>
-      <span id="token-counter"></span>
-      <span id="inactivity-timer"></span>
-      <button class="btn btn-sm" id="btn-gallery-toggle" title="Toggle uploads gallery" disabled>🖼</button>
       <button id="account-trigger" class="account-trigger" style="display:none" aria-haspopup="true" aria-expanded="false">
-        <svg class="account-avatar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             aria-hidden="true">
-          <circle cx="12" cy="8" r="4"/>
-          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-        </svg>
+        <div class="account-avatar-icon" id="header-avatar-initials" aria-hidden="true">?</div>
         <span id="user-display-name" class="user-display-name"></span>
         <svg class="account-caret" width="10" height="6" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
       </button>
@@ -90,6 +79,60 @@
   <!-- ── Main ───────────────────────────────────────────────────────────── -->
   <main>
 
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <nav id="sidebar" aria-label="Main navigation">
+      <div class="nav-group">
+        <div class="nav-group-label">Learn</div>
+        <a href="/" class="nav-link active" aria-current="page">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
+          <span class="nav-link-text">Tutor</span>
+        </a>
+        <a href="/history.html" class="nav-link">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+          <span class="nav-link-text">Session History</span>
+        </a>
+        <div class="nav-link nav-disabled">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
+          <span class="nav-link-text">Practice Sets</span>
+          <span class="nl-soon">soon</span>
+        </div>
+        <div class="nav-link nav-disabled">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+          <span class="nav-link-text">My Progress</span>
+          <span class="nl-soon">soon</span>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Account</div>
+        <a href="/settings.html" class="nav-link">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+          <span class="nav-link-text">Settings</span>
+        </a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-badges">
+          <span id="build-info" class="build-info"></span>
+          <span id="thinking-badge" class="thinking-badge" style="display:none" title="Extended thinking — click to toggle"></span>
+          <span id="prompt-badge" class="prompt-badge" style="display:none" title="Active prompt — click to switch"></span>
+          <span id="model-badge" class="model-badge" style="display:none" title="Active model — click to switch"></span>
+          <span id="token-counter"></span>
+          <span id="inactivity-timer"></span>
+          <button class="btn btn-sm" id="btn-gallery-toggle" title="Toggle uploads gallery" disabled>🖼</button>
+        </div>
+        <div class="sidebar-user-row" id="sidebar-user-row" style="display:none">
+          <div class="s-avatar" id="sidebar-avatar-initials" aria-hidden="true">?</div>
+          <div class="s-user-info">
+            <div class="s-name" id="sidebar-display-name"></div>
+            <div class="s-grade" id="sidebar-grade"></div>
+          </div>
+          <svg class="sidebar-caret" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── Sidebar mobile backdrop ────────────────────────────────────────── -->
+    <div class="sidebar-mobile-backdrop" id="sidebar-backdrop"></div>
+
     <div class="chat-column">
     <div id="chat-container">
       <div id="chat-area">
@@ -98,16 +141,15 @@
             <svg class="empty-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Axiom logo">
               <defs>
                 <linearGradient id="logo-grad-es" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#6d8ef5"/>
-                  <stop offset="100%" stop-color="#f59e0b"/>
+                  <stop offset="0%" stop-color="#e8392a"/>
+                  <stop offset="100%" stop-color="#f97316"/>
                 </linearGradient>
               </defs>
-              <g stroke="url(#logo-grad-es)" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M 10,16 Q 10,7 16,7 Q 22,7 22,16 Q 22,18.5 20,20 L 20,22 Q 20,23 19,23 L 13,23 Q 12,23 12,22 L 12,20 Q 10,18.5 10,16 Z" stroke-width="1.8"/>
-                <path d="M 13,25 L 19,25" stroke-width="1.8"/>
-                <path d="M 14,27 L 18,27" stroke-width="1.8"/>
-                <ellipse cx="16" cy="15" rx="11" ry="4.5" transform="rotate(-20 16 15)" stroke-width="1.1" opacity="0.85"/>
-              </g>
+              <path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" fill="url(#logo-grad-es)" opacity=".15"/>
+              <path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" stroke="url(#logo-grad-es)" stroke-width="1.4" fill="none"/>
+              <rect x="12.5" y="27.5" width="7" height="1.5" rx=".75" fill="url(#logo-grad-es)" opacity=".6"/>
+              <rect x="14" y="29.5" width="4" height="1.5" rx=".75" fill="url(#logo-grad-es)" opacity=".35"/>
+              <path d="M18 11.5L13.5 17H16.5L13.5 22L20 15.5H17L19.5 11.5Z" fill="#f97316"/>
             </svg>
           </div>
           <p class="empty-heading">What are you stuck on?</p>
