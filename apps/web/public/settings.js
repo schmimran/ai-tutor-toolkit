@@ -85,8 +85,6 @@
 
       // PASSWORD_RECOVERY fires when supabase-js processes a recovery hash — set
       // isRecovery so the password-change path skips the current-password field.
-      // USER_UPDATED fires after an email-change confirmation link is consumed;
-      // refresh the displayed email and show a success banner.
       client.auth.onAuthStateChange(async function (event, sess) {
         if (event === "PASSWORD_RECOVERY") { isRecovery = true; applyRecoveryUI(); return; }
         if (event === "USER_UPDATED" || event === "EMAIL_CHANGE") {
