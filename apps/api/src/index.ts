@@ -21,7 +21,6 @@ import { createSessionsRouter } from "./routes/sessions.js";
 import { createTranscriptRouter } from "./routes/transcript.js";
 import { createFeedbackRouter } from "./routes/feedback.js";
 import { createConfigRouter } from "./routes/config.js";
-import { createDisclaimerRouter } from "./routes/disclaimer.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { createHistoryRouter } from "./routes/history.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
@@ -99,6 +98,7 @@ app.use(
         styleSrc: ["'self'", "cdn.jsdelivr.net", "fonts.googleapis.com", "'unsafe-inline'"],
         fontSrc: ["'self'", "fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:"],
+        // supabase-js makes fetch() calls to the Supabase project URL from the browser.
         connectSrc: [
           "'self'",
           "fonts.googleapis.com",
@@ -126,7 +126,6 @@ app.use("/api/sessions", createSessionsRouter(db, emailConfig, config.model, def
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
-app.use("/api/disclaimer", createDisclaimerRouter(db));
 if (anonDb) {
   app.use("/api/auth", createAuthRouter(db, anonDb));
   app.use("/api/history", createHistoryRouter(db));

@@ -123,7 +123,7 @@ Rules:
 
 ## Database schema reference
 
-Managed via `supabase/migrations/000_schema.sql`.  No RLS.  All queries run server-side with the service role key.
+Managed via `supabase/migrations/*.sql`. RLS is enabled on all user-facing tables (see "Row Level Security" below). The server uses the service-role client which bypasses RLS for cross-user jobs (sweep, evaluation, email); RLS protects direct client queries via the anon key.
 
 ### sessions
 
@@ -199,27 +199,19 @@ One row per session.  Written by an automated transcript evaluation job using th
 
 ### profiles
 
-One row per registered user.  Created at registration time.
+One row per registered user. Auto-created by the `on_auth_user_created` trigger (migration 005) when a new `auth.users` row appears.
 
 | Column | Type | Default | Notes |
 |--------|------|---------|-------|
 | user_id | uuid | | PK. FK → auth.users(id) ON DELETE CASCADE. |
-| is_admin | boolean | false | Grants access to model/prompt/thinking selectors in the chat header. |
-| email_transcripts_enabled | boolean | true | Whether to email session transcripts to the user. User-controllable via the settings page. |
+| email_transcripts_enabled | boolean | true | Whether to email session transcripts to the user. Controllable via the settings page. |
 | created_at | timestamptz | now() | |
 
-### disclaimer_acceptances
+Admin gating lives in `auth.users.raw_app_meta_data.is_admin` (set via SQL). It's read from the JWT `app_metadata.is_admin` claim by the middleware and by the frontend — no DB query required.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| accepted_at | timestamptz | Indexed |
-| client_ip | text | Nullable |
-| client_geo | jsonb | Nullable. From geoip-lite |
-| client_user_agent | text | Nullable |
-| session_id | uuid | FK → sessions(id) ON DELETE SET NULL. Nullable; backfilled after first /api/chat call via linkDisclaimerAcceptance(). |
-| client_session_id | text | Nullable. The client-generated session UUID stored at acceptance time (no FK constraint). Used to backfill session_id. |
-| email | text | Nullable. Email address submitted through the disclaimer overlay. |
+### Row Level Security
+
+RLS is **enabled** on `profiles`, `sessions`, `messages`, `session_feedback`, and `session_evaluations`. Policies key on `auth.uid() = user_id` (directly or via a join through `sessions`). Clients using the anon key see only their own rows. The service-role client bypasses RLS and is used by the server for sweeps, evaluation, email sending, and other cross-user jobs.
 
 ---
 
@@ -274,11 +266,15 @@ Get non-secret runtime config.
   "availablePrompts": ["tutor-prompt-v7", "tutor-prompt-v6"],
   "defaultPrompt": "tutor-prompt-v7",
   "buildVersion": "abc1234",
-  "buildDate": "2026-04-05T12:00:00.000Z"
+  "buildDate": "2026-04-05T12:00:00.000Z",
+  "supabaseUrl": "https://xxx.supabase.co",
+  "supabaseAnonKey": "eyJhbGciOi..."
 }
 ```
 
 `buildVersion` is the short Git commit SHA and `buildDate` is the ISO timestamp of the build.  Both are `null` in local dev if `npm run build` has not been run for the API package.  The values come from `apps/api/build-info.json`, which is generated at build time by `apps/api/scripts/gen-build-info.js` and gitignored.
+
+`supabaseUrl` and `supabaseAnonKey` are mirrors of the `SUPABASE_URL` and `SUPABASE_ANON_KEY` env vars. They are public by design and required by the frontend to initialize the supabase-js client in [auth.js](apps/web/public/auth.js).
 
 ---
 
@@ -362,51 +358,17 @@ Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email 
 
 ---
 
-### POST /api/disclaimer/accept
+### Auth endpoints — POST /api/auth/register, /api/auth/login, /api/auth/forgot-password
 
-Record that the user accepted the disclaimer overlay.
+Only three auth endpoints exist server-side. Everything else (session refresh, logout, `/me`, change-password, change-email, settings, resend-verification) is handled client-side via `@supabase/supabase-js` (see [apps/web/public/auth.js](apps/web/public/auth.js)) and RLS.
 
-**Request**: `application/json`
+All three routes are only registered if `SUPABASE_ANON_KEY` is set. All three are rate-limited; on limit-exceed they return `429 { ok: false, error: "too_many_requests" }`.
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| sessionId | string (UUID) | no | Client's current session ID; links the acceptance to the session for analysis |
-| email | string | no | Email address submitted through the disclaimer overlay; stored in disclaimer_acceptances.email |
+- `POST /api/auth/register` — body `{ email, password, name, birthdate, gradeLevel, state?, country? }`. Server-side validation (email regex, password ≥ 8, age ≥ 13, valid grade). Calls `db.auth.admin.createUser({ email, password, email_confirm: false, user_metadata })` then triggers the signup verification email via `anonDb.auth.resend({ type: "signup", email })`. The profiles row is created by the `on_auth_user_created` trigger. Returns `{ ok: true }`, `{ ok: false, error: "underage" }`, or `{ ok: false, error: "registration_failed" }`. Limit: 5 requests per hour per IP.
+- `POST /api/auth/login` — body `{ email, password }`. Calls `anonDb.auth.signInWithPassword`. Returns `{ ok: true, accessToken, refreshToken, expiresAt }` on success. Distinct `email_not_confirmed` error is passed through (401) so the client can show a resend affordance; all other failures return opaque `invalid_credentials`. Limit: 10 requests per 15 minutes per IP.
+- `POST /api/auth/forgot-password` — body `{ email }`. Calls `anonDb.auth.resetPasswordForEmail` with `redirectTo: <origin>/login.html`. Always returns `{ ok: true }` (anti-enumeration). Limit: 3 requests per 15 minutes per IP.
 
-**Response**: `application/json`
-
-```json
-{ "ok": true }
-```
-
-Always returns `200 { ok: true }` — DB errors are caught and logged server-side, never surfaced to the client.  The client should call this fire-and-forget.
-
----
-
-### POST /api/auth/register, POST /api/auth/login, POST /api/auth/resend-verification, POST /api/auth/forgot-password, POST /api/auth/change-password, POST /api/auth/refresh, POST /api/auth/logout, GET /api/auth/me
-
-Supabase-backed individual-user login flow. **These endpoints are only registered if `SUPABASE_ANON_KEY` is set.** They do not gate `/api/chat`, `/api/sessions`, `/api/transcript`, or `/api/feedback` — the auth gate is enforced client-side via a JWT check in `app.js` that redirects unauthenticated users to `/login.html`.
-
-- `POST /api/auth/register` — body `{ email, password, name, birthdate, gradeLevel, state?, country? }`. Server-side validation (valid email, password ≥ 8, age ≥ 13, valid grade level). Calls `db.auth.admin.createUser({ email, password, email_confirm: false, user_metadata: {...} })`, then immediately sends the Supabase signup verification email via `anonDb.auth.resend({ type: "signup", email })`. Returns `{ ok: true }` on success, `{ ok: false, error: "underage" }` if age < 13, or `{ ok: false, error: "registration_failed" }` for other errors.
-- `POST /api/auth/login` — body `{ email, password }`. Calls `anonDb.auth.signInWithPassword(...)`. Returns `{ ok: true, accessToken, refreshToken, expiresAt }` on success. On failure, returns `{ ok: false, error: "email_not_confirmed" }` (HTTP 401) when the account is unconfirmed so the client can show a "Resend verification" affordance. All other failures return the opaque `{ ok: false, error: "invalid_credentials" }`.
-- `POST /api/auth/resend-verification` — body `{ email }`. Re-sends the Supabase signup confirmation email via `anonDb.auth.resend({ type: "signup", email })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). Errors logged server-side only.
-- `POST /api/auth/forgot-password` — body `{ email }`. Sends a Supabase password-reset email via `anonDb.auth.resetPasswordForEmail(email, { redirectTo })`. Always returns `{ ok: true }` regardless of whether the address is registered (anti-enumeration). The `redirectTo` URL is derived from `req.headers.origin` (or `req.headers.host`). No new env vars required. Errors logged server-side only.
-- `POST /api/auth/change-password` — requires `Authorization: Bearer <accessToken>`. Body `{ newPassword, refreshToken? }`. Validates `newPassword` >= 8 characters. Calls `db.auth.admin.updateUserById(userId, { password: newPassword })`. If `refreshToken` is supplied, calls `anonDb.auth.refreshSession` after the update (Supabase admin API invalidates existing tokens on password change) and returns `{ ok: true, accessToken, refreshToken, expiresAt }` so the client can stay authenticated. Without `refreshToken` returns `{ ok: true }`. Returns `{ ok: false, error: "weak_password" }` if validation fails. Note: current password is not verified server-side (Supabase admin API limitation); the bearer token provides sufficient authorization.
-- `POST /api/auth/refresh` — body `{ refreshToken }`. Calls `anonDb.auth.refreshSession(...)`. Returns `{ ok, accessToken?, refreshToken?, expiresAt? }`.
-- `POST /api/auth/logout` — requires `Authorization: Bearer <accessToken>`. Calls `db.auth.admin.signOut(userId)` (service-role admin API). Returns `{ ok: true }`.
-- `GET /api/auth/me` — requires `Authorization: Bearer <accessToken>`. Returns `{ ok: true, userId, isAdmin: boolean, email, name }`. `isAdmin` is read from the `profiles` table; returns `false` for legacy users without a profile row (fail-closed). `email` is the user's email; `name` is from `user_metadata.name` (null if unset).
-
-JWT verification is handled by `createRequireAuth()` (in `apps/api/src/middleware/require-auth.ts`), which reads the bearer token and calls `db.auth.getUser(token)`. The middleware populates `userId`, `userEmail`, and `userName` on the request object. There is no `SUPABASE_JWT_SECRET` — Supabase's own verification API is used.
-
-Rate limiting is applied via `express-rate-limit` to protect auth endpoints from abuse.  Per-endpoint limits:
-- `POST /api/auth/login` — 10 requests per 15 minutes per IP
-- `POST /api/auth/register` — 5 requests per hour per IP
-- `POST /api/auth/resend-verification` — 3 requests per 15 minutes per IP
-- `POST /api/auth/forgot-password` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
-- `POST /api/auth/change-password` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
-- `POST /api/auth/refresh` — 3 requests per 15 minutes per IP (shares the `resendLimiter`)
-
-All rate-limited endpoints return `429 { ok: false, error: "too_many_requests" }` when the limit is exceeded.  The server sets `trust proxy` to `1` (in `apps/api/src/index.ts`) so `express-rate-limit` keys on the real client IP behind Render's proxy.
+JWT verification for all other routes (`/api/chat`, `/api/sessions`, `/api/transcript`, `/api/feedback`, `/api/history`) is handled by `createRequireAuth()` (in [apps/api/src/middleware/require-auth.ts](apps/api/src/middleware/require-auth.ts)). The middleware verifies the Bearer token via `db.auth.getUser(token)` and populates `req.userId`, `req.userEmail`, `req.userName`, and `req.isAdmin` (the last is read from the JWT `app_metadata.is_admin` claim — no DB round-trip). The server sets `trust proxy = 1` so `express-rate-limit` keys on the real client IP behind Render's proxy.
 
 ---
 
@@ -455,7 +417,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 
 1. **TypeScript everywhere** in `packages/` and `apps/api/` and `apps/cli/`.  Strict mode.  No `any` without a comment explaining why.
 2. **No `.env` files committed.**  Export env vars in your shell or use a secrets manager for deployment.
-3. **No RLS** on Supabase tables — all queries are server-side with the service role key.  Do not add RLS without updating `packages/db/src/client.ts` to match.
+3. **RLS is enabled** on all user-facing tables (see migration 005). Service-role queries bypass RLS and are used by the server for sweeps, evaluations, and admin jobs. Client-side queries (e.g. profile updates via supabase-js from settings.js) use the anon key and are filtered by `auth.uid()` policies.
 4. **No new npm dependencies in `apps/web/`.**  It is intentionally dependency-free.  Use CDN if you must add a library.
 5. **Build before testing API changes.**  Run `npm run build` from the root, then `npm run api`.
 6. **Never expose secrets through `/api/config`.**  That route is intentionally public.
@@ -482,11 +444,12 @@ These apply to every Claude Code session in this repo.
 |------|---------|
 | `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev`, `npm run backfill:evaluations` |
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
-| `supabase/migrations/000_schema.sql` | Consolidated database schema (sessions, messages, session_feedback, session_evaluations, disclaimer_acceptances) |
-| `supabase/migrations/001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` column to the sessions table |
-| `supabase/migrations/002_users.sql` | Adds nullable `user_id uuid` column to sessions referencing `auth.users(id) ON DELETE SET NULL`, with partial index `sessions_user_id`. Backs the parallel Supabase-auth login flow (issue #73). |
-| `supabase/migrations/003_profiles.sql` | Creates `profiles` table keyed on `user_id` with `is_admin boolean NOT NULL DEFAULT false`. One row per registered user. |
-| `supabase/migrations/004_profile_settings.sql` | Adds `email_transcripts_enabled boolean NOT NULL DEFAULT true` column to the `profiles` table. Backs the settings page toggle for opting out of transcript emails. |
+| `supabase/migrations/000_schema.sql` | Initial database schema (sessions, messages, session_feedback, session_evaluations, and — pre-005 only — disclaimer_acceptances) |
+| `supabase/migrations/001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` to sessions |
+| `supabase/migrations/002_users.sql` | Adds `user_id uuid` to sessions referencing `auth.users(id)`. Originally nullable; made NOT NULL by migration 005. |
+| `supabase/migrations/003_profiles.sql` | Creates `profiles` table with `is_admin` column. `is_admin` is dropped by migration 005 (moves to `auth.users.app_metadata`). |
+| `supabase/migrations/004_profile_settings.sql` | Adds `email_transcripts_enabled boolean NOT NULL DEFAULT true` to profiles |
+| `supabase/migrations/005_auth_redesign.sql` | Full auth redesign: truncates all data, drops `disclaimer_acceptances`, drops `profiles.is_admin`, installs `on_auth_user_created` trigger, makes `sessions.user_id NOT NULL`, enables RLS with `auth.uid()` policies on all user-facing tables. |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |
@@ -511,17 +474,15 @@ These apply to every Claude Code session in this repo.
 | `packages/db/src/messages.ts` | Message CRUD (create, list by session) |
 | `packages/db/src/session-feedback.ts` | `createSessionFeedback()`, `getSessionFeedback()` — session_feedback table CRUD |
 | `packages/db/src/session-evaluations.ts` | `createSessionEvaluation()`, `getSessionEvaluation()` — session_evaluations table CRUD |
-| `packages/db/src/disclaimer-acceptances.ts` | `createDisclaimerAcceptance()` — inserts a disclaimer acceptance row; `linkDisclaimerAcceptance()` — backfills session_id after session is created |
-| `packages/db/src/profiles.ts` | `createProfile(client, userId)` — inserts a profile row for a new user; `getProfile(client, userId)` — returns `{ isAdmin }` or `null` for legacy users |
+| `packages/db/src/profiles.ts` | `getProfile(client, userId)` — returns `{ emailTranscriptsEnabled }`; profile rows are created by a DB trigger (migration 005), not by application code |
 | `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend; includes session ID, token usage, evaluation results, and student feedback |
 | `apps/api/src/index.ts` | Express server entry — routes, middleware, inactivity sweep |
 | `apps/api/src/routes/chat.ts` | `POST /api/chat` — streaming chat with file upload |
 | `apps/api/src/routes/sessions.ts` | `GET/DELETE /api/sessions/:id` |
 | `apps/api/src/routes/transcript.ts` | `GET /api/transcript/:id` |
-| `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row |
-| `apps/api/src/routes/disclaimer.ts` | `POST /api/disclaimer/accept` — records disclaimer acceptance with IP/geo/user-agent/email |
-| `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — POST `/register`, `/login`, `/resend-verification`, `/forgot-password`, `/refresh`, `/logout` and GET `/me` for the Supabase auth login flow. Registered only if `SUPABASE_ANON_KEY` is set. The frontend redirects unauthenticated users to `/login.html`. |
-| `apps/api/src/middleware/require-auth.ts` | `createRequireAuth(db)` — middleware that verifies `Authorization: Bearer <token>` via `db.auth.getUser(token)` and sets `req.userId`. Used by the `/api/auth/me` and `/api/auth/logout` routes. |
+| `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row (requires auth + ownership) |
+| `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — rate-limited proxies for `POST /register`, `/login`, `/forgot-password`. All other auth operations are client-side via supabase-js. Registered only if `SUPABASE_ANON_KEY` is set. |
+| `apps/api/src/middleware/require-auth.ts` | `createRequireAuth(db)` — verifies `Authorization: Bearer <token>` via `db.auth.getUser(token)` and sets `req.userId`, `req.userEmail`, `req.userName`, `req.isAdmin` (from `app_metadata.is_admin` JWT claim). |
 | `apps/api/scripts/gen-build-info.js` | Generates `build-info.json` (commit SHA + timestamp) at build time; called by the API `build` script |
 | `apps/api/build-info.json` | Generated build metadata (gitignored); read at startup by the config route |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
@@ -532,15 +493,19 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/lib/validation.ts` | Shared validation constants (UUID regex) |
 | `apps/api/src/middleware/cors.ts` | CORS middleware (origin from `CORS_ORIGIN` env var) |
 | `apps/api/src/middleware/errors.ts` | Global Express error handler |
-| `apps/web/public/index.html` | Frontend HTML structure; loads styles.css, gallery.css, app.js, gallery.js |
+| `apps/web/public/index.html` | Frontend HTML structure; loads styles.css, gallery.css, supabase-js CDN, auth.js, app.js, gallery.js |
 | `apps/web/public/styles.css` | Core layout (flex-row main + chat-column) and all component CSS |
-| `apps/web/public/app.js` | Chat application logic; exposes `sessionUploads` global for gallery.js |
+| `apps/web/public/auth.js` | Centralized auth module — initializes supabase-js from `/api/config`, exposes `window.auth` with `getSession`, `requireSession`, `authedFetch` (bearer + 401 retry), `onAuthStateChange`, `signOut`. Every page that talks to `/api/*` loads this plus the supabase-js CDN script. |
+| `apps/web/public/app.js` | Chat application logic; uses `window.auth.authedFetch` for all `/api/*` calls. Exposes `sessionUploads` global for gallery.js |
 | `apps/web/public/gallery.css` | Gallery pane styles, thumbnail strip, img-ref pills, mobile drawer |
 | `apps/web/public/gallery.js` | Gallery pane logic; exposes `openGallery`, `closeGallery`, `focusUpload`, `addToGallery`, `resetGallery` globals |
-| `apps/web/public/login.html` | Login/register page for the Supabase auth flow. Unauthenticated users are redirected here from `/`. |
+| `apps/web/public/login.html` | Login/register/forgot-password page. Unauthenticated users are redirected here. |
 | `apps/web/public/login.css` | Styles for `login.html`. Self-contained dark theme mirroring `styles.css` palette. |
-| `apps/web/public/login.js` | Client logic for the login page: tabbed login/register forms, forgot-password panel, `/api/auth/*` calls, `sessionStorage` under key `authSession`. Handles Supabase hash callbacks (`type=signup`, `type=recovery`) on page load. Redirects to `/` on successful login; redirects immediately if a valid session already exists. |
-| `apps/web/public/maintenance.html` | Static maintenance page; served manually when the app is down for planned maintenance |
+| `apps/web/public/login.js` | Tabbed login/register/forgot panels. Calls the three server-side proxy endpoints for rate-limited operations; delegates hash callbacks (signup, recovery) to supabase-js's `detectSessionInUrl`. Listens for `PASSWORD_RECOVERY` to redirect into the settings page. |
+| `apps/web/public/settings.html` | Settings page — account info, preferences, email change, password change. Loads supabase-js + auth.js. |
+| `apps/web/public/settings.js` | Uses supabase-js directly: `auth.updateUser` for password/email changes (with `currentPassword` verification when not in recovery), and direct `profiles` upsert under RLS for transcript preferences. |
+| `apps/web/public/history.html` | Session history page. Loads supabase-js + auth.js. |
+| `apps/web/public/history.js` | Uses `authedFetch` to call `/api/history` and `/api/transcript/:id`. |
 | `apps/web/public/manifest.json` | PWA web app manifest — standalone display, theme colors, icon references |
 | `apps/web/public/icons/` | PWA app icons (192×192 and 512×512 PNGs) for home-screen and manifest |
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |

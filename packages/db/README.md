@@ -1,10 +1,10 @@
 # @ai-tutor/db
 
-Supabase client and CRUD operations for sessions, messages, session feedback, session evaluations, and disclaimer acceptances.  Used by `apps/api`.
+Supabase client and CRUD operations for sessions, messages, session feedback, session evaluations, and profiles. Used by `apps/api`.
 
 ## Overview
 
-This package wraps `@supabase/supabase-js` and provides typed CRUD functions for the database tables.  All queries run server-side using the service role key, which bypasses row-level security.  There is no RLS on any table.
+This package wraps `@supabase/supabase-js` and provides typed CRUD functions for the database tables. Server-side queries use the service-role key and bypass RLS; the anon key is used for client-side interaction (via supabase-js in the browser) and respects the RLS policies installed by migration 005.
 
 Supabase is used as a managed Postgres database only — no Edge Functions, no Realtime, no Storage.
 
@@ -159,19 +159,15 @@ Fetches the evaluation row for a session.  Returns `null` if not found.  The UNI
 
 ---
 
-### Disclaimer acceptances
+### Profiles
 
 ```typescript
-import { createDisclaimerAcceptance, linkDisclaimerAcceptance } from "@ai-tutor/db";
+import { getProfile } from "@ai-tutor/db";
 ```
 
-#### `createDisclaimerAcceptance(client, insert): Promise<DbDisclaimerAcceptance>`
+#### `getProfile(client, userId): Promise<{ emailTranscriptsEnabled } | null>`
 
-Inserts a disclaimer acceptance record and returns the created row.
-
-#### `linkDisclaimerAcceptance(client, sessionId): Promise<void>`
-
-Backfills `session_id` on disclaimer acceptance rows that were recorded before the session row existed.  Called after `createSession()` on the first chat turn.  Matches on `client_session_id` and sets the real FK.  Safe to call when no matching rows exist.
+Returns the caller's profile preferences. The row is created automatically by the `on_auth_user_created` trigger (migration 005); application code never needs to insert it.
 
 ---
 
@@ -276,21 +272,6 @@ CREATE TABLE session_evaluations (
   rationale                       jsonb       NOT NULL DEFAULT '{}',
   created_at                      timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT session_evaluations_unique_session UNIQUE (session_id)
-);
-```
-
-### disclaimer_acceptances
-
-```sql
-CREATE TABLE disclaimer_acceptances (
-  id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  accepted_at       timestamptz NOT NULL DEFAULT now(),
-  client_ip         text,
-  client_geo        jsonb,
-  client_user_agent text,
-  session_id        uuid        REFERENCES sessions(id) ON DELETE SET NULL,
-  client_session_id text,
-  email             text
 );
 ```
 

@@ -143,7 +143,7 @@
                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" hidden>
         <textarea id="msg-input" placeholder="What are you stuck on?" rows="1"></textarea>
         <button class="btn btn-primary" id="btn-send">Send</button>
-        <button class="btn btn-sm" id="btn-end-session-inline" disabled title="End this session">End session</button>
+        <button class="btn" id="btn-end-session-inline" disabled title="End this session">End session</button>
       </div>
     </div>
     </div><!-- /.chat-column -->
@@ -213,6 +213,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.103.3/dist/umd/supabase.js"></script>
+  <script src="/auth.js"></script>
   <script src="/app.js"></script>
   <script src="/gallery.js"></script>
 </body>
