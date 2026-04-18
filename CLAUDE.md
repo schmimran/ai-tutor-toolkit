@@ -415,7 +415,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are required for the API server.  If `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is absent, the server will not start.  If `SUPABASE_ANON_KEY` is absent, the auth router is not registered and the app will be inaccessible.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
 
-The evaluation model (`claude-sonnet-4-6`) is hardcoded in `packages/core/src/evaluate-transcript.ts`, not configurable via environment variable.
+The evaluation model (`claude-haiku-4-5-20251001`) is hardcoded in `packages/core/src/evaluate-transcript.ts`, not configurable via environment variable.
 
 ---
 
