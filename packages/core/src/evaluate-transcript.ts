@@ -49,7 +49,7 @@ export async function evaluateTranscript(
   transcript: Array<{ role: string; text: string }>,
   config?: { model?: string }
 ): Promise<EvaluationResult> {
-  const model = config?.model ?? "claude-sonnet-4-6";
+  const model = config?.model ?? "claude-haiku-4-5-20251001";
 
   const formattedTranscript = transcript
     .map((entry, i) => `${i + 1}. [${entry.role}] ${entry.text}`)
