@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Axiom — Redesign Concept</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #0c1220;
+  min-height: 100vh;
+  padding: 48px 40px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 64px;
+}
+
+/* ── Presentation labels ── */
+.section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 1200px;
+}
+.section-label {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+}
+.section-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+  color: #ffffff;
+  text-align: center;
+  letter-spacing: -0.4px;
+  margin-bottom: 4px;
+}
+.section-sub {
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.38);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* ── Browser frame ── */
+.browser {
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06);
+  width: 100%;
+}
+.browserbar {
+  background: #1a2030;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.bdots { display: flex; gap: 7px; }
+.bd { width: 12px; height: 12px; border-radius: 50%; }
+.bd-r{background:#ff5f57;} .bd-y{background:#febc2e;} .bd-g{background:#28c840;}
+.burl {
+  flex: 1; background: #252e40; border-radius: 6px; height: 24px;
+  display: flex; align-items: center; padding: 0 11px;
+  font-size: 11px; color: rgba(255,255,255,0.3);
+}
+
+/* ════════════════════════════════════
+   SHARED APP CHROME
+════════════════════════════════════ */
+
+/* Top header — full width, weighted, branded */
+.app-header {
+  height: 64px;
+  background: #b91c1c;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.menu-btn {
+  width: 36px; height: 36px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px; cursor: pointer; flex-shrink: 0;
+  border-radius: 8px;
+  border: none; background: transparent;
+  padding: 0;
+}
+.menu-btn span {
+  display: block; width: 20px; height: 2px;
+  background: rgba(255,255,255,0.6);
+  border-radius: 2px;
+  transition: all .2s;
+}
+.menu-btn:hover span { background: #fff; }
+
+.header-brand {
+  display: flex; align-items: center; gap: 11px; flex-shrink: 0;
+}
+.header-logo-box {
+  width: 36px; height: 36px;
+  background: #e8392a;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(232,57,42,0.45);
+  flex-shrink: 0;
+}
+.brand-words { display: flex; flex-direction: column; gap: 1px; }
+.brand-name {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900; font-size: 20px;
+  color: #ffffff; line-height: 1;
+  letter-spacing: -0.3px;
+}
+.brand-sub {
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-top: 1px;
+}
+
+.header-divider {
+  width: 1px; height: 28px;
+  background: rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+.header-page-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700; font-size: 15px;
+  color: rgba(255,255,255,0.7);
+}
+
+.header-spacer { flex: 1; }
+
+.header-right {
+  display: flex; align-items: center; gap: 10px;
+}
+.new-session-btn {
+  height: 34px; padding: 0 16px;
+  background: #e8392a; color: #fff;
+  font-size: 13px; font-weight: 700;
+  border: none; border-radius: 8px;
+  cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+  box-shadow: 0 3px 10px rgba(232,57,42,0.4);
+  flex-shrink: 0;
+}
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 5px 10px 5px 6px;
+  cursor: pointer; flex-shrink: 0;
+}
+.avatar {
+  width: 26px; height: 26px;
+  background: #e8392a; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800; font-size: 11px; color: #fff;
+  flex-shrink: 0;
+}
+.user-chip-name {
+  font-size: 13px; font-weight: 600;
+  color: rgba(255,255,255,0.85);
+}
+.chevron-down {
+  opacity: 0.4;
+}
+
+/* ── Body row: sidebar + content ── */
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ════════════════════════════════════
+   LEFT SIDEBAR (open state)
+════════════════════════════════════ */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #fffbf7;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width .2s ease;
+}
+
+.nav-group { padding: 20px 12px 8px; }
+.nav-group-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1.8px; text-transform: uppercase;
+  color: #94a3b8; padding: 0 8px;
+  margin-bottom: 6px;
+}
+.nav-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  font-size: 13.5px; font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  transition: background .12s, color .12s;
+}
+.nav-link:hover { background: #fff5f5; color: #1e293b; }
+.nav-link.active {
+  background: #fee2e2; color: #c42d1e; font-weight: 700;
+}
+.nav-link.active .nl-icon { color: #e8392a; }
+.nl-icon { width: 17px; height: 17px; flex-shrink: 0; color: #94a3b8; }
+.nl-badge {
+  margin-left: auto;
+  background: #f97316; color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: 10px;
+  flex-shrink: 0;
+}
+.nl-soon {
+  margin-left: auto;
+  font-size: 10px; color: #cbd5e1;
+  font-style: italic; flex-shrink: 0;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid #e2e8f0;
+  padding: 14px 12px;
+}
+.sidebar-user-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 9px;
+  cursor: pointer;
+}
+.sidebar-user-row:hover { background: #fff5f5; }
+.s-avatar {
+  width: 32px; height: 32px;
+  background: #e8392a; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Nunito', sans-serif; font-weight: 800;
+  font-size: 12px; color: #fff; flex-shrink: 0;
+}
+.s-user-info { flex: 1; min-width: 0; }
+.s-name { font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-grade { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+
+/* ════════════════════════════════════
+   COLLAPSED SIDEBAR
+════════════════════════════════════ */
+.sidebar-collapsed {
+  width: 60px;
+  flex-shrink: 0;
+  background: #fffbf7;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  gap: 4px;
+}
+.icon-btn {
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; cursor: pointer;
+  color: #94a3b8;
+  transition: background .12s, color .12s;
+  position: relative;
+}
+.icon-btn:hover { background: #fff5f5; color: #1e293b; }
+.icon-btn.active { background: #fee2e2; color: #e8392a; }
+.icon-btn .dot-badge {
+  position: absolute; top: 6px; right: 6px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #f97316;
+  border: 1.5px solid #fffbf7;
+}
+.icon-sep {
+  width: 28px; height: 1px;
+  background: #e2e8f0; margin: 6px 0;
+}
+.s-avatar-sm {
+  width: 32px; height: 32px;
+  background: #e8392a; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Nunito', sans-serif; font-weight: 800;
+  font-size: 11px; color: #fff; cursor: pointer;
+  margin-top: auto; margin-bottom: 8px;
+}
+
+/* ════════════════════════════════════
+   MAIN CONTENT
+════════════════════════════════════ */
+.main {
+  flex: 1; display: flex; flex-direction: column; min-width: 0;
+  background: #ffffff;
+}
+
+/* Content topbar — thin, contextual */
+.content-bar {
+  height: 46px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5fb;
+  display: flex; align-items: center;
+  padding: 0 24px; gap: 12px; flex-shrink: 0;
+}
+.cb-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800; font-size: 15px; color: #1e293b;
+}
+.cb-meta { font-size: 12px; color: #94a3b8; }
+.cb-spacer { flex: 1; }
+.cb-tag {
+  background: #fef3c7; color: #e8392a;
+  font-size: 11.5px; font-weight: 600;
+  padding: 3px 11px; border-radius: 20px;
+  border: 1px solid #fee2e2;
+}
+.cb-timer { font-size: 12.5px; font-weight: 600; color: #64748b; }
+
+/* Chat */
+.chat-scroll {
+  flex: 1; overflow-y: auto;
+  padding: 24px 32px;
+  display: flex; flex-direction: column; gap: 20px;
+  background-color: #fffdf7;
+  background-image: radial-gradient(#fde68a 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+.mrow { display: flex; flex-direction: column; }
+.mrow.you { align-items: flex-end; }
+.mrow.ax  { align-items: flex-start; }
+.mlabel-you {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  color: #94a3b8; margin-bottom: 5px;
+}
+.mlabel-ax {
+  font-family: 'Nunito', sans-serif;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  color: #f97316; margin-bottom: 5px;
+}
+.bubble {
+  max-width: 66%;
+  padding: 13px 17px;
+  font-size: 14px; line-height: 1.65;
+}
+.bubble.you {
+  background: #fef9c3; color: #3d2000;
+  border-radius: 18px 18px 4px 18px;
+  font-weight: 500;
+}
+.bubble.ax {
+  background: #fff; color: #1e293b;
+  border-radius: 4px 18px 18px 18px;
+  border-left: 3.5px solid #f97316;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+.typing-bub {
+  background: #fff;
+  border-radius: 4px 18px 18px 18px;
+  border-left: 3.5px solid #f97316;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 16px 20px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.tdot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #f97316;
+  animation: td 1.3s infinite ease-in-out;
+}
+.tdot:nth-child(2){animation-delay:.18s}
+.tdot:nth-child(3){animation-delay:.36s}
+@keyframes td{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-7px);opacity:1}}
+
+/* Input bar */
+.ibar {
+  flex-shrink: 0;
+  border-top: 1.5px solid #e8eef6;
+  background: #fff;
+  padding: 12px 24px;
+  display: flex; align-items: center; gap: 10px;
+}
+.iattach {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1.5px solid #cbd5e1; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.iinput {
+  flex: 1; height: 40px; border-radius: 20px;
+  border: 1.5px solid #e2e8f0; background: #fffdf7;
+  padding: 0 16px; font-size: 14px; color: #94a3b8;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  outline: none;
+}
+.isend {
+  height: 40px; padding: 0 22px; border-radius: 20px;
+  background: #e8392a; color: #fff;
+  font-size: 14px; font-weight: 700; border: none; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  box-shadow: 0 4px 12px rgba(232,57,42,0.28);
+  flex-shrink: 0;
+}
+.iend {
+  height: 40px; padding: 0 14px; border-radius: 20px;
+  background: transparent; color: #94a3b8;
+  font-size: 13px; font-weight: 600;
+  border: 1.5px solid #e2e8f0; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif; flex-shrink: 0;
+}
+
+/* ════════════════════════════════════
+   EMPTY STATE
+════════════════════════════════════ */
+.empty-fill {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background-color: #fffdf7;
+  background-image: radial-gradient(#fde68a 1px, transparent 1px);
+  background-size: 26px 26px;
+  padding-bottom: 48px;
+}
+.empty-icon {
+  width: 64px; height: 64px;
+  background: #e8392a; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 22px;
+  box-shadow: 0 8px 28px rgba(232,57,42,0.3);
+}
+.empty-h {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900; font-size: 27px;
+  color: #1e293b; margin-bottom: 10px;
+  letter-spacing: -0.4px;
+}
+.empty-p {
+  font-size: 15px; color: #64748b;
+  margin-bottom: 32px; text-align: center;
+  max-width: 360px; line-height: 1.6;
+}
+.pills { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
+.pill {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 18px; border-radius: 12px;
+  border: 1.5px solid #fee2e2; background: #fff;
+  font-size: 13.5px; font-weight: 600; color: #e8392a;
+  cursor: pointer; box-shadow: 0 2px 8px rgba(232,57,42,0.08);
+}
+.pill:hover { background: #e8392a; color: #fff; border-color: #e8392a; }
+.empty-hint { font-size: 12.5px; color: #94a3b8; }
+
+/* ════════════════════════════════════
+   LOGIN PAGE (full page)
+════════════════════════════════════ */
+.login-page {
+  display: flex; min-height: 580px;
+}
+.login-left {
+  width: 44%;
+  background: #b91c1c;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 40px;
+  gap: 0;
+}
+.login-brand {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+  margin-bottom: 40px;
+}
+.login-logo-box {
+  width: 64px; height: 64px;
+  background: #e8392a; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 28px rgba(232,57,42,0.4);
+}
+.login-brand-name {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900; font-size: 34px;
+  color: #ffffff; letter-spacing: -0.5px;
+}
+.login-brand-tagline {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-top: -6px;
+}
+.login-pitch {
+  font-size: 15.5px; color: rgba(255,255,255,0.6);
+  text-align: center; line-height: 1.7;
+  max-width: 280px;
+}
+.login-bullets {
+  list-style: none; margin-top: 28px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.login-bullet {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13.5px; color: rgba(255,255,255,0.6);
+  line-height: 1.5;
+}
+.lb-dot {
+  width: 20px; height: 20px; border-radius: 6px;
+  background: rgba(232,57,42,0.4);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+  font-size: 11px;
+}
+
+.login-right {
+  flex: 1;
+  background: #fffdf7;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 48px;
+}
+.login-form-wrap {
+  width: 100%; max-width: 360px;
+}
+.login-form-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900; font-size: 26px;
+  color: #1e293b; margin-bottom: 5px;
+  letter-spacing: -0.3px;
+}
+.login-form-sub {
+  font-size: 14px; color: #64748b;
+  margin-bottom: 28px; line-height: 1.5;
+}
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 26px;
+}
+.tab {
+  flex: 1; text-align: center;
+  padding-bottom: 12px;
+  font-size: 14px; font-weight: 600;
+  color: #94a3b8; cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+.tab.active { color: #e8392a; border-bottom-color: #e8392a; }
+.fgroup { display: flex; flex-direction: column; gap: 18px; margin-bottom: 24px; }
+.flabel {
+  font-size: 12px; font-weight: 600;
+  color: #334155; margin-bottom: 6px; display: block;
+  letter-spacing: 0.1px;
+}
+.finput {
+  width: 100%; height: 44px;
+  border-radius: 11px; border: 1.5px solid #e2e8f0;
+  background: #fff; padding: 0 14px;
+  font-size: 14px; color: #475569;
+  font-family: 'Plus Jakarta Sans', sans-serif; outline: none;
+}
+.finput:focus { border-color: #e8392a; }
+.fbtn {
+  width: 100%; height: 46px;
+  border-radius: 23px; background: #e8392a; color: #fff;
+  font-size: 15px; font-weight: 700; border: none; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  box-shadow: 0 4px 16px rgba(232,57,42,0.32);
+  margin-bottom: 16px;
+}
+.forgot { font-size: 13px; color: #64748b; text-align: center; }
+.forgot a { color: #e8392a; text-decoration: none; }
+
+/* book+spark SVG shorthand */
+</style>
+</head>
+<body>
+
+<!-- ══════════ SCREEN 1: SIDEBAR OPEN ══════════ -->
+<div class="section">
+  <span class="section-label">State 1 of 3</span>
+  <h2 class="section-title">Axiom — Redesign Concept</h2>
+  <p class="section-sub">Full-weight header · Collapsible left nav (open) · Active session</p>
+  <div class="browser">
+    <div class="browserbar">
+      <div class="bdots"><div class="bd bd-r"></div><div class="bd bd-y"></div><div class="bd bd-g"></div></div>
+      <div class="burl">axiom.schmim.com</div>
+    </div>
+    <!-- APP -->
+    <div style="display:flex;flex-direction:column;height:620px;">
+      <!-- HEADER -->
+      <div class="app-header">
+        <button class="menu-btn" aria-label="Toggle nav">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="header-brand">
+          <div class="header-logo-box">
+            <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+              <!-- bulb dome -->
+              <path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" fill="white" opacity=".88"/>
+              <!-- base rings -->
+              <rect x="12.5" y="27.5" width="7" height="1.5" rx=".75" fill="white" opacity=".6"/>
+              <rect x="14" y="29.5" width="4" height="1.5" rx=".75" fill="white" opacity=".35"/>
+              <!-- inner bolt -->
+              <path d="M18 11.5L13.5 17H16.5L13.5 22L20 15.5H17L19.5 11.5Z" fill="rgba(255,220,60,.9)"/>
+            </svg>
+          </div>
+          <div class="brand-words">
+            <span class="brand-name">Axiom</span>
+            <span class="brand-sub">AI Tutor</span>
+          </div>
+        </div>
+        <div class="header-divider"></div>
+        <span class="header-page-title">Tutor</span>
+        <div class="header-spacer"></div>
+        <div class="header-right">
+          <button class="new-session-btn">+ New session</button>
+          <div class="user-chip">
+            <div class="avatar">AC</div>
+            <span class="user-chip-name">Alex Chen</span>
+            <svg class="chevron-down" width="14" height="14" viewBox="0 0 20 20" fill="white"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </div>
+        </div>
+      </div>
+      <!-- BODY -->
+      <div class="app-body" style="flex:1;min-height:0;">
+        <!-- SIDEBAR OPEN -->
+        <nav class="sidebar">
+          <div class="nav-group">
+            <div class="nav-group-label">Learn</div>
+            <div class="nav-link active">
+              <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
+              Tutor
+            </div>
+            <div class="nav-link">
+              <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+              Session History
+              <span class="nl-badge">3</span>
+            </div>
+            <div class="nav-link">
+              <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
+              Practice Sets
+              <span class="nl-soon">soon</span>
+            </div>
+            <div class="nav-link">
+              <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+              My Progress
+              <span class="nl-soon">soon</span>
+            </div>
+          </div>
+          <div class="nav-group">
+            <div class="nav-group-label">Account</div>
+            <div class="nav-link">
+              <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+              Settings
+            </div>
+          </div>
+          <div class="sidebar-footer">
+            <div class="sidebar-user-row">
+              <div class="s-avatar">AC</div>
+              <div class="s-user-info">
+                <div class="s-name">Alex Chen</div>
+                <div class="s-grade">11th Grade</div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="#94a3b8"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </div>
+          </div>
+        </nav>
+        <!-- MAIN -->
+        <div class="main">
+          <div class="content-bar">
+            <span class="cb-title">Tutor Session</span>
+            <span class="cb-meta">#a3f7 · Apr 18</span>
+            <div class="cb-spacer"></div>
+            <span class="cb-tag">Physics — Kinematics</span>
+            <span class="cb-timer">9:53</span>
+          </div>
+          <div class="chat-scroll">
+            <div class="mrow you"><div class="mlabel-you">You</div><div class="bubble you">I have to find the velocity of a ball after it falls 5 meters. I got v = 10 m/s but I'm not sure if that's right.</div></div>
+            <div class="mrow ax"><div class="mlabel-ax">Axiom</div><div class="bubble ax">Nice start — you've clearly been thinking about this. Before I say anything, walk me through how you set that up. What equation did you start with?</div></div>
+            <div class="mrow you"><div class="mlabel-you">You</div><div class="bubble you">I used v = d/t but I couldn't figure out the time so I just guessed 0.5s</div></div>
+            <div class="mrow ax"><div class="mlabel-ax">Axiom</div><div class="typing-bub"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div>
+          </div>
+          <div class="ibar">
+            <button class="iattach"><svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M13.5 7.5L7.5 13.5C6.12 14.88 3.88 14.88 2.5 13.5C1.12 12.12 1.12 9.88 2.5 8.5L8.5 2.5C9.33 1.67 10.67 1.67 11.5 2.5C12.33 3.33 12.33 4.67 11.5 5.5L5.5 11.5C5.08 11.92 4.42 11.92 4 11.5C3.58 11.08 3.58 10.42 4 10L9.5 4.5" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <input class="iinput" type="text" placeholder="Describe what you're working on, or drag in a photo…"/>
+            <button class="isend">Send</button>
+            <button class="iend">End session</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 2: SIDEBAR COLLAPSED ══════════ -->
+<div class="section">
+  <span class="section-label">State 2 of 3</span>
+  <p class="section-sub">Same header · Nav collapsed to icons · Chat gets full width</p>
+  <div class="browser">
+    <div class="browserbar">
+      <div class="bdots"><div class="bd bd-r"></div><div class="bd bd-y"></div><div class="bd bd-g"></div></div>
+      <div class="burl">axiom.schmim.com</div>
+    </div>
+    <div style="display:flex;flex-direction:column;height:620px;">
+      <div class="app-header">
+        <button class="menu-btn"><span></span><span></span><span></span></button>
+        <div class="header-brand">
+          <div class="header-logo-box">
+            <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" fill="white" opacity=".88"/><rect x="12.5" y="27.5" width="7" height="1.5" rx=".75" fill="white" opacity=".6"/><rect x="14" y="29.5" width="4" height="1.5" rx=".75" fill="white" opacity=".35"/><path d="M18 11.5L13.5 17H16.5L13.5 22L20 15.5H17L19.5 11.5Z" fill="rgba(255,220,60,.9)"/></svg>
+          </div>
+          <div class="brand-words"><span class="brand-name">Axiom</span><span class="brand-sub">AI Tutor</span></div>
+        </div>
+        <div class="header-divider"></div>
+        <span class="header-page-title">Tutor</span>
+        <div class="header-spacer"></div>
+        <div class="header-right">
+          <button class="new-session-btn">+ New session</button>
+          <div class="user-chip"><div class="avatar">AC</div><span class="user-chip-name">Alex Chen</span><svg class="chevron-down" width="14" height="14" viewBox="0 0 20 20" fill="white"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></div>
+        </div>
+      </div>
+      <div class="app-body" style="flex:1;min-height:0;">
+        <!-- COLLAPSED SIDEBAR -->
+        <div class="sidebar-collapsed">
+          <div class="icon-btn active" title="Tutor">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
+          </div>
+          <div class="icon-btn" title="Session History" style="position:relative">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+            <div class="dot-badge"></div>
+          </div>
+          <div class="icon-btn" title="Practice Sets">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
+          </div>
+          <div class="icon-btn" title="My Progress">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+          </div>
+          <div class="icon-sep"></div>
+          <div class="icon-btn" title="Settings">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="s-avatar-sm">AC</div>
+        </div>
+        <!-- MAIN — wider now -->
+        <div class="main">
+          <div class="content-bar">
+            <span class="cb-title">Tutor Session</span>
+            <span class="cb-meta">#a3f7 · Apr 18</span>
+            <div class="cb-spacer"></div>
+            <span class="cb-tag">Physics — Kinematics</span>
+            <span class="cb-timer">9:53</span>
+          </div>
+          <div class="chat-scroll">
+            <div class="mrow you"><div class="mlabel-you">You</div><div class="bubble you">I have to find the velocity of a ball after it falls 5 meters. I got v = 10 m/s but I'm not sure if that's right.</div></div>
+            <div class="mrow ax"><div class="mlabel-ax">Axiom</div><div class="bubble ax">Nice start — you've clearly been thinking about this. Before I say anything, walk me through how you set that up. What equation did you start with?</div></div>
+            <div class="mrow you"><div class="mlabel-you">You</div><div class="bubble you">I used v = d/t but I couldn't figure out the time so I just guessed 0.5s</div></div>
+            <div class="mrow ax"><div class="mlabel-ax">Axiom</div><div class="typing-bub"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div>
+          </div>
+          <div class="ibar">
+            <button class="iattach"><svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M13.5 7.5L7.5 13.5C6.12 14.88 3.88 14.88 2.5 13.5C1.12 12.12 1.12 9.88 2.5 8.5L8.5 2.5C9.33 1.67 10.67 1.67 11.5 2.5C12.33 3.33 12.33 4.67 11.5 5.5L5.5 11.5C5.08 11.92 4.42 11.92 4 11.5C3.58 11.08 3.58 10.42 4 10L9.5 4.5" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <input class="iinput" type="text" placeholder="Describe what you're working on, or drag in a photo…"/>
+            <button class="isend">Send</button>
+            <button class="iend">End session</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 3: LOGIN — REAL PAGE ══════════ -->
+<div class="section">
+  <span class="section-label">State 3 of 3</span>
+  <p class="section-sub">Login as a real full page — split layout, no floating card overlay</p>
+  <div class="browser">
+    <div class="browserbar">
+      <div class="bdots"><div class="bd bd-r"></div><div class="bd bd-y"></div><div class="bd bd-g"></div></div>
+      <div class="burl">axiom.schmim.com/login</div>
+    </div>
+    <div style="display:flex;flex-direction:column;">
+      <!-- Minimal header on login page -->
+      <div class="app-header">
+        <div class="header-brand">
+          <div class="header-logo-box">
+            <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" fill="white" opacity=".88"/><rect x="12.5" y="27.5" width="7" height="1.5" rx=".75" fill="white" opacity=".6"/><rect x="14" y="29.5" width="4" height="1.5" rx=".75" fill="white" opacity=".35"/><path d="M18 11.5L13.5 17H16.5L13.5 22L20 15.5H17L19.5 11.5Z" fill="rgba(255,220,60,.9)"/></svg>
+          </div>
+          <div class="brand-words"><span class="brand-name">Axiom</span><span class="brand-sub">AI Tutor</span></div>
+        </div>
+      </div>
+      <!-- SPLIT LOGIN PAGE -->
+      <div class="login-page">
+        <!-- LEFT: brand panel -->
+        <div class="login-left">
+          <div class="login-brand">
+            <div class="login-logo-box">
+              <svg width="36" height="36" viewBox="0 0 32 32" fill="none"><path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" fill="white" opacity=".88"/><rect x="12.5" y="27.5" width="7" height="1.5" rx=".75" fill="white" opacity=".6"/><rect x="14" y="29.5" width="4" height="1.5" rx=".75" fill="white" opacity=".35"/><path d="M18 11.5L13.5 17H16.5L13.5 22L20 15.5H17L19.5 11.5Z" fill="rgba(255,220,60,.9)"/></svg>
+            </div>
+            <div>
+              <div class="login-brand-name">Axiom</div>
+              <div class="login-brand-tagline">AI Tutor</div>
+            </div>
+          </div>
+          <p class="login-pitch">Your personal tutor — available whenever you need it.</p>
+          <ul class="login-bullets">
+            <li class="login-bullet"><span class="lb-dot">💡</span>Guides you to the answer instead of just giving it</li>
+            <li class="login-bullet"><span class="lb-dot">📸</span>Upload photos of your homework or textbook</li>
+            <li class="login-bullet"><span class="lb-dot">📈</span>Track your sessions and see your progress over time</li>
+          </ul>
+        </div>
+        <!-- RIGHT: form -->
+        <div class="login-right">
+          <div class="login-form-wrap">
+            <h1 class="login-form-title">Welcome back 👋</h1>
+            <p class="login-form-sub">Sign in to continue learning</p>
+            <div class="tabs">
+              <div class="tab active">Sign in</div>
+              <div class="tab">Create account</div>
+            </div>
+            <div class="fgroup">
+              <div><label class="flabel">Email address</label><input class="finput" type="email" value="alex.chen@school.edu" readonly/></div>
+              <div><label class="flabel">Password</label><input class="finput" type="password" value="••••••••" readonly/></div>
+            </div>
+            <button class="fbtn">Sign in</button>
+            <p class="forgot"><a href="#">Forgot your password?</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
