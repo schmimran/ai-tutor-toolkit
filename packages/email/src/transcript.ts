@@ -84,6 +84,14 @@ function formatGeo(geo: Record<string, unknown> | null | undefined): string {
   return parts.length > 0 ? parts.join(", ") : "unknown";
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function scoreBadge(score: string): string {
   const colorMap: Record<string, string> = {
     pass: "#16a34a",
@@ -95,7 +103,7 @@ function scoreBadge(score: string): string {
     abandoned: "#9ca3af",
   };
   const color = colorMap[score] ?? "#9ca3af";
-  return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${color};color:#fff;font-size:0.8em;font-weight:bold;">${score}</span>`;
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${color};color:#fff;font-size:0.8em;font-weight:bold;">${escapeHtml(score)}</span>`;
 }
 
 function buildEvaluationHtml(
@@ -111,9 +119,9 @@ function buildEvaluationHtml(
     .map(
       (d) => `
     <tr>
-      <td style="padding:8px 10px;border:1px solid #ddd;">${d.label}</td>
+      <td style="padding:8px 10px;border:1px solid #ddd;">${escapeHtml(d.label)}</td>
       <td style="padding:8px 10px;border:1px solid #ddd;text-align:center;">${scoreBadge(d.score)}</td>
-      <td style="padding:8px 10px;border:1px solid #ddd;font-size:0.9em;color:#444;">${d.rationale}</td>
+      <td style="padding:8px 10px;border:1px solid #ddd;font-size:0.9em;color:#444;">${escapeHtml(d.rationale)}</td>
     </tr>`
     )
     .join("");
@@ -156,10 +164,10 @@ function buildStudentFeedbackHtml(
     body = "<p>Student feedback: skipped.</p>";
   } else {
     const outcomeLabel = studentFeedback.outcome
-      ? (outcomeLabels[studentFeedback.outcome] ?? studentFeedback.outcome)
+      ? (outcomeLabels[studentFeedback.outcome] ?? escapeHtml(studentFeedback.outcome))
       : "—";
     const experienceLabel = studentFeedback.experience
-      ? (experienceLabels[studentFeedback.experience] ?? studentFeedback.experience)
+      ? (experienceLabels[studentFeedback.experience] ?? escapeHtml(studentFeedback.experience))
       : "—";
     const commentRow = studentFeedback.comment
       ? `<tr><td style="padding:6px 0;color:#555;width:120px;">Comment</td><td>${escapeHtml(studentFeedback.comment)}</td></tr>`
@@ -334,14 +342,6 @@ export interface UserTranscriptPayload {
  * conversation transcript.  Omits evaluation, feedback, IP/geo, token
  * counts, model info, session ID, and prompt name.
  */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 function buildUserHtml(payload: UserTranscriptPayload): string {
   const { transcript, startedAt, durationMs } = payload;
 
