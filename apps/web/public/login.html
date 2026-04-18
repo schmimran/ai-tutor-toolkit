@@ -96,6 +96,17 @@
         <button type="submit" class="login-btn login-btn-primary" id="btn-register">Create account</button>
       </form>
 
+      <!-- ── Post-registration verification panel ─────────────────────── -->
+      <div class="login-panel verify-overlay" id="verify-panel">
+        <h2 class="verify-heading">Check your email</h2>
+        <p class="verify-body">We sent a verification link to <strong id="verify-email"></strong>. Click the link in that email to activate your account, then sign in.</p>
+        <p class="verify-countdown">This link expires in <span id="verify-countdown">60:00</span>.</p>
+        <button type="button" class="login-btn" id="btn-resend-signup" disabled>Resend verification email</button>
+        <p class="verify-back-note">
+          <button type="button" class="verify-link-btn" id="btn-verify-back">Back to sign in</button>
+        </p>
+      </div>
+
       <p class="login-error" id="login-error" style="display:none"></p>
       <p class="login-success" id="login-success" style="display:none"></p>
       <p class="login-contact-note" id="login-contact-note"></p>

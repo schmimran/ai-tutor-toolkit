@@ -38,10 +38,114 @@
         panels[key].classList.toggle('active', key === target);
       });
       $('forgot-panel').classList.remove('active');
+      hideVerifyPanel();
       setError(null);
       setSuccess(null);
       $('btn-resend-verification').style.display = 'none';
     });
+  });
+
+  /* ── Post-registration verify panel ───────────────────────────────── */
+  // Shows a "check your email" panel after successful registration with:
+  //   - a 60-minute countdown (matches the Supabase signup-link expiry),
+  //   - a resend button with a 60-second cooldown calling supabase.auth.resend().
+  // hideVerifyPanel() always clears both timers to avoid interval leaks.
+  var verifyCountdownTimer = null;
+  var resendCooldownTimer = null;
+
+  function clearVerifyTimers() {
+    if (verifyCountdownTimer) { clearInterval(verifyCountdownTimer); verifyCountdownTimer = null; }
+    if (resendCooldownTimer)  { clearInterval(resendCooldownTimer);  resendCooldownTimer = null; }
+  }
+
+  function hideVerifyPanel() {
+    clearVerifyTimers();
+    $('verify-panel').classList.remove('active');
+  }
+
+  function formatMMSS(seconds) {
+    if (seconds < 0) seconds = 0;
+    var mm = Math.floor(seconds / 60);
+    var ss = seconds % 60;
+    return (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+  }
+
+  function startResendCooldown() {
+    var btn = $('btn-resend-signup');
+    var remaining = 60;
+    btn.disabled = true;
+    var label = btn.textContent;
+    btn.textContent = 'Resend verification email (' + remaining + 's)';
+    if (resendCooldownTimer) clearInterval(resendCooldownTimer);
+    resendCooldownTimer = setInterval(function () {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(resendCooldownTimer);
+        resendCooldownTimer = null;
+        btn.disabled = false;
+        btn.textContent = 'Resend verification email';
+      } else {
+        btn.textContent = 'Resend verification email (' + remaining + 's)';
+      }
+      void label; // no-op, keep original label capture for clarity
+    }, 1000);
+  }
+
+  function showVerifyPanel(email) {
+    clearVerifyTimers();
+
+    // Hide other panels and tab selection.
+    $('login-panel').classList.remove('active');
+    $('register-panel').classList.remove('active');
+    $('forgot-panel').classList.remove('active');
+    tabs.forEach(function (t) {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    setError(null);
+    setSuccess(null);
+
+    $('verify-email').textContent = email;
+    $('verify-panel').classList.add('active');
+
+    // 60-minute countdown (in seconds).
+    var secondsLeft = 60 * 60;
+    $('verify-countdown').textContent = formatMMSS(secondsLeft);
+    verifyCountdownTimer = setInterval(function () {
+      secondsLeft -= 1;
+      $('verify-countdown').textContent = formatMMSS(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(verifyCountdownTimer);
+        verifyCountdownTimer = null;
+      }
+    }, 1000);
+
+    // Resend button: 60-second cooldown; calls supabase.auth.resend({type:'signup'}).
+    startResendCooldown();
+  }
+
+  // Expose for the resend click handler + external callers.
+  window.__showVerifyPanel = showVerifyPanel;
+
+  $('btn-resend-signup').addEventListener('click', function () {
+    var email = $('verify-email').textContent.trim();
+    if (!email) return;
+    var btn = $('btn-resend-signup');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    window.auth.init().then(function () {
+      return window.auth.getClient().auth.resend({ type: 'signup', email: email });
+    }).then(function () {
+      startResendCooldown();
+    }).catch(function () {
+      // Re-enable immediately so the user can retry.
+      btn.disabled = false;
+    });
+  });
+
+  $('btn-verify-back').addEventListener('click', function () {
+    hideVerifyPanel();
+    document.querySelector('.login-tab[data-tab="login"]').click();
   });
 
   /* ── Contact email from config ─────────────────────────────────────── */
@@ -136,10 +240,9 @@
           setError('Too many attempts — please wait a few minutes and try again.');
         } else if (res.status >= 200 && res.status < 300 && res.body.ok) {
           resetRegisterForm();
-          setSuccess('Account created. Check your email for a verification link, then sign in.');
-          // Switch to sign-in tab and pre-fill email
-          document.querySelector('.login-tab[data-tab="login"]').click();
+          // Pre-fill the sign-in form so returning from the verify panel is frictionless.
           $('login-email').value = email;
+          showVerifyPanel(email);
         } else if (res.body && res.body.error === 'underage') {
           setError('You must be at least 13 to register.');
         } else {
@@ -227,6 +330,7 @@
   /* ── Forgot password ───────────────────────────────────────────────── */
   $('btn-show-forgot').addEventListener('click', function () {
     setError(null); setSuccess(null);
+    hideVerifyPanel();
     $('login-panel').classList.remove('active');
     $('register-panel').classList.remove('active');
     $('forgot-panel').classList.add('active');
