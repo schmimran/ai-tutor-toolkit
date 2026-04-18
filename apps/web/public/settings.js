@@ -4,8 +4,9 @@
  *   - user object (name/email/birthdate/grade_level/app_metadata) via auth.getUser()
  *   - email_transcripts_enabled via a RLS-protected select/update on profiles
  *   - password change via auth.updateUser({ password, currentPassword })
- *   - email change via auth.updateUser({ email }) — Supabase emails the new
- *     address to confirm the change.
+ *   - email change via auth.updateUser({ email }, { emailRedirectTo }) — Supabase
+ *     emails the new address to confirm; USER_UPDATED/EMAIL_CHANGE on
+ *     onAuthStateChange refreshes the displayed email after confirmation.
  *
  * Recovery detection: supabase-js fires PASSWORD_RECOVERY on the auth state
  * when a recovery hash is consumed. We show the recovery banner when
