@@ -65,7 +65,7 @@
   const fileStrip      = $('file-strip');
   const endBanner      = $('end-banner');
   const btnEndSession       = $('btn-end-session');
-  const btnEndSessionHeader = $('btn-end-session-header');
+  const btnEndSessionInline = $('btn-end-session-inline');
   const fbCard             = $('fb-card');
   const btnFbSubmit        = $('btn-fb-submit');
   const btnFbSkip          = $('btn-fb-skip');
@@ -217,7 +217,7 @@
   // ── Header button state ───────────────────────────────────────────────────
   function updateHeaderButtons() {
     const hasMessages = msgList.length > 0;
-    btnEndSessionHeader.disabled = !hasMessages;
+    btnEndSessionInline.disabled = !hasMessages;
   }
 
   // ── Empty-state toggle ────────────────────────────────────────────────────
@@ -516,7 +516,7 @@
     msgInput.disabled         = disabled;
     btnAttach.disabled        = disabled;
     // When re-enabling after streaming, respect the "has messages" gate
-    btnEndSessionHeader.disabled = disabled || msgList.length === 0;
+    btnEndSessionInline.disabled = disabled || msgList.length === 0;
   }
 
   // ── Session DELETE helpers ────────────────────────────────────────────────
@@ -761,7 +761,7 @@
     msgInput.disabled = true;
     btnSend.disabled  = true;
     btnAttach.disabled = true;
-    btnEndSessionHeader.disabled = true;
+    btnEndSessionInline.disabled = true;
     msgInput.placeholder = 'Session ended.';
     showToast(message, 5000);
   }
@@ -956,7 +956,7 @@
   });
 
   btnEndSession.addEventListener('click', endSession);
-  btnEndSessionHeader.addEventListener('click', endSession);
+  btnEndSessionInline.addEventListener('click', endSession);
 
   // Feedback card option toggle
   fbCard.addEventListener('click', e => {
