@@ -1,19 +1,20 @@
     /* ── CSS variables ─────────────────────────────────────────────────────── */
     :root {
-      --bg:            #0f1117;
-      --surface:       #1a1d27;
+      --bg:            #0e0f1a;
+      --surface:       #181a2e;
       --surface-alt:   #252836;
       --surface-raise: #2e3247;
       --border:        #2e3247;
       --border-bright: #4a4f6a;
       --text:          #e8eaf6;
       --text-muted:    #6b7194;
-      --accent:        #7c6af7;
-      --accent-light:  #2d2860;
+      --accent:        #6d8ef5;
+      /* Warm periwinkle tinted surface used for accent backgrounds (pills, chips, hover states). */
+      --accent-light:  #1e2a52;
       --accent-dark:   #5b4dd4;
-      --accent-glow:   rgba(124, 106, 247, 0.25);
-      --tutor-accent:  #22d3ee;
-      --tutor-bg:      #0e1e26;
+      --accent-glow:   rgba(109, 142, 245, 0.25);
+      --tutor-accent:  #f59e0b;
+      --tutor-bg:      #1a1600;
       --tutor-border:  #1a3a48;
       --user-bg:       #1e1a40;
       --user-border:   #3d3572;
@@ -787,7 +788,7 @@
     .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent) 0%, #9c6af7 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, #8ba8f8 100%);
       border-color: transparent;
       color: #fff;
     }
@@ -971,7 +972,7 @@
       width: 72px;
       height: 72px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-light), #0e1e26);
+      background: linear-gradient(135deg, var(--accent-light), var(--tutor-bg));
       border: 2px solid var(--border-bright);
       display: flex;
       align-items: center;
