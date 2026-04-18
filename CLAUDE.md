@@ -205,6 +205,7 @@ One row per registered user.  Created at registration time.
 |--------|------|---------|-------|
 | user_id | uuid | | PK. FK → auth.users(id) ON DELETE CASCADE. |
 | is_admin | boolean | false | Grants access to model/prompt/thinking selectors in the chat header. |
+| email_transcripts_enabled | boolean | true | Whether to email session transcripts to the user. User-controllable via the settings page. |
 | created_at | timestamptz | now() | |
 
 ### disclaimer_acceptances
@@ -484,6 +485,7 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` column to the sessions table |
 | `supabase/migrations/002_users.sql` | Adds nullable `user_id uuid` column to sessions referencing `auth.users(id) ON DELETE SET NULL`, with partial index `sessions_user_id`. Backs the parallel Supabase-auth login flow (issue #73). |
 | `supabase/migrations/003_profiles.sql` | Creates `profiles` table keyed on `user_id` with `is_admin boolean NOT NULL DEFAULT false`. One row per registered user. |
+| `supabase/migrations/004_profile_settings.sql` | Adds `email_transcripts_enabled boolean NOT NULL DEFAULT true` column to the `profiles` table. Backs the settings page toggle for opting out of transcript emails. |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |
