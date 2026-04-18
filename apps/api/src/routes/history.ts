@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSessionsByUser } from "@ai-tutor/db";
+import { getSessionsByUser, getFeedbackForSessions } from "@ai-tutor/db";
 import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
 
 /**
@@ -18,16 +18,22 @@ export function createHistoryRouter(db: SupabaseClient): Router {
     try {
       const { userId } = req as AuthedRequest;
       const rows = await getSessionsByUser(db, userId);
+      const feedbackMap = await getFeedbackForSessions(db, rows.map((r) => r.id));
 
-      const sessions = rows.map((r) => ({
-        id: r.id,
-        started_at: r.started_at,
-        ended_at: r.ended_at,
-        prompt_name: r.prompt_name,
-        model: r.model,
-        total_input_tokens: r.total_input_tokens,
-        total_output_tokens: r.total_output_tokens,
-      }));
+      const sessions = rows.map((r) => {
+        const fb = feedbackMap.get(r.id);
+        return {
+          id: r.id,
+          started_at: r.started_at,
+          ended_at: r.ended_at,
+          prompt_name: r.prompt_name,
+          model: r.model,
+          total_input_tokens: r.total_input_tokens,
+          total_output_tokens: r.total_output_tokens,
+          outcome: fb?.outcome ?? null,
+          experience: fb?.experience ?? null,
+        };
+      });
 
       res.json({ sessions });
     } catch (err) {

@@ -1,6 +1,6 @@
 export { createSupabaseClient, createSupabaseAnonClient } from "./client.js";
 
-export { createSession, getSession, getSessionsByUser, updateSession, markSessionEnded, getUserEmailForSession } from "./sessions.js";
+export { createSession, getSession, getSessionsByUser, updateSession, markSessionEnded, getUserEmailForSession, getFeedbackForSessions } from "./sessions.js";
 
 export {
   createMessage,

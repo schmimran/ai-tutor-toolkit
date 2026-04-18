@@ -62,6 +62,16 @@
     return mins + " min";
   }
 
+  function formatOutcome(v) {
+    var labels = { solved: "Solved", partial: "Partially solved", stuck: "Stuck" };
+    return labels[v] || v;
+  }
+
+  function formatExperience(v) {
+    var labels = { positive: "Good experience", neutral: "Neutral", negative: "Difficult" };
+    return labels[v] || v;
+  }
+
   // ── Load sessions ─────────────────────────────────────────────────────────
   function loadSessions() {
     fetch("/api/history", { headers: authHeaders() })
@@ -114,6 +124,26 @@
       if (duration) parts.push(duration);
       meta.textContent = parts.join(" \u2022 ");
       info.appendChild(meta);
+
+      if (s.outcome || s.experience) {
+        var rating = document.createElement("div");
+        rating.className = "history-item-rating";
+
+        if (s.outcome) {
+          var outcomePill = document.createElement("span");
+          outcomePill.className = "rating-pill outcome-" + s.outcome;
+          outcomePill.textContent = formatOutcome(s.outcome);
+          rating.appendChild(outcomePill);
+        }
+        if (s.experience) {
+          var expPill = document.createElement("span");
+          expPill.className = "rating-pill experience-" + s.experience;
+          expPill.textContent = formatExperience(s.experience);
+          rating.appendChild(expPill);
+        }
+
+        info.appendChild(rating);
+      }
 
       var btn = document.createElement("button");
       btn.className = "history-view-btn";
