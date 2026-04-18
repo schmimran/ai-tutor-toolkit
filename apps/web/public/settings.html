@@ -67,6 +67,20 @@
           <button type="button" class="settings-btn" id="btn-change-email">Update email</button>
         </fieldset>
 
+        <fieldset class="settings-section">
+          <legend class="settings-section-title">Security</legend>
+          <div id="recovery-banner" class="settings-recovery-banner" style="display:none">Enter a new password to complete your password reset.</div>
+          <label class="settings-field">
+            <span class="settings-label">New password</span>
+            <input type="password" id="settings-new-password" class="settings-input" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+          </label>
+          <label class="settings-field">
+            <span class="settings-label">Confirm new password</span>
+            <input type="password" id="settings-confirm-password" class="settings-input" autocomplete="new-password" placeholder="Repeat new password">
+          </label>
+          <button type="button" class="settings-btn" id="btn-change-password">Change password</button>
+        </fieldset>
+
         <div class="settings-actions">
           <button type="submit" class="settings-btn settings-btn-primary" id="btn-save">Save changes</button>
         </div>

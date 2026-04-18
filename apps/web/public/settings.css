@@ -208,3 +208,13 @@ html, body {
   color: var(--danger);
   font-size: 0.85rem;
 }
+
+.settings-recovery-banner {
+  background: rgba(124, 106, 247, 0.12);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-bottom: 0.85rem;
+}

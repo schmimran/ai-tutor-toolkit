@@ -33,10 +33,11 @@ export function createTranscriptRouter(db: SupabaseClient): Router {
 
       const callerId = (req as OptionalAuthRequest).userId;
 
-      // Ownership check — only for authenticated callers viewing DB sessions.
-      if (callerId) {
-        const dbRow = await getDbSession(db, sessionId);
-        if (dbRow?.user_id && dbRow.user_id !== callerId) {
+      // Ownership check — sessions with a user_id require a matching Bearer token.
+      // Unauthenticated callers may not read sessions that belong to registered users.
+      const dbRow = await getDbSession(db, sessionId);
+      if (dbRow?.user_id) {
+        if (!callerId || dbRow.user_id !== callerId) {
           res.status(403).json({ error: "forbidden" });
           return;
         }

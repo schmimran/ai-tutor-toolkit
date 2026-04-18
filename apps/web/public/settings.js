@@ -37,6 +37,10 @@
   var emailTranscriptsEl = document.getElementById("settings-email-transcripts");
   var emailEl = document.getElementById("settings-email");
   var changeEmailBtn = document.getElementById("btn-change-email");
+  var changePasswordBtn = document.getElementById("btn-change-password");
+  var newPasswordEl = document.getElementById("settings-new-password");
+  var confirmPasswordEl = document.getElementById("settings-confirm-password");
+  var recoveryBannerEl = document.getElementById("recovery-banner");
   var saveBtn = document.getElementById("btn-save");
   var successEl = document.getElementById("settings-success");
   var errorInlineEl = document.getElementById("settings-error-inline");
@@ -98,6 +102,13 @@
         original.gradeLevel = data.gradeLevel || "";
         original.emailTranscriptsEnabled = data.emailTranscriptsEnabled !== false;
         original.email = data.email || "";
+
+        // Detect password recovery redirect from login.js (?recovery=1).
+        if (new URLSearchParams(window.location.search).get("recovery") === "1") {
+          recoveryBannerEl.style.display = "";
+          sessionStorage.removeItem("authRecoveryPending");
+          newPasswordEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       })
       .catch(function (err) {
         loadingEl.style.display = "none";
@@ -196,6 +207,55 @@
       })
       .catch(function () {
         changeEmailBtn.disabled = false;
+        showError("Network error. Please try again.");
+      });
+  });
+
+  // ── Change password ───────────────────────────────────────────────────────
+  changePasswordBtn.addEventListener("click", function () {
+    clearMessages();
+    var newPwd = newPasswordEl.value;
+    var confirmPwd = confirmPasswordEl.value;
+    if (!newPwd) {
+      showError("Please enter a new password.");
+      return;
+    }
+    if (newPwd.length < 8) {
+      showError("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      showError("Passwords do not match.");
+      return;
+    }
+
+    changePasswordBtn.disabled = true;
+    fetch("/api/auth/change-password", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ newPassword: newPwd }),
+    })
+      .then(function (res) {
+        if (res.status === 401) {
+          window.location.replace("/login.html");
+          return null;
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data) return;
+        changePasswordBtn.disabled = false;
+        if (data.ok) {
+          newPasswordEl.value = "";
+          confirmPasswordEl.value = "";
+          recoveryBannerEl.style.display = "none";
+          showSuccess("Password changed successfully.");
+        } else {
+          showError(data.error || "Failed to change password.");
+        }
+      })
+      .catch(function () {
+        changePasswordBtn.disabled = false;
         showError("Network error. Please try again.");
       });
   });
