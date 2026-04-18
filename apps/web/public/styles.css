@@ -715,8 +715,9 @@
 
     /* ── Inline end-session button ─────────────────────────────────────────── */
     #btn-end-session-inline {
+      height: 40px;
       color: var(--danger);
-      border-color: transparent;
+      border-color: var(--border-bright);
       background: transparent;
       opacity: 0.6;
       flex-shrink: 0;
