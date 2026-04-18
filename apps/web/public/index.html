@@ -76,8 +76,8 @@
       <div id="account-dropdown" class="account-dropdown" style="display:none" role="menu">
         <div class="account-dropdown-info" id="account-dropdown-info"></div>
         <div class="account-dropdown-divider"></div>
-        <button class="account-dropdown-item" id="menu-settings" role="menuitem" onclick="window.location.href='/settings.html'">Settings</button>
-        <button class="account-dropdown-item" id="menu-history" role="menuitem" onclick="window.location.href='/history.html'">History</button>
+        <button class="account-dropdown-item" id="menu-settings" role="menuitem">Settings</button>
+        <button class="account-dropdown-item" id="menu-history" role="menuitem">History</button>
         <div class="account-dropdown-divider"></div>
         <button class="account-dropdown-item account-dropdown-logout" id="menu-logout" role="menuitem">Log out</button>
       </div>
@@ -107,7 +107,7 @@
       <div id="drag-overlay">📎 Drop files here</div>
     </div>
       <div id="end-banner" class="end-banner">
-        Looks like you're all set! <button id="btn-end-session" class="btn btn-sm">End session</button>
+        Looks like you're all set! Hit <strong>End session</strong> below when you're ready.
       </div>
 
     <!-- Input wrapper -->
@@ -143,7 +143,7 @@
                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" hidden>
         <textarea id="msg-input" placeholder="What are you stuck on?" rows="1"></textarea>
         <button class="btn btn-primary" id="btn-send">Send</button>
-        <button class="btn btn-sm" id="btn-end-session-inline" disabled title="End this session">End</button>
+        <button class="btn btn-sm" id="btn-end-session-inline" disabled title="End this session">End session</button>
       </div>
     </div>
     </div><!-- /.chat-column -->

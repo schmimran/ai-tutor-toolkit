@@ -64,7 +64,6 @@
   const fileInput      = $('file-input');
   const fileStrip      = $('file-strip');
   const endBanner      = $('end-banner');
-  const btnEndSession       = $('btn-end-session');
   const btnEndSessionInline = $('btn-end-session-inline');
   const fbCard             = $('fb-card');
   const btnFbSubmit        = $('btn-fb-submit');
@@ -87,6 +86,8 @@
   const accountDropdown    = $('account-dropdown');
   const accountDropdownInfo = $('account-dropdown-info');
   const userDisplayName    = $('user-display-name');
+  const menuSettings       = $('menu-settings');
+  const menuHistory        = $('menu-history');
   const menuLogout         = $('menu-logout');
   const dragOverlay        = $('drag-overlay');
   const wrappingUpOverlay  = $('wrapping-up-overlay');
@@ -364,6 +365,7 @@
     if (hasSentinel && !endAvailable && !sessionEnded) {
       endAvailable = true;
       endBanner.classList.add('active');
+      btnEndSessionInline.classList.add('end-ready');
     }
 
     scrollBottom();
@@ -637,6 +639,7 @@
     messagesEl.innerHTML = '';
     showEmpty();
     endBanner.classList.remove('active');
+    btnEndSessionInline.classList.remove('end-ready');
 
     fbCard.classList.remove('active');
     fbCard.querySelectorAll('.fb-opt.chosen').forEach(el => el.classList.remove('chosen'));
@@ -731,6 +734,7 @@
     sessionEnded = true;
     stopCountdownDisplay();
     endBanner.classList.remove('active');
+    btnEndSessionInline.classList.remove('end-ready');
 
     await deleteSession(sessionId);
     lockSession('Session ended due to inactivity. Your transcript has been emailed.');
@@ -743,6 +747,7 @@
     if (inactivityTimer) clearTimeout(inactivityTimer);
     stopCountdownDisplay();
     endBanner.classList.remove('active');
+    btnEndSessionInline.classList.remove('end-ready');
 
     const tutorMessages = msgList.filter(e => e.role === 'tutor');
     if (tutorMessages.length > 0) {
@@ -762,6 +767,7 @@
     btnSend.disabled  = true;
     btnAttach.disabled = true;
     btnEndSessionInline.disabled = true;
+    btnEndSessionInline.classList.remove('end-ready');
     msgInput.placeholder = 'Session ended.';
     showToast(message, 5000);
   }
@@ -955,7 +961,6 @@
     if (fileInput.files?.length) { addFiles(fileInput.files); fileInput.value = ''; }
   });
 
-  btnEndSession.addEventListener('click', endSession);
   btnEndSessionInline.addEventListener('click', endSession);
 
   // Feedback card option toggle
@@ -1039,6 +1044,14 @@
     }
   });
 
+  menuSettings.addEventListener('click', () => {
+    closeAccountDropdown();
+    window.location.href = '/settings.html';
+  });
+  menuHistory.addEventListener('click', () => {
+    closeAccountDropdown();
+    window.location.href = '/history.html';
+  });
   menuLogout.addEventListener('click', () => {
     closeAccountDropdown();
     handleLogout();
