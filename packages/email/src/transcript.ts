@@ -89,7 +89,8 @@ function escapeHtml(text: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
 
 function scoreBadge(score: string): string {
@@ -240,10 +241,10 @@ function buildHtml(payload: TranscriptEmailPayload): string {
 <body style="font-family:sans-serif;max-width:800px;margin:0 auto;padding:24px;color:#222;">
   <h1 style="font-size:1.4rem;border-bottom:2px solid #4f46e5;padding-bottom:8px;">Tutor Session Summary</h1>
   <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-    <tr><td style="padding:6px 0;color:#555;width:160px;">Session ID</td><td style="font-size:0.85em;">${sessionId ?? "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;width:160px;">Session ID</td><td style="font-size:0.85em;">${escapeHtml(sessionId ?? "unknown")}</td></tr>
     ${userRow}
-    <tr><td style="padding:6px 0;color:#555;">Model</td><td>${model ?? "unknown"}</td></tr>
-    <tr><td style="padding:6px 0;color:#555;">Prompt</td><td>${promptName ?? "unknown"}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Model</td><td>${escapeHtml(model ?? "unknown")}</td></tr>
+    <tr><td style="padding:6px 0;color:#555;">Prompt</td><td>${escapeHtml(promptName ?? "unknown")}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Extended thinking</td><td>${extendedThinking === undefined ? "unknown" : extendedThinking ? "On" : "Off"}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Started</td><td>${formatDate(startedAt)}</td></tr>
     <tr><td style="padding:6px 0;color:#555;">Duration</td><td>${formatDuration(durationMs)}</td></tr>
