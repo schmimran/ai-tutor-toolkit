@@ -7,14 +7,18 @@
 
 :root {
   --bg: #0e0f1a;
+  --surface: #181a2e;
   --card: #181a2e;
-  --border: #2a2e3a;
+  --border: #2e3247;
   --text: #e7e9ee;
   --text-muted: #b4b9c8;
   --accent: #6d8ef5;
   --accent-hover: #8ba8f8;
+  --accent-light: #1e2a52;
+  --tutor-accent: #f59e0b;
   --danger: #ef4444;
   --success: #22c55e;
+  --font-heading: 'Nunito', sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -35,13 +39,18 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, #1a1f3a 0%, var(--bg) 100%);
 }
 
 .login-card {
   width: 100%;
   max-width: 420px;
   background: var(--card);
-  border: 1px solid var(--border);
+  border-top: 2px solid transparent;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-image: linear-gradient(90deg, var(--accent), var(--tutor-accent)) 1;
   border-radius: 12px;
   padding: 1.75rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -51,6 +60,44 @@ html, body {
   margin: 0 0 0.25rem 0;
   font-size: 1.4rem;
   font-weight: 700;
+}
+
+.login-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-logo-mark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.login-logo-text {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.1;
+  gap: 2px;
+}
+
+.login-logo-company {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--accent), var(--tutor-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-logo-product {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .login-subtitle {
@@ -107,7 +154,7 @@ html, body {
 }
 
 .login-input {
-  background: #11131b;
+  background: #0d0f1c;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.6rem 0.75rem;
@@ -150,7 +197,7 @@ html, body {
 }
 
 .login-btn {
-  background: #2a2e3a;
+  background: #252845;
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -163,7 +210,7 @@ html, body {
 }
 
 .login-btn:hover {
-  background: #323745;
+  background: #2e3256;
 }
 
 .login-btn-primary {
@@ -220,7 +267,7 @@ html, body {
 }
 
 .login-status-note code {
-  background: #11131b;
+  background: #0d0f1c;
   padding: 0.05rem 0.35rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -235,7 +282,7 @@ html, body {
 .login-status-output {
   margin: 0.75rem 0 0;
   padding: 0.6rem 0.75rem;
-  background: #11131b;
+  background: #0d0f1c;
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-muted);

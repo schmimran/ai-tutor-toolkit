@@ -40,14 +40,17 @@
       <span class="header-logo">
         <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs>
-            <linearGradient id="logo-grad" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#7c6af7"/>
-              <stop offset="100%" stop-color="#22d3ee"/>
+            <linearGradient id="logo-grad-hdr" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#6d8ef5"/>
+              <stop offset="100%" stop-color="#f59e0b"/>
             </linearGradient>
           </defs>
-          <line x1="4" y1="28" x2="16" y2="4" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
-          <line x1="28" y1="28" x2="16" y2="4" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
-          <line x1="9" y1="19" x2="23" y2="19" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round"/>
+          <g stroke="url(#logo-grad-hdr)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 10,16 Q 10,7 16,7 Q 22,7 22,16 Q 22,18.5 20,20 L 20,22 Q 20,23 19,23 L 13,23 Q 12,23 12,22 L 12,20 Q 10,18.5 10,16 Z" stroke-width="1.8"/>
+            <path d="M 13,25 L 19,25" stroke-width="1.8"/>
+            <path d="M 14,27 L 18,27" stroke-width="1.8"/>
+            <ellipse cx="16" cy="15" rx="11" ry="4.5" transform="rotate(-20 16 15)" stroke-width="1.1" opacity="0.85"/>
+          </g>
         </svg>
         <span class="logo-wordmark">
           <span class="logo-company">Axiom</span>
@@ -92,15 +95,29 @@
       <div id="chat-area">
         <div id="empty-state">
           <div class="empty-icon-wrap">
-            <div class="empty-icon">✦</div>
+            <svg class="empty-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Axiom logo">
+              <defs>
+                <linearGradient id="logo-grad-es" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#6d8ef5"/>
+                  <stop offset="100%" stop-color="#f59e0b"/>
+                </linearGradient>
+              </defs>
+              <g stroke="url(#logo-grad-es)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M 10,16 Q 10,7 16,7 Q 22,7 22,16 Q 22,18.5 20,20 L 20,22 Q 20,23 19,23 L 13,23 Q 12,23 12,22 L 12,20 Q 10,18.5 10,16 Z" stroke-width="1.8"/>
+                <path d="M 13,25 L 19,25" stroke-width="1.8"/>
+                <path d="M 14,27 L 18,27" stroke-width="1.8"/>
+                <ellipse cx="16" cy="15" rx="11" ry="4.5" transform="rotate(-20 16 15)" stroke-width="1.1" opacity="0.85"/>
+              </g>
+            </svg>
           </div>
           <p class="empty-heading">What are you stuck on?</p>
-          <p class="empty-sub">Drop a question or upload a photo of your homework.</p>
+          <p class="empty-sub">I'll help you work through it — not just give you the answer.</p>
           <div class="empty-chips">
             <button class="empty-chip" data-fill="Can you help me understand this problem?">🧭 Help me understand</button>
             <button class="empty-chip" data-fill="Check my work: ">✅ Check my work</button>
             <button class="empty-chip" data-fill="Explain ">💡 Explain a concept</button>
           </div>
+          <p class="empty-hint">Pick a mode, then describe what you're stuck on — or just start typing.</p>
         </div>
         <div id="messages"></div>
       </div>
