@@ -28,7 +28,7 @@ export function buildEvaluationPayload(result: EvaluationResult) {
     dimensions: DIMENSION_KEYS.map(key => ({
       label: DIMENSION_LABELS[key],
       score: result[key as keyof EvaluationResult] as string,
-      rationale: result.rationale[key],
+      rationale: result.rationale[key] ?? "",
     })),
     hasFailures: result.has_failures,
   };
