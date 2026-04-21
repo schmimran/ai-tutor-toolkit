@@ -4,7 +4,7 @@ export const UUID_RE =
 
 /** Model IDs accepted by the chat and config routes. */
 export const ALLOWED_MODELS = new Set([
-  "claude-haiku-4-5",
+  "claude-haiku-4-5-20251001",
   "claude-sonnet-4-6",
   "claude-opus-4-6",
 ]);
