@@ -103,7 +103,7 @@ export async function runSessionEvaluation(
   evaluationModel?: string,
 ): Promise<EvaluationResult | null> {
   try {
-    const result = await evaluateTranscript(transcript, evaluationModel ? { evaluationModel } : undefined);
+    const result = await evaluateTranscript(transcript, evaluationModel);
     await upsertSessionEvaluation(db, {
       session_id: sessionId,
       model: result.model,
