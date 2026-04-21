@@ -5,6 +5,11 @@ import type { Session, TokenUsage } from "./session.js";
 /** Shared Anthropic client — one connection pool for all API calls. */
 export const anthropicClient = new Anthropic();
 
+/** Wraps a prompt string into the system array shape required for prompt caching. */
+export function cachedSystem(text: string): Anthropic.Messages.TextBlockParam[] {
+  return [{ type: "text", text, cache_control: { type: "ephemeral" } }];
+}
+
 type UserContent = string | Anthropic.ContentBlockParam[];
 
 export interface StreamOptions {
@@ -43,7 +48,7 @@ function buildParams(
   return {
     model,
     max_tokens: 16000,
-    system: [{ type: "text" as const, text: prompt, cache_control: { type: "ephemeral" as const } }],
+    system: cachedSystem(prompt),
     messages: session.messages as Anthropic.MessageParam[],
     ...(extendedThinking && {
       thinking: { type: "adaptive" as const },
@@ -61,8 +66,6 @@ function buildParams(
  *                     yielded.  The Session is updated after the stream ends.
  */
 export function createTutorClient(config: Config, systemPrompt: string) {
-  const client = anthropicClient;
-
   /**
    * Send a message and wait for the complete response.
    *
@@ -77,7 +80,7 @@ export function createTutorClient(config: Config, systemPrompt: string) {
     session.addUserMessage(userContent, transcriptText);
     session.touchActivity();
 
-    const response = await client.messages.create({
+    const response = await anthropicClient.messages.create({
       ...buildParams(config, systemPrompt, session, opts),
       stream: false,
     } as Anthropic.MessageCreateParamsNonStreaming);
@@ -108,7 +111,7 @@ export function createTutorClient(config: Config, systemPrompt: string) {
     session.addUserMessage(userContent, transcriptText);
     session.touchActivity();
 
-    const stream = client.messages.stream(
+    const stream = anthropicClient.messages.stream(
       buildParams(config, systemPrompt, session, opts) as Anthropic.MessageCreateParamsStreaming
     );
 

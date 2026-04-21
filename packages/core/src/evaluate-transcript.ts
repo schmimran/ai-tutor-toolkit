@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { anthropicClient } from "./tutor-client.js";
+import { anthropicClient, cachedSystem } from "./tutor-client.js";
 import { loadPromptFile } from "./prompt-loader.js";
 
 /** Load the evaluation prompt from the co-located .md file (single source of truth). */
@@ -62,7 +62,7 @@ export async function evaluateTranscript(
   const response = await anthropicClient.messages.create({
     model,
     max_tokens: 2000,
-    system: [{ type: "text", text: EVALUATION_PROMPT, cache_control: { type: "ephemeral" } }],
+    system: cachedSystem(EVALUATION_PROMPT),
     messages: [{ role: "user", content: formattedTranscript }],
   });
 
