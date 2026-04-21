@@ -10,7 +10,7 @@ export function cachedSystem(text: string): Anthropic.Messages.TextBlockParam[] 
   return [{ type: "text", text, cache_control: { type: "ephemeral" } }];
 }
 
-type UserContent = string | Anthropic.ContentBlockParam[];
+export type UserContent = string | Anthropic.ContentBlockParam[];
 
 export interface StreamOptions {
   /** Override the model for this call. If omitted, uses config.model. */

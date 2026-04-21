@@ -1,7 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import type Anthropic from "@anthropic-ai/sdk";
-import type { TutorClient, TokenUsage } from "@ai-tutor/core";
+import type { TutorClient, TokenUsage, UserContent } from "@ai-tutor/core";
 import {
   createMessage,
   createSession,
@@ -42,44 +41,31 @@ const upload = multer({
 function buildUserContent(
   text: string,
   files: Express.Multer.File[]
-): string | Anthropic.Messages.ContentBlockParam[] {
+): UserContent {
   if (files.length === 0) return text;
 
   const fileList = files.map((f) => f.originalname).join(", ");
   const contextText = `[Uploaded files: ${fileList}]\n\n${text}`;
 
-  const blocks: Anthropic.Messages.ContentBlockParam[] = [
-    { type: "text", text: contextText },
-  ];
-
-  for (const file of files) {
+  const fileBlocks = files.map((file) => {
     const base64 = file.buffer.toString("base64");
     if (file.mimetype === "application/pdf") {
-      blocks.push({
-        type: "document",
-        source: {
-          type: "base64",
-          media_type: "application/pdf",
-          data: base64,
-        },
-      } as Anthropic.Messages.ContentBlockParam);
-    } else {
-      blocks.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: file.mimetype as
-            | "image/jpeg"
-            | "image/png"
-            | "image/gif"
-            | "image/webp",
-          data: base64,
-        },
-      });
+      return {
+        type: "document" as const,
+        source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 },
+      };
     }
-  }
+    return {
+      type: "image" as const,
+      source: {
+        type: "base64" as const,
+        media_type: file.mimetype as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+        data: base64,
+      },
+    };
+  });
 
-  return blocks;
+  return [{ type: "text" as const, text: contextText }, ...fileBlocks] as UserContent;
 }
 
 export function createChatRouter(
