@@ -1,11 +1,12 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
+import { anthropicClient, cachedSystem } from "./tutor-client.js";
 import { loadPromptFile } from "./prompt-loader.js";
 
 /** Load the evaluation prompt from the co-located .md file (single source of truth). */
 const EVALUATION_PROMPT = loadPromptFile("packages/core/src/evaluation-prompt.md");
 
 /** Default model for automated transcript evaluation. Overridable via EVALUATION_MODEL env var. */
-export const DEFAULT_EVALUATION_MODEL = "claude-haiku-4-5-20251001";
+export const DEFAULT_EVALUATION_MODEL = "claude-haiku-4-5";
 
 export interface EvaluationResult {
   model: string;
@@ -58,12 +59,10 @@ export async function evaluateTranscript(
     .map((entry, i) => `${i + 1}. [${entry.role}] ${entry.text}`)
     .join("\n");
 
-  const client = new Anthropic();
-
-  const response = await client.messages.create({
+  const response = await anthropicClient.messages.create({
     model,
     max_tokens: 2000,
-    system: EVALUATION_PROMPT,
+    system: cachedSystem(EVALUATION_PROMPT),
     messages: [{ role: "user", content: formattedTranscript }],
   });
 
