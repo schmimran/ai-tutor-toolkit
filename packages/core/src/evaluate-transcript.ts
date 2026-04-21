@@ -4,6 +4,9 @@ import { loadPromptFile } from "./prompt-loader.js";
 /** Load the evaluation prompt from the co-located .md file (single source of truth). */
 const EVALUATION_PROMPT = loadPromptFile("packages/core/src/evaluation-prompt.md");
 
+/** Default model for automated transcript evaluation. Overridable via EVALUATION_MODEL env var. */
+export const DEFAULT_EVALUATION_MODEL = "claude-haiku-4-5-20251001";
+
 export interface EvaluationResult {
   model: string;
   session_mode: string;
@@ -49,7 +52,7 @@ export async function evaluateTranscript(
   transcript: Array<{ role: string; text: string }>,
   config?: { model?: string }
 ): Promise<EvaluationResult> {
-  const model = config?.model ?? "claude-haiku-4-5-20251001";
+  const model = config?.model ?? DEFAULT_EVALUATION_MODEL;
 
   const formattedTranscript = transcript
     .map((entry, i) => `${i + 1}. [${entry.role}] ${entry.text}`)

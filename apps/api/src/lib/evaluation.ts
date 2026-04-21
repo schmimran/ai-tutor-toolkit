@@ -99,10 +99,11 @@ export async function getOrCreateTimeoutFeedback(
 export async function runSessionEvaluation(
   db: SupabaseClient,
   sessionId: string,
-  transcript: Array<{ role: string; text: string }>
+  transcript: Array<{ role: string; text: string }>,
+  evaluationModel?: string,
 ): Promise<EvaluationResult | null> {
   try {
-    const result = await evaluateTranscript(transcript);
+    const result = await evaluateTranscript(transcript, evaluationModel ? { model: evaluationModel } : undefined);
     await upsertSessionEvaluation(db, {
       session_id: sessionId,
       model: result.model,
