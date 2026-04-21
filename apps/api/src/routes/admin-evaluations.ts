@@ -16,6 +16,9 @@ import {
   MAX_BATCH_SIZE,
 } from "../lib/batch-evaluation.js";
 
+/** Tracks batch IDs currently being processed to prevent concurrent re-entry. */
+const processingBatchIds = new Set<string>();
+
 export function createAdminEvaluationsRouter(
   db: SupabaseClient,
   config: Config,
@@ -102,12 +105,21 @@ export function createAdminEvaluationsRouter(
       }
 
       if (batch.status === "ended") {
-        const outcome = await processBatchResults(db, batch, {
-          emailConfig,
-          evaluationModel: config.evaluationModel,
-        });
-        const processed = await getEvaluationBatch(db, id);
-        res.json({ ok: true, batch: processed ?? batch, outcome });
+        if (processingBatchIds.has(batch.id)) {
+          res.json({ ok: true, batch });
+          return;
+        }
+        processingBatchIds.add(batch.id);
+        try {
+          const outcome = await processBatchResults(db, batch, {
+            emailConfig,
+            evaluationModel: config.evaluationModel,
+          });
+          const processed = await getEvaluationBatch(db, id);
+          res.json({ ok: true, batch: processed ?? batch, outcome });
+        } finally {
+          processingBatchIds.delete(batch.id);
+        }
         return;
       }
 

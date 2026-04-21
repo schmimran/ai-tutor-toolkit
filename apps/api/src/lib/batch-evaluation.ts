@@ -266,11 +266,6 @@ export async function processBatchResults(
         continue;
       }
 
-      if (dbSession.email_sent) {
-        outcome.skipped += 1;
-        continue;
-      }
-
       const [messages, userProfile, feedback] = await Promise.all([
         getMessagesBySession(db, sessionId),
         getUserProfileForSession(db, sessionId).catch(() => null),
@@ -285,14 +280,16 @@ export async function processBatchResults(
         userProfile,
       );
 
-      try {
-        await sendTranscript(opts.emailConfig, payload);
-        if (opts.emailConfig.apiKey && opts.emailConfig.to) {
+      if (opts.emailConfig.apiKey && opts.emailConfig.to) {
+        try {
+          await sendTranscript(opts.emailConfig, payload);
           await updateSession(db, sessionId, { email_sent: true });
           outcome.emailsSent += 1;
+        } catch (err) {
+          console.error(`[batch-eval] Failed to send admin transcript for ${sessionId}:`, err);
         }
-      } catch (err) {
-        console.error(`[batch-eval] Failed to send admin transcript for ${sessionId}:`, err);
+      } else {
+        outcome.skipped += 1;
       }
 
       // Fire-and-forget student copy. Never throws.
