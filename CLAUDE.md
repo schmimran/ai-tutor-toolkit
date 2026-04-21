@@ -402,7 +402,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | SUPABASE_URL | **yes (API)** | — | db, api | Supabase project URL |
 | SUPABASE_SERVICE_ROLE_KEY | **yes (API)** | — | db, api | Supabase service role (bypasses RLS) |
 | RESEND_API_KEY | no | — | email, api | Resend API key (email skipped if absent) |
-| PARENT_EMAIL | no | — | api | Recipient for transcript/feedback emails |
+| ADMIN_EMAIL | no | — | api | Recipient address for admin transcript/evaluation emails. Renamed from `PARENT_EMAIL` — existing deployments must update the env var name. |
 | EMAIL_FROM | no | tutor@tutor.schmim.com | email, api | Sender address |
 | CORS_ORIGIN | no | false (fail-closed) | api | Allowed CORS origin. When unset, all cross-origin requests are rejected. Set explicitly for all deployments. |
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
@@ -413,7 +413,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | ALLOW_PROMPT_SELECTION | no | — (locked) | api | Set `"true"` to allow users to switch prompt versions via the header badge; omitting locks the picker (fail-closed). Surfaced as `promptSelectionEnabled` in `GET /api/config`. |
 | SUPABASE_ANON_KEY | **yes (API)** | — | db, api | Supabase anon/public key. Required for the `/api/auth/*` endpoints that back the login flow at `/login.html`. Still held server-side only — never exposed via `/api/config`. When unset, the auth router is not registered and the app will be inaccessible (the login page cannot authenticate). |
 
-`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are required for the API server.  If `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is absent, the server will not start.  If `SUPABASE_ANON_KEY` is absent, the auth router is not registered and the app will be inaccessible.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `PARENT_EMAIL` is absent, emails are silently skipped.
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are required for the API server.  If `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is absent, the server will not start.  If `SUPABASE_ANON_KEY` is absent, the auth router is not registered and the app will be inaccessible.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `ADMIN_EMAIL` is absent, emails are silently skipped.
 
 The evaluation model (`claude-haiku-4-5-20251001`) is hardcoded in `packages/core/src/evaluate-transcript.ts`, not configurable via environment variable.
 

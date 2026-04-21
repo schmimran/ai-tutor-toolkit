@@ -55,7 +55,7 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes** | Supabase dashboard → Settings → API → service_role key | **Yes** |
 | `SUPABASE_ANON_KEY` | **yes** | Supabase dashboard → Settings → API → anon/public key. Required for the Supabase auth flow that gates the app at `/login.html`. If unset, the auth router is not registered and users cannot log in. | **Yes** |
 | `RESEND_API_KEY` | no | Resend dashboard → API Keys | **Yes** |
-| `PARENT_EMAIL` | no | Your email address (where transcripts will be sent) | No |
+| `ADMIN_EMAIL` | no | Your email address (where admin transcript/evaluation emails are sent). Renamed from `PARENT_EMAIL` — deployments using the old name must rename it. | No |
 | `EMAIL_FROM` | no | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |
 | `CONTACT_EMAIL` | no | Contact email shown on the login page and returned by GET /api/config. Defaults to `""` — required before going public. The contact line is hidden when absent. | No |
 | `MODEL` | no | Default: `claude-sonnet-4-6` | No |
@@ -64,7 +64,7 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `CORS_ORIGIN` | no | Default: `false` (fail-closed). When unset, all cross-origin requests are rejected. Set explicitly to your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`). Required for every deployment that serves cross-origin traffic. | No |
 | `ALLOW_PROMPT_SELECTION` | no | Set to `true` to enable the in-app prompt-version picker. Omit (or set to anything else) to lock the picker. Defaults fail-closed. | No |
 
-You can skip `RESEND_API_KEY`, `PARENT_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.
+You can skip `RESEND_API_KEY`, `ADMIN_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.
 
 `PORT` does not need to be set — Render sets it automatically.
 
@@ -140,7 +140,7 @@ export SUPABASE_ANON_KEY=eyJ...
 
 # Optional — emails are silently skipped if absent
 export RESEND_API_KEY=re_...
-export PARENT_EMAIL=you@yourdomain.com
+export ADMIN_EMAIL=you@yourdomain.com
 export EMAIL_FROM=tutor@tutor.yourdomain.com
 
 # Optional — set to "true" to allow users to switch prompt versions in the UI.
@@ -242,7 +242,7 @@ Understanding how a tutoring session moves through the system:
 
 ### Email transcripts not arriving
 
-- **Missing keys:** Both `RESEND_API_KEY` and `PARENT_EMAIL` must be set.  If either is absent, emails are silently skipped.
+- **Missing keys:** Both `RESEND_API_KEY` and `ADMIN_EMAIL` must be set.  If either is absent, emails are silently skipped.  (The variable was previously named `PARENT_EMAIL`.)
 - **Domain not verified:** The `EMAIL_FROM` address must match a domain verified in your Resend dashboard.  Check Resend → Domains for verification status.
 - **Session too short:** Emails are only sent when a session has at least one exchange (transcript length > 0).
 

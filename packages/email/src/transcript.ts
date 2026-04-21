@@ -284,7 +284,7 @@ export async function sendTranscript(
     return;
   }
   if (!config.to) {
-    console.warn("[email] PARENT_EMAIL not set — skipping transcript email.");
+    console.warn("[email] ADMIN_EMAIL not set — skipping transcript email.");
     return;
   }
   if (payload.transcript.length === 0) {
