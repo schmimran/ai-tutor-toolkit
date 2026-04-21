@@ -6,7 +6,7 @@ import { loadPromptFile } from "./prompt-loader.js";
 const EVALUATION_PROMPT = loadPromptFile("packages/core/src/evaluation-prompt.md");
 
 /** Default model for automated transcript evaluation. Overridable via EVALUATION_MODEL env var. */
-export const DEFAULT_EVALUATION_MODEL = "claude-haiku-4-5";
+export const DEFAULT_EVALUATION_MODEL = "claude-haiku-4-5-20251001";
 
 export interface EvaluationResult {
   model: string;
