@@ -41,6 +41,7 @@ export function createConfigRouter(
     res.json({
       model: config.model,
       extendedThinking: config.extendedThinking,
+      autoEvaluate: config.autoEvaluate,
       inactivityMs,
       contactEmail: process.env.CONTACT_EMAIL ?? "",
       availableModels: [...ALLOWED_MODELS],
