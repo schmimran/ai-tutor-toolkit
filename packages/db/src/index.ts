@@ -22,6 +22,20 @@ export { createSessionFeedback, getSessionFeedback } from "./session-feedback.js
 
 export { createSessionEvaluation, upsertSessionEvaluation, getSessionEvaluation } from "./session-evaluations.js";
 
+export {
+  createEvaluationBatch,
+  getEvaluationBatch,
+  updateEvaluationBatch,
+  listEvaluationBatches,
+  getInFlightBatchedSessionIds,
+} from "./evaluation-batches.js";
+export type {
+  DbEvaluationBatch,
+  DbEvaluationBatchInsert,
+  DbEvaluationBatchUpdate,
+  EvaluationBatchStatus,
+} from "./evaluation-batches.js";
+
 export { getProfile } from "./profiles.js";
 export type { DbProfile } from "./profiles.js";
 

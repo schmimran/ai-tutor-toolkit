@@ -143,7 +143,7 @@ Managed via `supabase/migrations/*.sql`. RLS is enabled on all user-facing table
 | prompt_name | text | null | Tutor prompt filename stem used for this session (e.g. "tutor-prompt-v7"). Set on first message. |
 | extended_thinking | boolean | true | Whether extended thinking was enabled for this session. Set on first message; user-controllable via the header thinking badge. |
 | user_id | uuid | null | FK → auth.users(id) ON DELETE SET NULL. Populated for sessions initiated by authenticated users via the Supabase auth flow. Partial index `sessions_user_id` on non-null values. |
-| evaluated | boolean | false | Set to true after `runSessionEvaluation()` successfully writes a `session_evaluations` row. Used by out-of-band evaluation jobs to skip already-evaluated sessions when `AUTO_EVALUATE` is disabled. Migration 006. |
+| evaluated | boolean | false | Set to true after `runSessionEvaluation()` successfully writes a `session_evaluations` row, or after `processBatchResults()` persists a batched evaluation. Used by out-of-band evaluation jobs (including the admin batch endpoints) to skip already-evaluated sessions. Migration 006 added the column; migration 007 back-filled it for sessions with pre-existing evaluation rows. |
 
 ### messages
 
@@ -198,6 +198,25 @@ One row per session.  Written by an automated transcript evaluation job using th
 | rationale | jsonb | {} | Per-criterion rationale strings keyed by column name. |
 | created_at | timestamptz | now() | |
 
+### evaluation_batches
+
+One row per admin-submitted evaluation batch (Anthropic Message Batches API). Created on `POST /api/admin/evaluations/batches`; progressed by `GET /api/admin/evaluations/batches/:id`. Migration 007.
+
+| Column | Type | Default | Notes |
+|--------|------|---------|-------|
+| id | uuid | gen_random_uuid() | PK |
+| anthropic_batch_id | text | | UNIQUE. Batch ID returned by Anthropic (e.g. `msgbatch_01...`). |
+| status | text | | CHECK IN ('submitted','ended','processed','failed'). State machine: `submitted` → `ended` (Anthropic finished) → `processed` (we wrote evaluations + sent emails). `failed` is terminal on unrecoverable errors. |
+| session_ids | uuid[] | | Session IDs submitted in this batch. The "sessions needing evaluation" query excludes IDs claimed by any batch in `submitted` or `ended` state to prevent double-submission. |
+| request_counts | jsonb | null | Anthropic's `{ processing, succeeded, errored, canceled, expired }` counts, mirrored after each poll. |
+| submitted_by | uuid | null | FK → auth.users(id) ON DELETE SET NULL. Admin who submitted the batch. |
+| submitted_at | timestamptz | now() | |
+| ended_at | timestamptz | null | Set when Anthropic reports `processing_status=ended` on poll. |
+| processed_at | timestamptz | null | Set when `processBatchResults()` finishes writing evaluation rows + sending emails. |
+| error_message | text | null | Populated on `status=failed`. |
+
+RLS is enabled with no policies — admin/server-only table; the service role bypasses RLS.
+
 ### profiles
 
 One row per registered user. Auto-created by the `on_auth_user_created` trigger (migration 005) when a new `auth.users` row appears.
@@ -212,7 +231,7 @@ Admin gating lives in `auth.users.raw_app_meta_data.is_admin` (set via SQL). It'
 
 ### Row Level Security
 
-RLS is **enabled** on `profiles`, `sessions`, `messages`, `session_feedback`, and `session_evaluations`. Policies key on `auth.uid() = user_id` (directly or via a join through `sessions`). Clients using the anon key see only their own rows. The service-role client bypasses RLS and is used by the server for sweeps, evaluation, email sending, and other cross-user jobs.
+RLS is **enabled** on `profiles`, `sessions`, `messages`, `session_feedback`, `session_evaluations`, and `evaluation_batches`. Policies key on `auth.uid() = user_id` (directly or via a join through `sessions`). `evaluation_batches` has RLS enabled with no policies — it's admin/server-only and reached only via the service-role client. Clients using the anon key see only their own rows. The service-role client bypasses RLS and is used by the server for sweeps, evaluation, email sending, admin batched evaluations, and other cross-user jobs.
 
 ---
 
@@ -379,6 +398,18 @@ Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email 
 
 ---
 
+### Admin evaluation endpoints — POST/GET /api/admin/evaluations/batches
+
+Admin-gated endpoints for the batched evaluation subsystem. All require a valid Bearer token whose JWT `app_metadata.is_admin` claim is true — otherwise they return `403 { ok: false, error: "admin_only" }`. The admin check is enforced by `requireAdmin` middleware in [apps/api/src/middleware/require-admin.ts](apps/api/src/middleware/require-admin.ts).
+
+Results are written to `session_evaluations` and `sessions.evaluated` exactly as the inline flow does. For each succeeded result, `sendTranscript()` delivers the same admin transcript email as today (reused verbatim); a student-facing copy is sent fire-and-forget via `sendUserTranscript()` when the session belongs to a registered user with transcripts enabled. `email_sent` is checked before dispatch to avoid duplicates.
+
+- `POST /api/admin/evaluations/batches` — body `{ limit?: number }` (default 50, capped at 100). Picks up sessions where `evaluated=false AND ended_at IS NOT NULL` that aren't already claimed by a batch in `submitted`/`ended` state. Builds a request per session via `buildEvaluationRequestParams()`, submits to Anthropic's Messages Batches API, and persists an `evaluation_batches` row with status `submitted`. Returns `{ ok: true, id, anthropicBatchId, sessionCount }` or `{ ok: true, sessionCount: 0 }` if nothing is pending.
+- `GET /api/admin/evaluations/batches` — returns the 50 most recent batch rows (newest first) as `{ ok: true, batches: [...] }`.
+- `GET /api/admin/evaluations/batches/:id` — idempotent status-then-finalize. Loads the batch row (404 if missing); if `status=submitted`, polls Anthropic and updates `request_counts` (+ flips to `ended` when complete); if `status=ended`, downloads results and runs `processBatchResults()` — writes evaluations, flips `sessions.evaluated=true`, sends admin + user transcript emails, and marks the batch `processed`. Returns the final batch row plus an `outcome` summary `{ succeeded, errored, skipped, emailsSent }`.
+
+---
+
 ### Auth endpoints — POST /api/auth/register, /api/auth/login, /api/auth/forgot-password
 
 Only three auth endpoints exist server-side. Everything else (session refresh, logout, `/me`, change-password, change-email, settings, resend-verification) is handled client-side via `@supabase/supabase-js` (see [apps/web/public/auth.js](apps/web/public/auth.js)) and RLS.
@@ -474,6 +505,7 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/004_profile_settings.sql` | Adds `email_transcripts_enabled boolean NOT NULL DEFAULT true` to profiles |
 | `supabase/migrations/005_auth_redesign.sql` | Full auth redesign: truncates all data, drops `disclaimer_acceptances`, drops `profiles.is_admin`, installs `on_auth_user_created` trigger, makes `sessions.user_id NOT NULL`, enables RLS with `auth.uid()` policies on all user-facing tables. |
 | `supabase/migrations/006_auto_evaluate.sql` | Adds `evaluated boolean NOT NULL DEFAULT false` to sessions. Populated by `runSessionEvaluation()` after a successful evaluation; used to skip already-evaluated sessions in out-of-band jobs when `AUTO_EVALUATE` is disabled. |
+| `supabase/migrations/007_evaluation_batches.sql` | Creates the `evaluation_batches` table used by the admin-gated batched evaluation subsystem. Also runs a one-time `UPDATE` to reconcile `sessions.evaluated` with pre-existing `session_evaluations` rows so the first batch run doesn't resubmit already-evaluated sessions. |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |
@@ -490,7 +522,8 @@ These apply to every Claude Code session in this repo.
 | `packages/core/src/prompt-loader.ts` | `loadPromptFile()` — loads and strips a prompt file; `loadSystemPrompt()` — wraps `loadPromptFile()` and appends global system instructions |
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
 | `packages/core/src/session.ts` | `Session` class — message history, transcript, file attachments, token usage tracking (`TokenUsage` interface) |
-| `packages/core/src/evaluate-transcript.ts` | Automated transcript evaluation against twelve tutoring dimensions (v7) |
+| `packages/core/src/evaluate-transcript.ts` | Automated transcript evaluation against twelve tutoring dimensions (v7). Exports `evaluateTranscript()` (single-call), plus `buildEvaluationRequestParams()` and `parseEvaluationResponse()` helpers shared with the batched evaluation path. |
+| `packages/core/src/batch-evaluate.ts` | Anthropic Message Batches API wrappers: `submitEvaluationBatch()`, `retrieveBatch()`, `iterateBatchEvaluationResults()`. Keeps the `@anthropic-ai/sdk` types behind this package boundary so `apps/api` doesn't import the SDK directly. |
 | `packages/core/src/evaluation-prompt.md` | Evaluation prompt for automated transcript scoring — v7 framework |
 | `packages/db/src/assert.ts` | `assertRow()` — shared Supabase query result assertion helper |
 | `packages/db/src/client.ts` | `createSupabaseClient()` — Supabase initialization |
@@ -498,6 +531,7 @@ These apply to every Claude Code session in this repo.
 | `packages/db/src/messages.ts` | Message CRUD (create, list by session) |
 | `packages/db/src/session-feedback.ts` | `createSessionFeedback()`, `getSessionFeedback()` — session_feedback table CRUD |
 | `packages/db/src/session-evaluations.ts` | `createSessionEvaluation()`, `getSessionEvaluation()` — session_evaluations table CRUD |
+| `packages/db/src/evaluation-batches.ts` | `createEvaluationBatch()`, `getEvaluationBatch()`, `updateEvaluationBatch()`, `listEvaluationBatches()`, and `getInFlightBatchedSessionIds()` — CRUD + in-flight session-ID lookup for the batched evaluation subsystem. |
 | `packages/db/src/profiles.ts` | `getProfile(client, userId)` — returns `{ emailTranscriptsEnabled }`; profile rows are created by a DB trigger (migration 005), not by application code |
 | `packages/email/src/transcript.ts` | `sendTranscript()` — session summary email via Resend; includes session ID, token usage, evaluation results, and student feedback |
 | `apps/api/src/index.ts` | Express server entry — routes, middleware, inactivity sweep |
@@ -506,6 +540,9 @@ These apply to every Claude Code session in this repo.
 | `apps/api/src/routes/transcript.ts` | `GET /api/transcript/:id` |
 | `apps/api/src/routes/transcript-email.ts` | `POST /api/transcript/:id/email` — rate-limited, auth-gated, ownership-checked. Sends the transcript to the caller's registered email via `sendUserTranscript`. |
 | `apps/api/src/routes/feedback.ts` | `POST /api/feedback` — saves one `session_feedback` row (requires auth + ownership) |
+| `apps/api/src/routes/admin-evaluations.ts` | Admin-gated batched evaluation endpoints (`POST /batches`, `GET /batches`, `GET /batches/:id`). Protected by `requireAuth` + `requireAdmin`. |
+| `apps/api/src/middleware/require-admin.ts` | `requireAdmin` — 403s any request where `req.isAdmin` is false. Must be chained after `createRequireAuth`. |
+| `apps/api/src/lib/batch-evaluation.ts` | Orchestration for the batched evaluation subsystem — `findPendingEvaluations()`, `createEvaluationBatchForPending()`, `refreshBatchStatus()`, `processBatchResults()`. Loads session state from the DB (no in-memory `Session`). |
 | `apps/api/src/routes/auth.ts` | `createAuthRouter(db, anonDb)` — rate-limited proxies for `POST /register`, `/login`, `/forgot-password`. All other auth operations are client-side via supabase-js. Registered only if `SUPABASE_ANON_KEY` is set. |
 | `apps/api/src/middleware/require-auth.ts` | `createRequireAuth(db)` — verifies `Authorization: Bearer <token>` via `db.auth.getUser(token)` and sets `req.userId`, `req.userEmail`, `req.userName`, `req.isAdmin` (from `app_metadata.is_admin` JWT claim). |
 | `apps/api/scripts/gen-build-info.js` | Generates `build-info.json` (commit SHA + timestamp) at build time; called by the API `build` script |

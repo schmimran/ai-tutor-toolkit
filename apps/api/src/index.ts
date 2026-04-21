@@ -24,6 +24,7 @@ import { createFeedbackRouter } from "./routes/feedback.js";
 import { createConfigRouter } from "./routes/config.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { createHistoryRouter } from "./routes/history.js";
+import { createAdminEvaluationsRouter } from "./routes/admin-evaluations.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
@@ -128,6 +129,7 @@ app.use("/api/transcript", createTranscriptEmailRouter(db, { apiKey: emailConfig
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
+app.use("/api/admin/evaluations", createAdminEvaluationsRouter(db, config, emailConfig));
 if (anonDb) {
   app.use("/api/auth", createAuthRouter(db, anonDb));
   app.use("/api/history", createHistoryRouter(db));

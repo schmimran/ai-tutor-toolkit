@@ -16,5 +16,21 @@ export type {
 export { createTutorClient } from "./tutor-client.js";
 export type { TutorClient, UserContent } from "./tutor-client.js";
 
-export { evaluateTranscript, DEFAULT_EVALUATION_MODEL } from "./evaluate-transcript.js";
+export {
+  evaluateTranscript,
+  buildEvaluationRequestParams,
+  parseEvaluationResponse,
+  DEFAULT_EVALUATION_MODEL,
+} from "./evaluate-transcript.js";
 export type { EvaluationResult } from "./evaluate-transcript.js";
+
+export {
+  submitEvaluationBatch,
+  retrieveBatch,
+  iterateBatchEvaluationResults,
+} from "./batch-evaluate.js";
+export type {
+  EvaluationBatchRequest,
+  EvaluationBatchSummary,
+  EvaluationBatchResultEntry,
+} from "./batch-evaluate.js";

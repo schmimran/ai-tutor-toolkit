@@ -49,24 +49,39 @@ const ALL_DIMENSION_KEYS: (keyof EvaluationResult)[] = [
   "step_feedback",
 ];
 
-export async function evaluateTranscript(
+/**
+ * Build the Anthropic messages.create params for a single transcript evaluation.
+ * Shared by both the single-call path (`evaluateTranscript`) and the batch path
+ * (each request in a Message Batches submission). The cached system prompt is
+ * identical across calls — within a batch, request #1 creates the cache and
+ * subsequent requests read it.
+ */
+export function buildEvaluationRequestParams(
   transcript: Array<{ role: string; text: string }>,
-  evaluationModel?: string
-): Promise<EvaluationResult> {
-  const model = evaluationModel ?? DEFAULT_EVALUATION_MODEL;
-
+  evaluationModel: string = DEFAULT_EVALUATION_MODEL,
+): Anthropic.Messages.MessageCreateParamsNonStreaming {
   const formattedTranscript = transcript
     .map((entry, i) => `${i + 1}. [${entry.role}] ${entry.text}`)
     .join("\n");
 
-  const response = await anthropicClient.messages.create({
-    model,
+  return {
+    model: evaluationModel,
     max_tokens: 2000,
     system: cachedSystem(EVALUATION_PROMPT),
     messages: [{ role: "user", content: formattedTranscript }],
-  });
+  };
+}
 
-  const rawText = response.content
+/**
+ * Parse a completed evaluation `Message` (from either `messages.create` or a
+ * batch result) into a structured `EvaluationResult`. Computes `has_failures`
+ * from the parsed dimensions per v7 rules.
+ */
+export function parseEvaluationResponse(
+  message: Anthropic.Messages.Message,
+  evaluationModel: string,
+): EvaluationResult {
+  const rawText = message.content
     .filter((block) => block.type === "text")
     .map((block) => (block as Anthropic.TextBlock).text)
     .join("");
@@ -78,12 +93,10 @@ export async function evaluateTranscript(
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error(`evaluateTranscript: failed to parse model response as JSON.\nRaw response:\n${rawText}`);
+    throw new Error(`parseEvaluationResponse: failed to parse model response as JSON.\nRaw response:\n${rawText}`);
   }
 
-  // Compute has_failures per v7 rules:
-  // true if any non-negotiable (never_gave_answer, probe_reasoning, understood_where_student_was) is "fail"
-  // OR if 3+ other dimensions scored "fail"
+  // has_failures: true if any non-negotiable dimension is "fail", or if 3+ other dimensions are "fail".
   const nonNegotiableFail = NON_NEGOTIABLE_KEYS.some(
     (key) => parsed[key as string] === "fail"
   );
@@ -94,7 +107,7 @@ export async function evaluateTranscript(
   const has_failures = nonNegotiableFail || otherFailCount >= 3;
 
   return {
-    model,
+    model: evaluationModel,
     session_mode: parsed.session_mode as string,
     mode_handling: parsed.mode_handling as string,
     problem_confirmation: parsed.problem_confirmation as string,
@@ -111,4 +124,14 @@ export async function evaluateTranscript(
     has_failures,
     rationale: parsed.rationale as Record<string, string>,
   };
+}
+
+export async function evaluateTranscript(
+  transcript: Array<{ role: string; text: string }>,
+  evaluationModel?: string,
+): Promise<EvaluationResult> {
+  const model = evaluationModel ?? DEFAULT_EVALUATION_MODEL;
+  const params = buildEvaluationRequestParams(transcript, model);
+  const response = await anthropicClient.messages.create(params);
+  return parseEvaluationResponse(response, model);
 }
