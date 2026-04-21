@@ -158,7 +158,9 @@ setInterval(() => {
         void (async () => {
           try {
             const [evalResult, feedback, userInfo] = await Promise.all([
-              runSessionEvaluation(db, sessionId, session.transcript),
+              config.autoEvaluate
+                ? runSessionEvaluation(db, sessionId, session.transcript)
+                : Promise.resolve(null),
               getOrCreateTimeoutFeedback(db, sessionId, "sweep"),
               getUserInfoForSession(db, sessionId).catch(() => null),
             ]);
