@@ -48,7 +48,7 @@
     <div class="row">
       <label style="font-size:0.85rem;color:#aaa">Limit</label>
       <input type="number" id="limit" value="50" min="1" max="100" />
-      <button id="submit-btn" onclick="submitBatch()">Submit Batch</button>
+      <button id="submit-btn">Submit Batch</button>
     </div>
     <div class="status" id="submit-status"></div>
   </div>
@@ -57,36 +57,20 @@
     <h2 style="margin-top:0">Poll / Finalize Batch</h2>
     <div class="row">
       <input type="text" id="poll-id" placeholder="Batch UUID" style="width:300px" />
-      <button onclick="pollBatch()">Poll</button>
+      <button id="poll-btn">Poll</button>
     </div>
     <div class="status" id="poll-status"></div>
   </div>
 
   <div class="card">
     <h2 style="margin-top:0">Recent Batches</h2>
-    <button class="secondary" onclick="loadBatches()" style="margin-bottom:12px">Refresh</button>
+    <button id="refresh-btn" class="secondary" style="margin-bottom:12px">Refresh</button>
     <div id="batches-table"><div style="color:#888;font-size:0.85rem">Loading…</div></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/auth.js"></script>
   <script>
-    async function init() {
-      await window.auth.init();
-      const session = await window.auth.requireSession();
-      const email = session.user?.email ?? "unknown";
-      const isAdmin = session.user?.app_metadata?.is_admin;
-      if (!isAdmin) {
-        document.getElementById("user-info").innerHTML =
-          '<span style="color:#ff7a7a">Not an admin account. Access denied.</span>';
-        document.querySelectorAll("button").forEach(b => b.disabled = true);
-        return;
-      }
-      document.getElementById("user-info").innerHTML =
-        `Signed in as <span>${email}</span> &nbsp;·&nbsp; admin`;
-      loadBatches();
-    }
-
     function setStatus(id, text, color) {
       const el = document.getElementById(id);
       el.textContent = text;
@@ -159,27 +143,55 @@
           container.innerHTML = `<div style="color:#888;font-size:0.85rem">No batches yet.</div>`;
           return;
         }
-        const rows = data.batches.map(b => {
+        const tbody = document.createElement("tbody");
+        data.batches.forEach(b => {
           const counts = b.request_counts
             ? `✓${b.request_counts.succeeded} ✗${b.request_counts.errored}`
             : "—";
           const submitted = new Date(b.submitted_at).toLocaleString();
-          return `<tr>
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
             <td class="mono">${b.id.slice(0,8)}…</td>
             <td><span class="badge ${b.status}">${b.status}</span></td>
             <td>${b.session_ids?.length ?? "?"}</td>
             <td>${counts}</td>
             <td class="mono">${submitted}</td>
-            <td><button class="secondary poll-btn" onclick="pollBatch('${b.id}')">Poll</button></td>
-          </tr>`;
-        }).join("");
-        container.innerHTML = `<table>
-          <thead><tr><th>ID</th><th>Status</th><th>Sessions</th><th>Results</th><th>Submitted</th><th></th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>`;
+            <td></td>`;
+          const pollBtn = document.createElement("button");
+          pollBtn.className = "secondary poll-btn";
+          pollBtn.textContent = "Poll";
+          pollBtn.addEventListener("click", () => pollBatch(b.id));
+          tr.querySelector("td:last-child").appendChild(pollBtn);
+          tbody.appendChild(tr);
+        });
+        const table = document.createElement("table");
+        table.innerHTML = `<thead><tr><th>ID</th><th>Status</th><th>Sessions</th><th>Results</th><th>Submitted</th><th></th></tr></thead>`;
+        table.appendChild(tbody);
+        container.replaceChildren(table);
       } catch (e) {
         container.innerHTML = `<div style="color:#ff7a7a">Error: ${e.message}</div>`;
       }
+    }
+
+    async function init() {
+      await window.auth.init();
+      const session = await window.auth.requireSession();
+      const email = session.user?.email ?? "unknown";
+      const isAdmin = session.user?.app_metadata?.is_admin;
+      if (!isAdmin) {
+        document.getElementById("user-info").innerHTML =
+          '<span style="color:#ff7a7a">Not an admin account. Access denied.</span>';
+        document.querySelectorAll("button").forEach(b => b.disabled = true);
+        return;
+      }
+      document.getElementById("user-info").innerHTML =
+        `Signed in as <span>${email}</span> &nbsp;·&nbsp; admin`;
+
+      document.getElementById("submit-btn").addEventListener("click", submitBatch);
+      document.getElementById("poll-btn").addEventListener("click", () => pollBatch());
+      document.getElementById("refresh-btn").addEventListener("click", loadBatches);
+
+      loadBatches();
     }
 
     init();
