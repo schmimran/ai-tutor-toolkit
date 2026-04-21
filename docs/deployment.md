@@ -61,7 +61,7 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `MODEL` | no | Default: `claude-sonnet-4-6` | No |
 | `EXTENDED_THINKING` | no | Default: `true`; set `false` to disable | No |
 | `AUTO_EVALUATE` | no | Default: `true`; set `false` to disable the automatic transcript evaluation that runs on session end. When disabled, `session_evaluations` rows are not created inline — use `scripts/backfill-evaluations.ts` for out-of-band evaluation. | No |
-| `EVALUATION_MODEL` | no | Default: `claude-haiku-4-5-20251001`. Claude model ID used for automated transcript evaluation. | No |
+| `EVALUATION_MODEL` | no | Default: `claude-haiku-4-5`. Claude model ID used for automated transcript evaluation. | No |
 | `SYSTEM_PROMPT_PATH` | no | Default: `templates/tutor-prompt-v7.md` | No |
 | `CORS_ORIGIN` | no | Default: `false` (fail-closed). When unset, all cross-origin requests are rejected. Set explicitly to your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`). Required for every deployment that serves cross-origin traffic. | No |
 | `ALLOW_PROMPT_SELECTION` | no | Set to `true` to enable the in-app prompt-version picker. Omit (or set to anything else) to lock the picker. Defaults fail-closed. | No |
@@ -252,7 +252,7 @@ Understanding how a tutoring session moves through the system:
 
 ### Evaluation fails
 
-- **Model access:** The evaluation defaults to `claude-haiku-4-5-20251001` and can be overridden via the `EVALUATION_MODEL` env var.  Your API key must have access to the configured model.
+- **Model access:** The evaluation defaults to `claude-haiku-4-5` and can be overridden via the `EVALUATION_MODEL` env var.  Your API key must have access to the configured model.
 - **Check server logs:** Evaluation errors are logged as `[evaluation] Failed to evaluate session <id>`.  The session still ends normally — evaluation failure doesn't block cleanup.
 
 ### Session not found (404)

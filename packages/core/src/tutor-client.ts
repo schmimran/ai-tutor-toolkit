@@ -2,6 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Config } from "./config.js";
 import type { Session, TokenUsage } from "./session.js";
 
+/** Shared Anthropic client — one connection pool for all API calls. */
+export const anthropicClient = new Anthropic();
+
 type UserContent = string | Anthropic.ContentBlockParam[];
 
 export interface StreamOptions {
@@ -40,10 +43,10 @@ function buildParams(
   return {
     model,
     max_tokens: 16000,
-    system: prompt,
+    system: [{ type: "text" as const, text: prompt, cache_control: { type: "ephemeral" as const } }],
     messages: session.messages as Anthropic.MessageParam[],
     ...(extendedThinking && {
-      thinking: { type: "enabled" as const, budget_tokens: 10000 },
+      thinking: { type: "adaptive" as const },
     }),
   } satisfies Omit<Anthropic.MessageCreateParams, "stream">;
 }
@@ -58,7 +61,7 @@ function buildParams(
  *                     yielded.  The Session is updated after the stream ends.
  */
 export function createTutorClient(config: Config, systemPrompt: string) {
-  const client = new Anthropic();
+  const client = anthropicClient;
 
   /**
    * Send a message and wait for the complete response.
