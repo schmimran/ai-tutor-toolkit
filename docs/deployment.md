@@ -68,7 +68,7 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 
 You can skip `RESEND_API_KEY`, `ADMIN_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.
 
-> **Migration ordering:** migration `006_auto_evaluate.sql` adds the `evaluated` column used by the post-evaluation write. Apply the Supabase migration **before** deploying the API binary that depends on the new column — otherwise the inline `updateSession({ evaluated: true })` call will fail against the old schema.
+> **Migration ordering:** migration `006_auto_evaluate.sql` adds the `evaluated` column used by the post-evaluation write. Migration `007_evaluation_batches.sql` adds the `evaluation_batches` table used by the admin-gated batched evaluation subsystem and runs a one-time `UPDATE` to reconcile `sessions.evaluated` with existing `session_evaluations` rows. Apply Supabase migrations **before** deploying the matching API binary — otherwise inline writes (`updateSession({ evaluated: true })`) and the admin batch endpoints will fail against the old schema.
 
 `PORT` does not need to be set — Render sets it automatically.
 
