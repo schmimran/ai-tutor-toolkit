@@ -51,9 +51,9 @@ const ALL_DIMENSION_KEYS: (keyof EvaluationResult)[] = [
 
 export async function evaluateTranscript(
   transcript: Array<{ role: string; text: string }>,
-  config?: { model?: string }
+  opts?: { evaluationModel?: string }
 ): Promise<EvaluationResult> {
-  const model = config?.model ?? DEFAULT_EVALUATION_MODEL;
+  const model = opts?.evaluationModel ?? DEFAULT_EVALUATION_MODEL;
 
   const formattedTranscript = transcript
     .map((entry, i) => `${i + 1}. [${entry.role}] ${entry.text}`)
