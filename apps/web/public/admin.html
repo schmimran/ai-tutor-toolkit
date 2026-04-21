@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Evaluation Batches</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; margin: 0; padding: 24px; }
+    h1 { font-size: 1.2rem; margin: 0 0 24px; color: #fff; }
+    h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin: 24px 0 12px; }
+    .card { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    input[type="number"], input[type="text"] {
+      background: #111; border: 1px solid #333; border-radius: 6px;
+      color: #e0e0e0; padding: 8px 12px; font-size: 0.9rem; width: 140px;
+    }
+    button {
+      background: #4f6ef7; color: #fff; border: none; border-radius: 6px;
+      padding: 8px 16px; font-size: 0.9rem; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+    button.secondary { background: #2a2a38; }
+    .status { font-size: 0.85rem; color: #aaa; margin-top: 10px; white-space: pre-wrap; font-family: monospace; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.75rem; font-weight: 600;
+    }
+    .badge.submitted { background: #2a3a6a; color: #7aacff; }
+    .badge.ended     { background: #3a2a6a; color: #c07aff; }
+    .badge.processed { background: #1a3a2a; color: #5adf8a; }
+    .badge.failed    { background: #3a1a1a; color: #ff7a7a; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; color: #888; font-weight: 500; padding: 6px 8px; border-bottom: 1px solid #2a2a38; }
+    td { padding: 8px; border-bottom: 1px solid #1e1e28; vertical-align: top; }
+    td.mono { font-family: monospace; font-size: 0.8rem; color: #aaa; }
+    .poll-btn { font-size: 0.78rem; padding: 4px 10px; }
+    #user-info { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
+    #user-info span { color: #e0e0e0; }
+  </style>
+</head>
+<body>
+  <h1>Evaluation Batches — Admin</h1>
+  <div id="user-info">Checking auth…</div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Submit New Batch</h2>
+    <div class="row">
+      <label style="font-size:0.85rem;color:#aaa">Limit</label>
+      <input type="number" id="limit" value="50" min="1" max="100" />
+      <button id="submit-btn" onclick="submitBatch()">Submit Batch</button>
+    </div>
+    <div class="status" id="submit-status"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Poll / Finalize Batch</h2>
+    <div class="row">
+      <input type="text" id="poll-id" placeholder="Batch UUID" style="width:300px" />
+      <button onclick="pollBatch()">Poll</button>
+    </div>
+    <div class="status" id="poll-status"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Recent Batches</h2>
+    <button class="secondary" onclick="loadBatches()" style="margin-bottom:12px">Refresh</button>
+    <div id="batches-table"><div style="color:#888;font-size:0.85rem">Loading…</div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/auth.js"></script>
+  <script>
+    async function init() {
+      await window.auth.init();
+      const session = await window.auth.requireSession();
+      const email = session.user?.email ?? "unknown";
+      const isAdmin = session.user?.app_metadata?.is_admin;
+      if (!isAdmin) {
+        document.getElementById("user-info").innerHTML =
+          '<span style="color:#ff7a7a">Not an admin account. Access denied.</span>';
+        document.querySelectorAll("button").forEach(b => b.disabled = true);
+        return;
+      }
+      document.getElementById("user-info").innerHTML =
+        `Signed in as <span>${email}</span> &nbsp;·&nbsp; admin`;
+      loadBatches();
+    }
+
+    function setStatus(id, text, color) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.style.color = color || "#aaa";
+    }
+
+    async function submitBatch() {
+      const limit = parseInt(document.getElementById("limit").value, 10) || 50;
+      document.getElementById("submit-btn").disabled = true;
+      setStatus("submit-status", "Submitting…", "#aaa");
+      try {
+        const res = await window.auth.authedFetch("/api/admin/evaluations/batches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ limit }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus("submit-status", JSON.stringify(data, null, 2), "#ff7a7a");
+        } else if (data.sessionCount === 0) {
+          setStatus("submit-status", "No sessions pending evaluation.", "#5adf8a");
+        } else {
+          setStatus("submit-status",
+            `Submitted — ${data.sessionCount} sessions\nBatch ID: ${data.id}\nAnthropic ID: ${data.anthropicBatchId}`,
+            "#5adf8a");
+          document.getElementById("poll-id").value = data.id;
+          loadBatches();
+        }
+      } catch (e) {
+        setStatus("submit-status", "Error: " + e.message, "#ff7a7a");
+      } finally {
+        document.getElementById("submit-btn").disabled = false;
+      }
+    }
+
+    async function pollBatch(id) {
+      const batchId = id || document.getElementById("poll-id").value.trim();
+      if (!batchId) { setStatus("poll-status", "Enter a batch UUID.", "#ff7a7a"); return; }
+      setStatus("poll-status", "Polling…", "#aaa");
+      try {
+        const res = await window.auth.authedFetch(`/api/admin/evaluations/batches/${batchId}`);
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus("poll-status", JSON.stringify(data, null, 2), "#ff7a7a");
+        } else {
+          const b = data.batch;
+          let msg = `Status: ${b.status}`;
+          if (b.request_counts) msg += `\nCounts: ${JSON.stringify(b.request_counts)}`;
+          if (data.outcome)     msg += `\nOutcome: ${JSON.stringify(data.outcome)}`;
+          if (b.error_message)  msg += `\nError: ${b.error_message}`;
+          setStatus("poll-status", msg, "#e0e0e0");
+          if (id) document.getElementById("poll-id").value = batchId;
+          loadBatches();
+        }
+      } catch (e) {
+        setStatus("poll-status", "Error: " + e.message, "#ff7a7a");
+      }
+    }
+
+    async function loadBatches() {
+      const container = document.getElementById("batches-table");
+      try {
+        const res = await window.auth.authedFetch("/api/admin/evaluations/batches");
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          container.innerHTML = `<div style="color:#ff7a7a">${JSON.stringify(data)}</div>`;
+          return;
+        }
+        if (!data.batches.length) {
+          container.innerHTML = `<div style="color:#888;font-size:0.85rem">No batches yet.</div>`;
+          return;
+        }
+        const rows = data.batches.map(b => {
+          const counts = b.request_counts
+            ? `✓${b.request_counts.succeeded} ✗${b.request_counts.errored}`
+            : "—";
+          const submitted = new Date(b.submitted_at).toLocaleString();
+          return `<tr>
+            <td class="mono">${b.id.slice(0,8)}…</td>
+            <td><span class="badge ${b.status}">${b.status}</span></td>
+            <td>${b.session_ids?.length ?? "?"}</td>
+            <td>${counts}</td>
+            <td class="mono">${submitted}</td>
+            <td><button class="secondary poll-btn" onclick="pollBatch('${b.id}')">Poll</button></td>
+          </tr>`;
+        }).join("");
+        container.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>Status</th><th>Sessions</th><th>Results</th><th>Submitted</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      } catch (e) {
+        container.innerHTML = `<div style="color:#ff7a7a">Error: ${e.message}</div>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
