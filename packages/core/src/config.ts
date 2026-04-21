@@ -33,7 +33,7 @@ export function loadConfig(): Config {
     systemPromptPath,
     defaultPromptName: path.basename(systemPromptPath, ".md"),
     port: parseInt(process.env.PORT ?? "3000", 10),
-    autoEvaluate: process.env.AUTO_EVALUATE !== "false",
+    autoEvaluate: process.env.AUTO_EVALUATE?.toLowerCase() !== "false",
     evaluationModel: process.env.EVALUATION_MODEL ?? DEFAULT_EVALUATION_MODEL,
   };
 }
