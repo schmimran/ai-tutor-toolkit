@@ -187,7 +187,7 @@ You need a domain you own to send from.  Resend can't send from Gmail, Yahoo, or
 
 ```bash
 export RESEND_API_KEY=re_...
-export PARENT_EMAIL=you@yourdomain.com       # where transcripts go
+export ADMIN_EMAIL=you@yourdomain.com        # where admin transcripts go
 export EMAIL_FROM=tutor@tutor.yourdomain.com # must match your verified domain
 ```
 
@@ -206,7 +206,7 @@ This table is a quick reference.  If you followed Option B above, you've already
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes (web app)** | — | Supabase service role key.  Keep secret. |
 | `SUPABASE_ANON_KEY` | **yes (web app)** | — | Supabase anon/public key.  Required for the login flow. |
 | `RESEND_API_KEY` | no | — | Resend API key.  Emails skipped if absent. |
-| `PARENT_EMAIL` | no | — | Where transcript emails are sent. |
+| `ADMIN_EMAIL` | no | — | Where admin transcript emails are sent. Renamed from `PARENT_EMAIL`. |
 | `EMAIL_FROM` | no | `tutor@tutor.schmim.com` | Sender address.  Must match a verified Resend domain. |
 | `CONTACT_EMAIL` | no | `wax.spirits8d@icloud.com` | Contact email shown on the login page and returned by GET /api/config. |
 | `CORS_ORIGIN` | no | `*` | Allowed origin if you put the app behind a specific URL. |

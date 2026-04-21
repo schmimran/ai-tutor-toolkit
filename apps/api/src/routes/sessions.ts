@@ -5,6 +5,7 @@ import {
   getUserInfoForSession,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Config } from "@ai-tutor/core";
 import { getSession, removeSession } from "../lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "../lib/evaluation.js";
@@ -20,9 +21,7 @@ export interface EmailConfig {
 export function createSessionsRouter(
   db: SupabaseClient,
   emailConfig: EmailConfig,
-  defaultModel: string,
-  defaultPromptName: string,
-  defaultExtendedThinking: boolean,
+  config: Config,
 ): Router {
   const router = Router();
   const requireAuth = createRequireAuth(db);
@@ -84,7 +83,7 @@ export function createSessionsRouter(
             getUserInfoForSession(db, sessionId).catch(() => null),
           ]);
           const payload = buildTranscriptEmailPayload(session, sessionId, evalResult, feedback,
-            { model: defaultModel, promptName: defaultPromptName, extendedThinking: defaultExtendedThinking },
+            { model: config.model, promptName: config.defaultPromptName, extendedThinking: config.extendedThinking },
             userInfo);
           try {
             await sendTranscript(emailConfig, payload);

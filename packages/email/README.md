@@ -28,7 +28,7 @@ import { sendTranscript } from "@ai-tutor/email";
 await sendTranscript(
   {
     apiKey: process.env.RESEND_API_KEY,
-    to: process.env.PARENT_EMAIL,
+    to: process.env.ADMIN_EMAIL,
     from: process.env.EMAIL_FROM ?? "tutor@tutor.schmim.com",
   },
   {
@@ -125,7 +125,7 @@ type ClientInfo = { ip?: string; geo?: Record<string, unknown>; userAgent?: stri
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `RESEND_API_KEY` | no | Resend API key. Email is silently skipped if missing. |
-| `PARENT_EMAIL` | no | Recipient for transcripts. Skipped if missing. |
+| `ADMIN_EMAIL` | no | Recipient for admin transcripts. Skipped if missing. Renamed from `PARENT_EMAIL`. |
 | `EMAIL_FROM` | no | Sender address. Must match a verified Resend domain. |
 
 ## Setup

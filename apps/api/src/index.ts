@@ -62,8 +62,8 @@ for (const file of fs.readdirSync(templatesDir)) {
   }
 }
 
-// Derive default prompt name from config.systemPromptPath (basename without extension).
-const defaultPromptName = path.basename(config.systemPromptPath, ".md");
+// Default prompt name derived from config.systemPromptPath in loadConfig().
+const defaultPromptName = config.defaultPromptName;
 
 // Fall back to loading via loadSystemPrompt if the default prompt wasn't found in templates/.
 if (!promptMap.has(defaultPromptName)) {
@@ -75,7 +75,7 @@ const tutorClient = createTutorClient(config, promptMap.get(defaultPromptName)!)
 
 const emailConfig = {
   apiKey: process.env.RESEND_API_KEY,
-  to: process.env.PARENT_EMAIL,
+  to: process.env.ADMIN_EMAIL,
   from: process.env.EMAIL_FROM ?? "tutor@tutor.schmim.com",
 };
 
@@ -123,7 +123,7 @@ app.use(express.static(path.join(__dirname, "../../web/public")));
 
 // Routes
 app.use("/api/chat", createChatRouter(tutorClient, db, promptMap, defaultPromptName, config.model, config.extendedThinking));
-app.use("/api/sessions", createSessionsRouter(db, emailConfig, config.model, defaultPromptName, config.extendedThinking));
+app.use("/api/sessions", createSessionsRouter(db, emailConfig, config));
 app.use("/api/transcript", createTranscriptEmailRouter(db, { apiKey: emailConfig.apiKey, from: emailConfig.from }));
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
