@@ -143,6 +143,7 @@ Managed via `supabase/migrations/*.sql`. RLS is enabled on all user-facing table
 | prompt_name | text | null | Tutor prompt filename stem used for this session (e.g. "tutor-prompt-v7"). Set on first message. |
 | extended_thinking | boolean | true | Whether extended thinking was enabled for this session. Set on first message; user-controllable via the header thinking badge. |
 | user_id | uuid | null | FK → auth.users(id) ON DELETE SET NULL. Populated for sessions initiated by authenticated users via the Supabase auth flow. Partial index `sessions_user_id` on non-null values. |
+| evaluated | boolean | false | Set to true after `runSessionEvaluation()` successfully writes a `session_evaluations` row. Used by out-of-band evaluation jobs to skip already-evaluated sessions when `AUTO_EVALUATE` is disabled. Migration 006. |
 
 ### messages
 
@@ -407,6 +408,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | CORS_ORIGIN | no | false (fail-closed) | api | Allowed CORS origin. When unset, all cross-origin requests are rejected. Set explicitly for all deployments. |
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
+| AUTO_EVALUATE | no | true | core, api | Set `"false"` to disable the automatic transcript evaluation that runs on session end (inactivity sweep + explicit DELETE). When disabled, `session_evaluations` rows are not created inline; use `scripts/backfill-evaluations.ts` to evaluate sessions out-of-band. |
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
 | CONTACT_EMAIL | no | `""` | api | Contact email returned by GET /api/config and shown on the login page. Defaults to empty string — required before going public. The login page hides the contact line when this value is empty. |
@@ -470,6 +472,7 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/003_profiles.sql` | Creates `profiles` table with `is_admin` column. `is_admin` is dropped by migration 005 (moves to `auth.users.app_metadata`). |
 | `supabase/migrations/004_profile_settings.sql` | Adds `email_transcripts_enabled boolean NOT NULL DEFAULT true` to profiles |
 | `supabase/migrations/005_auth_redesign.sql` | Full auth redesign: truncates all data, drops `disclaimer_acceptances`, drops `profiles.is_admin`, installs `on_auth_user_created` trigger, makes `sessions.user_id NOT NULL`, enables RLS with `auth.uid()` policies on all user-facing tables. |
+| `supabase/migrations/006_auto_evaluate.sql` | Adds `evaluated boolean NOT NULL DEFAULT false` to sessions. Populated by `runSessionEvaluation()` after a successful evaluation; used to skip already-evaluated sessions in out-of-band jobs when `AUTO_EVALUATE` is disabled. |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |

@@ -121,6 +121,10 @@ export async function runSessionEvaluation(
       has_failures: result.has_failures,
       rationale: result.rationale,
     });
+    // Mark the session as evaluated so out-of-band evaluation jobs can skip it.
+    await updateSession(db, sessionId, { evaluated: true }).catch(err =>
+      console.error(`[evaluation] Could not persist evaluated=true for ${sessionId}:`, err)
+    );
     return result;
   } catch (err) {
     console.error(`[evaluation] Failed to evaluate session ${sessionId}:`, err);
