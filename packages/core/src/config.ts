@@ -12,6 +12,7 @@
  *   PORT                — HTTP port for the API server (default: 3000)
  */
 import path from "path";
+import { DEFAULT_EVALUATION_MODEL } from "./evaluate-transcript.js";
 
 export interface Config {
   model: string;
@@ -20,6 +21,7 @@ export interface Config {
   defaultPromptName: string;
   port: number;
   autoEvaluate: boolean;
+  evaluationModel: string;
 }
 
 export function loadConfig(): Config {
@@ -32,5 +34,6 @@ export function loadConfig(): Config {
     defaultPromptName: path.basename(systemPromptPath, ".md"),
     port: parseInt(process.env.PORT ?? "3000", 10),
     autoEvaluate: process.env.AUTO_EVALUATE !== "false",
+    evaluationModel: process.env.EVALUATION_MODEL ?? DEFAULT_EVALUATION_MODEL,
   };
 }

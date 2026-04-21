@@ -79,7 +79,7 @@ export function createSessionsRouter(
         if (!discard && session && !session.emailSent && session.transcript.length > 0) {
           const [evalResult, feedback, userInfo] = await Promise.all([
             config.autoEvaluate
-              ? runSessionEvaluation(db, sessionId, session.transcript)
+              ? runSessionEvaluation(db, sessionId, session.transcript, config.evaluationModel)
               : Promise.resolve(null),
             getOrCreateTimeoutFeedback(db, sessionId, "sessions"),
             getUserInfoForSession(db, sessionId).catch(() => null),

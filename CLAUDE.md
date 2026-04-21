@@ -409,6 +409,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
 | AUTO_EVALUATE | no | true | core, api | Set `"false"` to disable the automatic transcript evaluation that runs on session end (inactivity sweep + explicit DELETE). When disabled, `session_evaluations` rows are not created inline; use `scripts/backfill-evaluations.ts` to evaluate sessions out-of-band. |
+| EVALUATION_MODEL | no | claude-haiku-4-5-20251001 | core, api | Claude model ID used for automated transcript evaluation. Default matches the previously hardcoded value. Exposed as `DEFAULT_EVALUATION_MODEL` from `@ai-tutor/core`. |
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
 | CONTACT_EMAIL | no | `""` | api | Contact email returned by GET /api/config and shown on the login page. Defaults to empty string — required before going public. The login page hides the contact line when this value is empty. |
@@ -417,7 +418,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are required for the API server.  If `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is absent, the server will not start.  If `SUPABASE_ANON_KEY` is absent, the auth router is not registered and the app will be inaccessible.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `ADMIN_EMAIL` is absent, emails are silently skipped.
 
-The evaluation model (`claude-haiku-4-5-20251001`) is hardcoded in `packages/core/src/evaluate-transcript.ts`, not configurable via environment variable.
+The evaluation model defaults to `claude-haiku-4-5-20251001` (exported as `DEFAULT_EVALUATION_MODEL` from `@ai-tutor/core`) and can be overridden via the `EVALUATION_MODEL` env var.
 
 ---
 
