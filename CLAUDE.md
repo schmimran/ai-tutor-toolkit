@@ -72,7 +72,7 @@ Token usage (input and output tokens) is accumulated per session after each API 
 
 ### Extended thinking
 
-Enabled by default.  The Anthropic SDK is called with `thinking: { type: "enabled", budget_tokens: 10000 }` and `max_tokens: 16000`.  Thinking blocks are stored in the session (so the model can reference its own prior reasoning) but are never sent to the client or stored in transcript emails.
+Enabled by default.  The Anthropic SDK is called with `thinking: { type: "adaptive" }` and `max_tokens: 16000`.  Adaptive mode lets the model self-regulate its thinking budget (forward-compatible with Opus 4.7, where `budget_tokens` is removed).  Thinking blocks are stored in the session (so the model can reference its own prior reasoning) but are never sent to the client or stored in transcript emails.
 
 ---
 
