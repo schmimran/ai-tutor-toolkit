@@ -19,7 +19,7 @@ Before you start, make sure you have:
 
 - A GitHub account, with this repo forked or pushed to a repository you control
 - A [Render account](https://render.com) (free to sign up)
-- An Anthropic API key — get one at [console.anthropic.com](https://console.anthropic.com)
+- An Anthropic API key — get one at [platform.claude.com](https://platform.claude.com)
 - A Supabase project with all migrations applied — see the [Supabase setup section](../README.md#setting-up-supabase) in the main README
 - A Resend account with a verified sending domain — see the [email transcripts section](../README.md#optional-email-transcripts) in the main README (optional, but required for email transcripts)
 
@@ -50,12 +50,12 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 
 | Variable | Required | Where to find the value | Mark as Secret? |
 |----------|----------|-------------------------|-----------------|
-| `ANTHROPIC_API_KEY` | **yes** | [console.anthropic.com](https://console.anthropic.com) → API Keys | **Yes** |
+| `ANTHROPIC_API_KEY` | **yes** | [platform.claude.com](https://platform.claude.com) → API Keys | **Yes** |
 | `SUPABASE_URL` | **yes** | Supabase dashboard → Settings → API → Project URL | No |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes** | Supabase dashboard → Settings → API → service_role key | **Yes** |
 | `SUPABASE_ANON_KEY` | **yes** | Supabase dashboard → Settings → API → anon/public key. Required for the Supabase auth flow that gates the app at `/login.html`. If unset, the auth router is not registered and users cannot log in. | **Yes** |
 | `RESEND_API_KEY` | no | Resend dashboard → API Keys | **Yes** |
-| `ADMIN_EMAIL` | no | Your email address (where admin transcript/evaluation emails are sent). Renamed from `PARENT_EMAIL` — deployments using the old name must rename it. | No |
+| `ADMIN_EMAIL` | no | Your email address (where admin transcript/evaluation emails are sent). | No |
 | `EMAIL_FROM` | no | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |
 | `CONTACT_EMAIL` | no | Contact email shown on the login page and returned by GET /api/config. Defaults to `""` — required before going public. The contact line is hidden when absent. | No |
 | `MODEL` | no | Default: `claude-sonnet-4-6` | No |
@@ -68,11 +68,13 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 
 You can skip `RESEND_API_KEY`, `ADMIN_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.
 
-> **Migration ordering:** migration `006_auto_evaluate.sql` adds the `evaluated` column used by the post-evaluation write. Migration `007_evaluation_batches.sql` adds the `evaluation_batches` table used by the admin-gated batched evaluation subsystem and runs a one-time `UPDATE` to reconcile `sessions.evaluated` with existing `session_evaluations` rows. Apply Supabase migrations **before** deploying the matching API binary — otherwise inline writes (`updateSession({ evaluated: true })`) and the admin batch endpoints will fail against the old schema.
+> **Migration ordering:** migration `20260421215914_006_auto_evaluate.sql` adds the `evaluated` column used by the post-evaluation write. Migration `20260421221547_007_evaluation_batches.sql` adds the `evaluation_batches` table used by the admin-gated batched evaluation subsystem and runs a one-time `UPDATE` to reconcile `sessions.evaluated` with existing `session_evaluations` rows. Apply Supabase migrations **before** deploying the matching API binary — otherwise inline writes (`updateSession({ evaluated: true })`) and the admin batch endpoints will fail against the old schema.
 
 `PORT` does not need to be set — Render sets it automatically.
 
-For descriptions of each variable, see the [environment variables reference](../README.md#environment-variables--full-reference) in the root README.
+For descriptions of each variable, see the [Config/secrets management](../CLAUDE.md#configsecrets-management) section in CLAUDE.md.
+
+This repo no longer ships a `render.yaml`.  Configure the Render service manually via the dashboard.
 
 ### Step 4: Set the health check path
 
@@ -104,7 +106,7 @@ To confirm the server is healthy, visit `https://your-app-url.onrender.com/api/c
 
 ### Ongoing
 
-- **Auto-deploy:** By default, Render rebuilds and redeploys whenever you push to your **stage** branch.  You can disable this under **Settings → Auto-Deploy**.
+- **Auto-deploy:** By default, Render rebuilds and redeploys whenever you push to your **main** branch (or whichever branch you connected during service setup).  You can disable this under **Settings → Auto-Deploy**.
 - **Manual redeploy:** Click **Manual Deploy → Deploy latest commit** from your service's dashboard.
 - **Logs:** Click **Logs** in the left sidebar to see live server output.
 
@@ -194,7 +196,7 @@ There are no automated unit or integration tests in this repo.
 
 ## Supabase dashboard checklist
 
-After running `supabase/migrations/005_auth_redesign.sql`, configure the project via the Supabase dashboard:
+After running `supabase/migrations/20260418072330_005_auth_redesign.sql`, configure the project via the Supabase dashboard:
 
 1. **Authentication → URL Configuration** — add your production and local origins to "Redirect URLs" (e.g. `https://tutor.schmim.com/login.html`, `http://localhost:3000/login.html`). Without this, the signup/recovery email links will bounce.
 2. **Authentication → Email Templates** — verify that the Confirm signup, Magic link, Reset password, and Change email templates point to `/login.html` (or `/settings.html` for the email-change confirmation). Supabase's defaults usually work.
@@ -246,7 +248,7 @@ Understanding how a tutoring session moves through the system:
 
 ### Email transcripts not arriving
 
-- **Missing keys:** Both `RESEND_API_KEY` and `ADMIN_EMAIL` must be set.  If either is absent, emails are silently skipped.  (The variable was previously named `PARENT_EMAIL`.)
+- **Missing keys:** Both `RESEND_API_KEY` and `ADMIN_EMAIL` must be set.  If either is absent, emails are silently skipped.
 - **Domain not verified:** The `EMAIL_FROM` address must match a domain verified in your Resend dashboard.  Check Resend → Domains for verification status.
 - **Session too short:** Emails are only sent when a session has at least one exchange (transcript length > 0).
 
