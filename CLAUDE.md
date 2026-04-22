@@ -64,7 +64,7 @@ The model appends `[END_SESSION_AVAILABLE]` on its own line when a conversation 
 
 ### In-memory session store + database
 
-Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — running an automated evaluation, recording a `source: 'timeout'` feedback row if none exists, sending an email transcript (including evaluation and feedback), and marking the session ended in the DB.  When a session is explicitly ended via `DELETE /api/sessions/:id`, the same evaluation + feedback fetch happens before the transcript email is sent.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.
+Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — recording a `source: 'timeout'` feedback row if none exists, sending an email transcript (including feedback), and marking the session ended in the DB.  When a session is explicitly ended via `DELETE /api/sessions/:id`, the same feedback fetch happens before the transcript email is sent.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.  Transcript evaluation runs out-of-band via the admin-gated batch evaluator (see `apps/api/src/routes/admin-evaluations.ts`).
 
 The inactivity timeout (`INACTIVITY_MS`) is defined as a constant in `apps/api/src/index.ts` and served via `GET /api/config` as `inactivityMs` so the frontend stays in sync with the server-side sweep.  The frontend uses the same value to trigger its own auto-end flow after the same duration of client-side inactivity.
 
@@ -145,7 +145,7 @@ Managed via `supabase/migrations/*.sql`. RLS is enabled on all user-facing table
 | prompt_name | text | null | Tutor prompt filename stem used for this session (e.g. "tutor-prompt-v7"). Set on first message. |
 | extended_thinking | boolean | true | Whether extended thinking was enabled for this session. Set on first message; user-controllable via the header thinking badge. |
 | user_id | uuid | null | FK → auth.users(id) ON DELETE SET NULL. Populated for sessions initiated by authenticated users via the Supabase auth flow. Partial index `sessions_user_id` on non-null values. |
-| evaluated | boolean | false | Set to true after `runSessionEvaluation()` successfully writes a `session_evaluations` row, or after `processBatchResults()` persists a batched evaluation. Used by out-of-band evaluation jobs (including the admin batch endpoints) to skip already-evaluated sessions. Migration 006 added the column; migration 007 back-filled it for sessions with pre-existing evaluation rows. |
+| evaluated | boolean | false | Set to true after `processBatchResults()` persists a batched evaluation. Used by the batched evaluation subsystem to skip already-evaluated sessions. Migration 006 added the column; migration 007 back-filled it for sessions with pre-existing evaluation rows. |
 
 ### messages
 
@@ -282,7 +282,6 @@ Get non-secret runtime config.
 {
   "model": "claude-sonnet-4-6",
   "extendedThinking": true,
-  "autoEvaluate": true,
   "inactivityMs": 600000,
   "contactEmail": "",
   "availableModels": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-6"],
@@ -445,8 +444,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | CORS_ORIGIN | no | false (fail-closed) | api | Allowed CORS origin. When unset, all cross-origin requests are rejected. Set explicitly for all deployments. |
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
 | EXTENDED_THINKING | no | true | core | Set "false" to disable |
-| AUTO_EVALUATE | no | true | core, api | Set `"false"` to disable the automatic transcript evaluation that runs on session end (inactivity sweep + explicit DELETE). When disabled, `session_evaluations` rows are not created inline; use `scripts/backfill-evaluations.ts` to evaluate sessions out-of-band. |
-| EVALUATION_MODEL | no | claude-haiku-4-5-20251001 | core, api | Claude model ID used for automated transcript evaluation. Exposed as `DEFAULT_EVALUATION_MODEL` from `@ai-tutor/core`. |
+| EVALUATION_MODEL | no | claude-haiku-4-5-20251001 | core, api | Claude model ID used by the admin-gated batch transcript evaluator. Exposed as `DEFAULT_EVALUATION_MODEL` from `@ai-tutor/core`. |
 | SYSTEM_PROMPT_PATH | no | templates/tutor-prompt-v7.md | core | Path from repo root |
 | PORT | no | 3000 | api | HTTP listen port |
 | CONTACT_EMAIL | no | `""` | api | Contact email returned by GET /api/config and shown on the login page. Defaults to empty string — required before going public. The login page hides the contact line when this value is empty. |
@@ -510,7 +508,7 @@ These apply to every Claude Code session in this repo.
 | `supabase/migrations/20260412192232_003_profiles.sql` | Creates `profiles` table with `is_admin` column. `is_admin` is dropped by migration 005 (moves to `auth.users.app_metadata`). |
 | `supabase/migrations/20260418025953_004_profile_settings.sql` | Adds `email_transcripts_enabled boolean NOT NULL DEFAULT true` to profiles |
 | `supabase/migrations/20260418072330_005_auth_redesign.sql` | Full auth redesign: truncates all data, drops `disclaimer_acceptances`, drops `profiles.is_admin`, installs `on_auth_user_created` trigger, makes `sessions.user_id NOT NULL`, enables RLS with `auth.uid()` policies on all user-facing tables. |
-| `supabase/migrations/20260421215914_006_auto_evaluate.sql` | Adds `evaluated boolean NOT NULL DEFAULT false` to sessions. Populated by `runSessionEvaluation()` after a successful evaluation; used to skip already-evaluated sessions in out-of-band jobs when `AUTO_EVALUATE` is disabled. |
+| `supabase/migrations/20260421215914_006_auto_evaluate.sql` | Adds `evaluated boolean NOT NULL DEFAULT false` to sessions. Populated by the batched evaluation subsystem after a successful evaluation; used to skip already-evaluated sessions. |
 | `supabase/migrations/20260421221547_007_evaluation_batches.sql` | Creates the `evaluation_batches` table used by the admin-gated batched evaluation subsystem. Also runs a one-time `UPDATE` to reconcile `sessions.evaluated` with pre-existing `session_evaluations` rows so the first batch run doesn't resubmit already-evaluated sessions. |
 | `supabase/migrations/20260422010105_008_policy_fixes.sql` | Updates RLS policies on profiles, sessions, messages, session_feedback, and session_evaluations to use `(SELECT auth.uid())` subquery form. |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
@@ -556,7 +554,7 @@ These apply to every Claude Code session in this repo.
 | `apps/api/scripts/gen-build-info.js` | Generates `build-info.json` (commit SHA + timestamp) at build time; called by the API `build` script |
 | `apps/api/build-info.json` | Generated build metadata (gitignored); read at startup by the config route |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
-| `apps/api/src/lib/evaluation.ts` | `runSessionEvaluation()` — calls `evaluateTranscript`, saves to DB, returns result; `buildEvaluationPayload()` — maps result to email shape; `buildTranscriptEmailPayload()` — assembles full email payload from session data |
+| `apps/api/src/lib/evaluation.ts` | `buildEvaluationPayload()` — maps result to email shape; `buildTranscriptEmailPayload()` — assembles full email payload from session data; helpers for timeout-feedback, marking emails sent, and student-facing transcript dispatch |
 | `apps/api/src/lib/session-store.ts` | In-memory session cache (`Map<id, Session>`) |
 | `apps/api/src/lib/stream.ts` | SSE helpers (`initSSE`, `sendEvent`, `sendHeartbeat`) |
 | `apps/api/src/lib/geo.ts` | `extractClientInfo()` — IP, geolocation, user-agent extraction |

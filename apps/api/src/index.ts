@@ -27,7 +27,7 @@ import { createHistoryRouter } from "./routes/history.js";
 import { createAdminEvaluationsRouter } from "./routes/admin-evaluations.js";
 import { getAllSessions, removeSession } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
-import { runSessionEvaluation, buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
+import { buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -145,8 +145,8 @@ setInterval(() => {
       removeSession(sessionId);
 
       // Shared teardown: mark ended_at in DB and log. Called both from the async
-      // eval/email path (in finally, after the evaluation row is written) and from
-      // the no-email path (immediately, since there is no evaluation to wait for).
+      // email path (in finally, after the transcript email completes) and from
+      // the no-email path (immediately).
       const finishReap = async () => {
         try {
           await markSessionEnded(db, sessionId);
@@ -159,16 +159,13 @@ setInterval(() => {
       if (!session.emailSent && session.transcript.length > 0) {
         void (async () => {
           try {
-            const [evalResult, feedback, userInfo] = await Promise.all([
-              config.autoEvaluate
-                ? runSessionEvaluation(db, sessionId, session.transcript, config.evaluationModel)
-                : Promise.resolve(null),
+            const [feedback, userInfo] = await Promise.all([
               getOrCreateTimeoutFeedback(db, sessionId, "sweep"),
               getUserInfoForSession(db, sessionId).catch(() => null),
             ]);
 
             const payload = buildTranscriptEmailPayload(
-              session, sessionId, evalResult, feedback,
+              session, sessionId, null, feedback,
               { model: config.model, promptName: defaultPromptName, extendedThinking: config.extendedThinking },
               userInfo,
             );
@@ -185,8 +182,7 @@ setInterval(() => {
           } catch (err) {
             console.error(`[sweep] Failed to process session ${sessionId}:`, err);
           } finally {
-            // Mark ended_at only after evaluation and email have completed (or failed),
-            // so session_evaluations is always written before ended_at is set.
+            // Mark ended_at only after the email has completed (or failed).
             await finishReap();
           }
         })();

@@ -20,7 +20,6 @@ export interface Config {
   systemPromptPath: string;
   defaultPromptName: string;
   port: number;
-  autoEvaluate: boolean;
   evaluationModel: string;
 }
 
@@ -33,7 +32,6 @@ export function loadConfig(): Config {
     systemPromptPath,
     defaultPromptName: path.basename(systemPromptPath, ".md"),
     port: parseInt(process.env.PORT ?? "3000", 10),
-    autoEvaluate: process.env.AUTO_EVALUATE?.toLowerCase() !== "false",
     evaluationModel: process.env.EVALUATION_MODEL ?? DEFAULT_EVALUATION_MODEL,
   };
 }

@@ -37,7 +37,7 @@ For full endpoint reference (request/response schemas, auth requirements, error 
 The API binary reads the following environment variables:
 
 - **Required:** `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`.
-- **Optional:** `RESEND_API_KEY`, `ADMIN_EMAIL`, `EMAIL_FROM`, `CORS_ORIGIN`, `CONTACT_EMAIL`, `ALLOW_PROMPT_SELECTION`, `MODEL`, `EXTENDED_THINKING`, `AUTO_EVALUATE`, `EVALUATION_MODEL`, `SYSTEM_PROMPT_PATH`, `PORT`.
+- **Optional:** `RESEND_API_KEY`, `ADMIN_EMAIL`, `EMAIL_FROM`, `CORS_ORIGIN`, `CONTACT_EMAIL`, `ALLOW_PROMPT_SELECTION`, `MODEL`, `EXTENDED_THINKING`, `EVALUATION_MODEL`, `SYSTEM_PROMPT_PATH`, `PORT`.
 
 For defaults and full descriptions, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
@@ -84,7 +84,7 @@ apps/api/src/
 │   ├── require-auth.ts     ← Bearer token verification middleware
 │   └── require-admin.ts    ← Admin-only gating (chains after require-auth)
 └── lib/
-    ├── evaluation.ts       ← runSessionEvaluation(), buildEvaluationPayload(), buildTranscriptEmailPayload()
+    ├── evaluation.ts       ← buildEvaluationPayload(), buildTranscriptEmailPayload(), timeout-feedback + email helpers
     ├── batch-evaluation.ts ← findPendingEvaluations(), createEvaluationBatchForPending(), processBatchResults()
     ├── session-store.ts    ← In-memory Map<sessionId, Session>
     ├── stream.ts           ← SSE helpers (initSSE, sendEvent, sendHeartbeat)
