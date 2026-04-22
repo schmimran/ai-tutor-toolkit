@@ -498,14 +498,15 @@ These apply to every Claude Code session in this repo.
 |------|---------|
 | `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev`, `npm run backfill:evaluations` |
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
-| `supabase/migrations/consolidated_schema.sql` | Initial database schema (sessions, messages, session_feedback, session_evaluations, and — pre-005 only — disclaimer_acceptances) |
-| `supabase/migrations/001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` to sessions |
-| `supabase/migrations/002_users.sql` | Adds `user_id uuid` to sessions referencing `auth.users(id)`. Originally nullable; made NOT NULL by migration 005. |
-| `supabase/migrations/003_profiles.sql` | Creates `profiles` table with `is_admin` column. `is_admin` is dropped by migration 005 (moves to `auth.users.app_metadata`). |
-| `supabase/migrations/004_profile_settings.sql` | Adds `email_transcripts_enabled boolean NOT NULL DEFAULT true` to profiles |
-| `supabase/migrations/005_auth_redesign.sql` | Full auth redesign: truncates all data, drops `disclaimer_acceptances`, drops `profiles.is_admin`, installs `on_auth_user_created` trigger, makes `sessions.user_id NOT NULL`, enables RLS with `auth.uid()` policies on all user-facing tables. |
-| `supabase/migrations/006_auto_evaluate.sql` | Adds `evaluated boolean NOT NULL DEFAULT false` to sessions. Populated by `runSessionEvaluation()` after a successful evaluation; used to skip already-evaluated sessions in out-of-band jobs when `AUTO_EVALUATE` is disabled. |
-| `supabase/migrations/007_evaluation_batches.sql` | Creates the `evaluation_batches` table used by the admin-gated batched evaluation subsystem. Also runs a one-time `UPDATE` to reconcile `sessions.evaluated` with pre-existing `session_evaluations` rows so the first batch run doesn't resubmit already-evaluated sessions. |
+| `supabase/migrations/20260401015814_consolidated_schema.sql` | Initial database schema (sessions, messages, session_feedback, session_evaluations, and — pre-005 only — disclaimer_acceptances) |
+| `supabase/migrations/20260410140739_001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` to sessions |
+| `supabase/migrations/20260411221446_002_users.sql` | Adds `user_id uuid` to sessions referencing `auth.users(id)`. Originally nullable; made NOT NULL by migration 005. |
+| `supabase/migrations/20260412192232_003_profiles.sql` | Creates `profiles` table with `is_admin` column. `is_admin` is dropped by migration 005 (moves to `auth.users.app_metadata`). |
+| `supabase/migrations/20260418025953_004_profile_settings.sql` | Adds `email_transcripts_enabled boolean NOT NULL DEFAULT true` to profiles |
+| `supabase/migrations/20260418072330_005_auth_redesign.sql` | Full auth redesign: truncates all data, drops `disclaimer_acceptances`, drops `profiles.is_admin`, installs `on_auth_user_created` trigger, makes `sessions.user_id NOT NULL`, enables RLS with `auth.uid()` policies on all user-facing tables. |
+| `supabase/migrations/20260421215914_006_auto_evaluate.sql` | Adds `evaluated boolean NOT NULL DEFAULT false` to sessions. Populated by `runSessionEvaluation()` after a successful evaluation; used to skip already-evaluated sessions in out-of-band jobs when `AUTO_EVALUATE` is disabled. |
+| `supabase/migrations/20260421221547_007_evaluation_batches.sql` | Creates the `evaluation_batches` table used by the admin-gated batched evaluation subsystem. Also runs a one-time `UPDATE` to reconcile `sessions.evaluated` with pre-existing `session_evaluations` rows so the first batch run doesn't resubmit already-evaluated sessions. |
+| `supabase/migrations/20260422010105_008_policy_fixes.sql` | Updates RLS policies on profiles, sessions, messages, session_feedback, and session_evaluations to use `(SELECT auth.uid())` subquery form. |
 | `templates/tutor-prompt-v7.md` | Production tutor prompt — current version; loaded at runtime via `SYSTEM_PROMPT_PATH` |
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |
