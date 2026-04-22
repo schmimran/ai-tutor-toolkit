@@ -229,7 +229,7 @@ Understanding how a tutoring session moves through the system:
    - **Inactivity timeout:** The server's 60-second sweep detects no activity for 10 minutes and reaps the session
 
 5. **On end (unless `?discard=true`):**
-   - An automated evaluation runs against the transcript (12 dimensions, scored pass/partial/fail/na)
+   - An automated evaluation runs against the transcript (eleven dimensions plus a resolution status, each scored pass/partial/fail/na)
    - Student feedback is fetched (or a `source: 'timeout'` placeholder is created)
    - A transcript email is sent to the parent (includes conversation, evaluation, feedback, and token usage)
    - `email_sent` is set to `true` to prevent duplicate sends
