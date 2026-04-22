@@ -67,7 +67,6 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | New session | One-click reset with automatic prior session cleanup (`DELETE /api/sessions/:id`) |
 | Model indicator | Shows current model and extended thinking status (from `/api/config`) |
 | Auth gate | Unauthenticated users are redirected to `/login.html`. Auth is required everywhere. |
-| Admin panel | `/admin.html` — evaluation batch management surface. Visible only to users whose JWT has `app_metadata.is_admin = true`. |
 
 ## API calls made by the frontend
 
@@ -78,9 +77,6 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | `GET /api/transcript/:sessionId` | When transcript modal is opened |
 | `POST /api/feedback` | When end-of-session feedback is submitted or skipped. |
 | `DELETE /api/sessions/:sessionId` | On inactivity timeout or new session button |
-| `POST /api/admin/evaluations/batches` | (admin only) Submit pending sessions for batched evaluation |
-| `GET /api/admin/evaluations/batches` | (admin only) List recent evaluation batches |
-| `GET /api/admin/evaluations/batches/:id` | (admin only) Poll batch status; finalize when complete |
 
 ## Gallery pane
 
@@ -111,9 +107,9 @@ Clicking the pill calls `focusUpload()` with the upload's ID and opens the galle
 
 ## Design notes
 
-The frontend uses the Warm Red palette (warm off-white `#fffdf7`, tomato red primary `#e8392a`, amber tutor accent `#f97316`).  See [docs/ui-style-guide.md](../../docs/ui-style-guide.md) for the canonical palette, typography, and component specifications.
-
+- Dark color scheme; purple (`#7c6af7`) and cyan (`#22d3ee`) accent colors
 - Flex-row layout: gallery pane (0 width when closed, 320px when open) + chat column (flex: 1)
+- Student messages: dark purple-tinted bubbles; tutor messages: dark teal-tinted bubbles
 - Session ID is a client-generated UUID (`crypto.randomUUID()`), stored in memory (not localStorage)
 
 ## Contributing

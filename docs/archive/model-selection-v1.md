@@ -1,5 +1,4 @@
 # Model Selection for AI Tutoring
-> **Archived (v1).** Superseded by [current doc](../model-selection.md). Retained for reference only.
 
 ## Summary
 

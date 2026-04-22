@@ -1,6 +1,6 @@
 # @ai-tutor/ios
 
-> **Status: Placeholder.**  No Swift code exists yet.  This directory reserves the `apps/ios` slot in the monorepo.  Status will be updated when development begins.  The toolkit's JavaScript clients (`apps/web`, `apps/cli`) are the supported surfaces today.
+> **Status: Placeholder.**  No Swift code exists yet.  This directory reserves the `apps/ios` slot in the monorepo.  See the project roadmap in the root README for timeline.
 
 Native iOS client for the AI Tutor.  Swift/SwiftUI app that connects to the existing API server -- no AI logic runs on device.
 

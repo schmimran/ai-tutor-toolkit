@@ -71,7 +71,7 @@ Opus produces marginally better tone calibration and slightly more nuanced reaso
 
 ## Cost considerations
 
-Extended thinking adds tokens to every response (thinking tokens are consumed but not displayed to the student).  Extended thinking runs in adaptive mode (the model self-regulates its thinking budget); `max_tokens` is set to 16000.
+Extended thinking adds tokens to every response (thinking tokens are consumed but not displayed to the student).  The budget is set to 10,000 thinking tokens with a 16,000 max output.
 
 For a typical homework session (10-15 exchanges):
 
