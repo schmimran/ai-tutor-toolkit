@@ -182,6 +182,8 @@
         modelBadge.classList.add('admin-visible');
         promptBadge.classList.add('admin-visible');
         thinkingBadge.classList.add('admin-visible');
+        const adminNavGroup = document.getElementById('admin-nav-group');
+        if (adminNavGroup) adminNavGroup.style.display = '';
       }
 
       // Always show the account trigger for authenticated users. Fall back
