@@ -1,6 +1,6 @@
 # @ai-tutor/ios
 
-> **Status: Placeholder.** No Swift code exists yet. This directory reserves the `apps/ios` slot in the monorepo. See the project roadmap in the root README for timeline.
+> **Status: Placeholder.** No Swift code exists yet. This directory reserves the `apps/ios` slot in the monorepo.
 
 ## Overview
 
