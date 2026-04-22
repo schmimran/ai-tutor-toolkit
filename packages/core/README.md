@@ -223,7 +223,7 @@ import type {
 
 ## Configuration
 
-This package reads `ANTHROPIC_API_KEY` (required), `MODEL`, `EXTENDED_THINKING`, `SYSTEM_PROMPT_PATH`, `PORT`, `AUTO_EVALUATE`, and `EVALUATION_MODEL` from environment variables.  For the full table with defaults and descriptions, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
+This package reads `ANTHROPIC_API_KEY` (required), `MODEL`, `EXTENDED_THINKING`, `SYSTEM_PROMPT_PATH`, `AUTO_EVALUATE`, and `EVALUATION_MODEL` from environment variables.  (`PORT` is consumed by `apps/api`, not this package directly.)  For the full table with defaults and descriptions, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
 ## Setup
 

@@ -1,10 +1,6 @@
-> **Archived — proposal only, not implemented.**  This document describes a "Warm Red" redesign that was specced and mocked up but never built into the production frontend.  The current frontend uses a dark purple/cyan palette.  This file is kept as design history.
-
----
-
 # Axiom AI Tutor — UI Style Guide
 
-Reference for implementing the "Warm Red" redesign. Every decision here was validated in `apps/web/public/mockup.html` (served at `/mockup.html` in dev). When in doubt, open that file.
+This is the active style guide for the production frontend.  The Warm Red palette and layout described here are fully implemented in `apps/web/public/styles.css` and `apps/web/public/login.css`.  The "Files to update" section at the bottom is historical — those changes are already done.  Use this document as a reference when adding new UI components or pages.
 
 ---
 
