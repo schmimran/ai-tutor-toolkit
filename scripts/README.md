@@ -4,7 +4,7 @@ Out-of-band maintenance scripts for the AI Tutor.
 
 ## backfill-evaluations.ts
 
-Runs the automated transcript evaluation against sessions that ended without a `session_evaluations` row. Use this after running with `AUTO_EVALUATE=false`, or to fill gaps caused by transient evaluation failures.
+Runs the automated transcript evaluation against sessions that ended without a `session_evaluations` row. Use this to fill gaps left by the admin-gated batch evaluator (e.g. transient failures, or sessions that ended before the batch evaluator existed).
 
 ### What it writes
 

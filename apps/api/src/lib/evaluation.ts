@@ -1,8 +1,7 @@
-import { evaluateTranscript } from "@ai-tutor/core";
 import type { EvaluationResult, Session } from "@ai-tutor/core";
 import type { TranscriptEmailPayload } from "@ai-tutor/email";
 import { sendUserTranscript } from "@ai-tutor/email";
-import { upsertSessionEvaluation, updateSession, getSessionFeedback, createSessionFeedback, getUserProfileForSession } from "@ai-tutor/db";
+import { updateSession, getSessionFeedback, createSessionFeedback, getUserProfileForSession } from "@ai-tutor/db";
 import type { DbSessionFeedback, UserSessionInfo } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -94,43 +93,6 @@ export async function getOrCreateTimeoutFeedback(
     }
   }
   return feedback;
-}
-
-export async function runSessionEvaluation(
-  db: SupabaseClient,
-  sessionId: string,
-  transcript: Array<{ role: string; text: string }>,
-  evaluationModel?: string,
-): Promise<EvaluationResult | null> {
-  try {
-    const result = await evaluateTranscript(transcript, evaluationModel);
-    await upsertSessionEvaluation(db, {
-      session_id: sessionId,
-      model: result.model,
-      mode_handling: result.mode_handling,
-      problem_confirmation: result.problem_confirmation,
-      never_gave_answer: result.never_gave_answer,
-      probe_reasoning: result.probe_reasoning,
-      understood_where_student_was: result.understood_where_student_was,
-      one_question: result.one_question,
-      worked_at_edge: result.worked_at_edge,
-      followed_student_lead: result.followed_student_lead,
-      adaptive_tone: result.adaptive_tone,
-      parallel_problems: result.parallel_problems,
-      step_feedback: result.step_feedback,
-      resolution: result.resolution,
-      has_failures: result.has_failures,
-      rationale: result.rationale,
-    });
-    // Mark the session as evaluated so out-of-band evaluation jobs can skip it.
-    await updateSession(db, sessionId, { evaluated: true }).catch(err =>
-      console.error(`[evaluation] Could not persist evaluated=true for ${sessionId}:`, err)
-    );
-    return result;
-  } catch (err) {
-    console.error(`[evaluation] Failed to evaluate session ${sessionId}:`, err);
-    return null;
-  }
 }
 
 /**

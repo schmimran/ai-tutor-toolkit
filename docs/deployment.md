@@ -60,15 +60,14 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 | `CONTACT_EMAIL` | no | Contact email shown on the login page and returned by GET /api/config. Defaults to `""` — required before going public. The contact line is hidden when absent. | No |
 | `MODEL` | no | Default: `claude-sonnet-4-6` | No |
 | `EXTENDED_THINKING` | no | Default: `true`; set `false` to disable | No |
-| `AUTO_EVALUATE` | no | Default: `true`; set `false` to disable the automatic transcript evaluation that runs on session end. When disabled, `session_evaluations` rows are not created inline — use `scripts/backfill-evaluations.ts` for out-of-band evaluation. | No |
-| `EVALUATION_MODEL` | no | Default: `claude-haiku-4-5-20251001`. Claude model ID used for automated transcript evaluation. | No |
+| `EVALUATION_MODEL` | no | Default: `claude-haiku-4-5-20251001`. Claude model ID used by the admin-gated batch transcript evaluator. | No |
 | `SYSTEM_PROMPT_PATH` | no | Default: `templates/tutor-prompt-v7.md` | No |
 | `CORS_ORIGIN` | no | Default: `false` (fail-closed). When unset, all cross-origin requests are rejected. Set explicitly to your Render app URL once deployed (e.g., `https://ai-tutor.onrender.com`). Required for every deployment that serves cross-origin traffic. | No |
 | `ALLOW_PROMPT_SELECTION` | no | Set to `true` to enable the in-app prompt-version picker. Omit (or set to anything else) to lock the picker. Defaults fail-closed. | No |
 
 You can skip `RESEND_API_KEY`, `ADMIN_EMAIL`, and `EMAIL_FROM` if you don't want email transcripts.  The app will work without them.
 
-> **Migration ordering:** migration `006_auto_evaluate.sql` adds the `evaluated` column used by the post-evaluation write. Migration `007_evaluation_batches.sql` adds the `evaluation_batches` table used by the admin-gated batched evaluation subsystem and runs a one-time `UPDATE` to reconcile `sessions.evaluated` with existing `session_evaluations` rows. Apply Supabase migrations **before** deploying the matching API binary — otherwise inline writes (`updateSession({ evaluated: true })`) and the admin batch endpoints will fail against the old schema.
+> **Migration ordering:** migration `006_auto_evaluate.sql` adds the `evaluated` column used by the batch evaluator to skip already-evaluated sessions. Migration `007_evaluation_batches.sql` adds the `evaluation_batches` table used by the admin-gated batched evaluation subsystem and runs a one-time `UPDATE` to reconcile `sessions.evaluated` with existing `session_evaluations` rows. Apply Supabase migrations **before** deploying the matching API binary — otherwise the admin batch endpoints will fail against the old schema.
 
 `PORT` does not need to be set — Render sets it automatically.
 
