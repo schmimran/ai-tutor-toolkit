@@ -498,7 +498,7 @@ These apply to every Claude Code session in this repo.
 |------|---------|
 | `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev`, `npm run backfill:evaluations` |
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
-| `supabase/migrations/000_schema.sql` | Initial database schema (sessions, messages, session_feedback, session_evaluations, and — pre-005 only — disclaimer_acceptances) |
+| `supabase/migrations/consolidated_schema.sql` | Initial database schema (sessions, messages, session_feedback, session_evaluations, and — pre-005 only — disclaimer_acceptances) |
 | `supabase/migrations/001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` to sessions |
 | `supabase/migrations/002_users.sql` | Adds `user_id uuid` to sessions referencing `auth.users(id)`. Originally nullable; made NOT NULL by migration 005. |
 | `supabase/migrations/003_profiles.sql` | Creates `profiles` table with `is_admin` column. `is_admin` is dropped by migration 005 (moves to `auth.users.app_metadata`). |
