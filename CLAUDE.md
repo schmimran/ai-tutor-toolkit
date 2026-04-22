@@ -20,7 +20,6 @@ npm run build              # Compile all TypeScript packages and apps (run from 
 npm run api                # Start the Express API server (default port 3000)
 npm run dev                # Start API with file-watch (development)
 npm run cli                # Launch the terminal REPL
-npm run backfill:evaluations  # Backfill session_evaluations for sessions missing a row
 ```
 
 > Copy `env.sh.template` to `env.sh`, fill in your values, then `source env.sh` before running any command.  `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are required for the API server.  Without `SUPABASE_ANON_KEY` the auth router will not register and the app will be inaccessible.
@@ -500,7 +499,7 @@ These apply to every Claude Code session in this repo.
 
 | Path | Purpose |
 |------|---------|
-| `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev`, `npm run backfill:evaluations` |
+| `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev` |
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
 | `supabase/migrations/20260401015814_consolidated_schema.sql` | Initial database schema (sessions, messages, session_feedback, session_evaluations, and — pre-005 only — disclaimer_acceptances) |
 | `supabase/migrations/20260410140739_001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` to sessions |
@@ -579,5 +578,4 @@ These apply to every Claude Code session in this repo.
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
 | `supabase/config.toml` | Supabase CLI local development config |
 | `env.sh.template` | Template for local environment variable setup |
-| `scripts/backfill-evaluations.ts` | Backfills session evaluations for sessions without evaluation rows. Run via: `npm run backfill:evaluations` |
-| `scripts/README.md` | Overview of operational scripts in `scripts/` (backfill jobs, etc.) |
+| `scripts/README.md` | Overview of operational scripts in `scripts/` (currently empty) |

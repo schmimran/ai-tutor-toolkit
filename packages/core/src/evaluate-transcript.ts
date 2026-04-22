@@ -51,10 +51,9 @@ const ALL_DIMENSION_KEYS: (keyof EvaluationResult)[] = [
 
 /**
  * Build the Anthropic messages.create params for a single transcript evaluation.
- * Shared by the batch path (each request in a Message Batches submission) and
- * the backfill script which calls `evaluateTranscript` directly. The cached
- * system prompt is identical across calls — within a batch, request #1 creates
- * the cache and subsequent requests read it.
+ * Used by the batch path (each request in a Message Batches submission).
+ * The cached system prompt is identical across calls — within a batch,
+ * request #1 creates the cache and subsequent requests read it.
  */
 export function buildEvaluationRequestParams(
   transcript: Array<{ role: string; text: string }>,
