@@ -182,7 +182,9 @@ There are no automated unit or integration tests in this repo.
 
 ## Supabase dashboard checklist
 
-After the auth redesign migration (`005_auth_redesign`) has run, configure the project via the Supabase dashboard:
+Run all available Supabase migrations:
+`supabase db push`
+
 
 1. **Authentication → URL Configuration** — add your production and local origins to "Redirect URLs" (e.g. `https://tutor.schmim.com/login.html`, `http://localhost:3000/login.html`). Without this, the signup/recovery email links will bounce.
 2. **Authentication → Email Templates** — verify that the Confirm signup, Magic link, Reset password, and Change email templates point to `/login.html` (or `/settings.html` for the email-change confirmation). Supabase's defaults usually work.
