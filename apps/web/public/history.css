@@ -143,21 +143,22 @@ html, body {
   flex: 1; overflow-y: auto; background: var(--bg);
 }
 
+/* History is a real page, not a centered overlay. The session list
+ * fills the content pane beside the sidebar. */
 .history-shell {
   min-height: 100%;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
-  padding: 2rem 1.5rem;
+  justify-content: flex-start;
+  padding: 2rem 2.5rem;
 }
 
 .history-card {
   width: 100%;
-  max-width: 640px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 1.75rem;
+  padding: 2rem;
   box-shadow: 0 4px 16px rgba(0,0,0,0.06);
 }
 
