@@ -2,85 +2,147 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Admin — Evaluation Batches</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; margin: 0; padding: 24px; }
-    h1 { font-size: 1.2rem; margin: 0 0 24px; color: #fff; }
-    h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin: 24px 0 12px; }
-    .card { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
-    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    input[type="number"], input[type="text"] {
-      background: #111; border: 1px solid #333; border-radius: 6px;
-      color: #e0e0e0; padding: 8px 12px; font-size: 0.9rem; width: 140px;
-    }
-    button {
-      background: #4f6ef7; color: #fff; border: none; border-radius: 6px;
-      padding: 8px 16px; font-size: 0.9rem; cursor: pointer;
-    }
-    button:disabled { opacity: 0.5; cursor: default; }
-    button.secondary { background: #2a2a38; }
-    .status { font-size: 0.85rem; color: #aaa; margin-top: 10px; white-space: pre-wrap; font-family: monospace; }
-    .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 10px;
-      font-size: 0.75rem; font-weight: 600;
-    }
-    .badge.submitted { background: #2a3a6a; color: #7aacff; }
-    .badge.ended     { background: #3a2a6a; color: #c07aff; }
-    .badge.processed { background: #1a3a2a; color: #5adf8a; }
-    .badge.failed    { background: #3a1a1a; color: #ff7a7a; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th { text-align: left; color: #888; font-weight: 500; padding: 6px 8px; border-bottom: 1px solid #2a2a38; }
-    td { padding: 8px; border-bottom: 1px solid #1e1e28; vertical-align: top; }
-    td.mono { font-family: monospace; font-size: 0.8rem; color: #aaa; }
-    .poll-btn { font-size: 0.78rem; padding: 4px 10px; }
-    #user-info { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
-    #user-info span { color: #e0e0e0; }
-  </style>
+  <meta name="theme-color" content="#b91c1c">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin.css">
 </head>
 <body>
-  <h1>Evaluation Batches — Admin</h1>
-  <div id="user-info">Checking auth…</div>
 
-  <div class="card">
-    <h2 style="margin-top:0">Submit New Batch</h2>
-    <div class="row">
-      <label style="font-size:0.85rem;color:#aaa">Limit</label>
-      <input type="number" id="limit" value="50" min="1" max="100" />
-      <button id="submit-btn">Submit Batch</button>
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="app-header">
+    <button class="menu-btn" id="btn-sidebar-toggle" aria-label="Toggle navigation"
+            style="width:36px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;flex-shrink:0;border-radius:8px;border:none;background:transparent;padding:0;">
+      <span style="display:block;width:20px;height:2px;background:rgba(255,255,255,0.6);border-radius:2px;"></span>
+      <span style="display:block;width:20px;height:2px;background:rgba(255,255,255,0.6);border-radius:2px;"></span>
+      <span style="display:block;width:20px;height:2px;background:rgba(255,255,255,0.6);border-radius:2px;"></span>
+    </button>
+    <div class="logo-box">
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <path d="M16 4C10.477 4 6 8.477 6 14C6 17.5 7.9 20.58 10.75 22.35L10.75 25.5Q10.75 26.5 11.75 26.5L20.25 26.5Q21.25 26.5 21.25 25.5L21.25 22.35C24.1 20.58 26 17.5 26 14C26 8.477 21.523 4 16 4Z" fill="white" opacity=".88"/>
+        <rect x="12.5" y="27.5" width="7" height="1.5" rx=".75" fill="white" opacity=".6"/>
+        <rect x="14" y="29.5" width="4" height="1.5" rx=".75" fill="white" opacity=".35"/>
+        <path d="M18 11.5L13.5 17H16.5L13.5 22L20 15.5H17L19.5 11.5Z" fill="rgba(255,220,60,.9)"/>
+      </svg>
     </div>
-    <div class="status" id="submit-status"></div>
-  </div>
-
-  <div class="card">
-    <h2 style="margin-top:0">Poll / Finalize Batch</h2>
-    <div class="row">
-      <input type="text" id="poll-id" placeholder="Batch UUID" style="width:300px" />
-      <button id="poll-btn">Poll</button>
+    <div class="header-wordmark">
+      <span class="brand-name">Axiom</span>
+      <span class="brand-sub">AI Tutor</span>
     </div>
-    <div class="status" id="poll-status"></div>
+    <div class="header-divider"></div>
+    <span class="page-title">Admin</span>
+    <div class="header-spacer"></div>
   </div>
 
-  <div class="card">
-    <h2 style="margin-top:0">Recent Batches</h2>
-    <button id="refresh-btn" class="secondary" style="margin-bottom:12px">Refresh</button>
-    <div id="batches-table"><div style="color:#888;font-size:0.85rem">Loading…</div></div>
-  </div>
+  <!-- ── App body ───────────────────────────────────────────────────────── -->
+  <div class="app-body">
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <nav class="page-sidebar" id="page-sidebar" aria-label="Main navigation">
+      <div class="nav-group">
+        <div class="nav-group-label">Learn</div>
+        <a href="/" class="nav-link">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
+          <span class="nav-link-text">Tutor</span>
+        </a>
+        <a href="/history.html" class="nav-link">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+          <span class="nav-link-text">Session History</span>
+        </a>
+        <div class="nav-link nav-disabled">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
+          <span class="nav-link-text">Practice Sets</span>
+          <span class="nl-soon">soon</span>
+        </div>
+        <div class="nav-link nav-disabled">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+          <span class="nav-link-text">My Progress</span>
+          <span class="nl-soon">soon</span>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Account</div>
+        <a href="/settings.html" class="nav-link">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+          <span class="nav-link-text">Settings</span>
+        </a>
+      </div>
+      <div class="nav-group admin-nav-group" id="admin-nav-group" style="display:none">
+        <div class="nav-group-label">Admin</div>
+        <a href="/admin.html" class="nav-link active" aria-current="page" id="nav-admin-link">
+          <svg class="nl-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.317 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+          <span class="nav-link-text">Admin</span>
+        </a>
+      </div>
+      <div class="sidebar-footer">
+        <!-- #sidebar-user-row is present but not populated on admin.html; the
+             admin init() script does not wire up the name/grade display. This
+             is a known acceptable gap (admin-only page). -->
+        <div class="sidebar-user-row" id="sidebar-user-row" style="display:none">
+          <div class="s-avatar" id="sidebar-avatar-initials">?</div>
+          <div class="s-user-info">
+            <div class="s-name" id="sidebar-display-name"></div>
+            <div class="s-grade" id="sidebar-grade"></div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── Page content ────────────────────────────────────────────────── -->
+    <div class="page-content">
+      <main class="admin-shell">
+        <h1 class="admin-heading">Evaluation Batches</h1>
+        <div id="user-info">Checking auth…</div>
+
+        <div class="admin-card">
+          <h2 class="admin-section-title">Submit New Batch</h2>
+          <div class="admin-row">
+            <label class="admin-row-label" for="limit">Limit</label>
+            <input type="number" id="limit" value="50" min="1" max="100" />
+            <button id="submit-btn">Submit Batch</button>
+          </div>
+          <div class="admin-status" id="submit-status"></div>
+        </div>
+
+        <div class="admin-card">
+          <h2 class="admin-section-title">Poll / Finalize Batch</h2>
+          <div class="admin-row">
+            <input type="text" id="poll-id" class="admin-input-wide" placeholder="Batch UUID" />
+            <button id="poll-btn">Poll</button>
+          </div>
+          <div class="admin-status" id="poll-status"></div>
+        </div>
+
+        <div class="admin-card">
+          <h2 class="admin-section-title">Recent Batches</h2>
+          <button id="refresh-btn" class="secondary" style="margin-bottom:12px">Refresh</button>
+          <div id="batches-table"><div class="table-loading">Loading…</div></div>
+        </div>
+      </main>
+    </div>
+
+  </div><!-- /.app-body -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.103.3/dist/umd/supabase.js"></script>
   <script src="/auth.js"></script>
   <script>
-    function setStatus(id, text, color) {
+    // Helper: write text to a status region and apply a semantic class.
+    // `tone` is one of "info" (default), "error", "success".
+    function setStatus(id, text, tone) {
       const el = document.getElementById(id);
       el.textContent = text;
-      el.style.color = color || "#aaa";
+      el.classList.remove('error', 'success');
+      if (tone === 'error')   el.classList.add('error');
+      if (tone === 'success') el.classList.add('success');
     }
 
     async function submitBatch() {
       const limit = parseInt(document.getElementById("limit").value, 10) || 50;
       document.getElementById("submit-btn").disabled = true;
-      setStatus("submit-status", "Submitting…", "#aaa");
+      setStatus("submit-status", "Submitting…", "info");
       try {
         const res = await window.auth.authedFetch("/api/admin/evaluations/batches", {
           method: "POST",
@@ -89,18 +151,18 @@
         });
         const data = await res.json();
         if (!res.ok) {
-          setStatus("submit-status", JSON.stringify(data, null, 2), "#ff7a7a");
+          setStatus("submit-status", JSON.stringify(data, null, 2), "error");
         } else if (data.sessionCount === 0) {
-          setStatus("submit-status", "No sessions pending evaluation.", "#5adf8a");
+          setStatus("submit-status", "No sessions pending evaluation.", "success");
         } else {
           setStatus("submit-status",
             `Submitted — ${data.sessionCount} sessions\nBatch ID: ${data.id}\nAnthropic ID: ${data.anthropicBatchId}`,
-            "#5adf8a");
+            "success");
           document.getElementById("poll-id").value = data.id;
           loadBatches();
         }
       } catch (e) {
-        setStatus("submit-status", "Error: " + e.message, "#ff7a7a");
+        setStatus("submit-status", "Error: " + e.message, "error");
       } finally {
         document.getElementById("submit-btn").disabled = false;
       }
@@ -108,25 +170,25 @@
 
     async function pollBatch(id) {
       const batchId = id || document.getElementById("poll-id").value.trim();
-      if (!batchId) { setStatus("poll-status", "Enter a batch UUID.", "#ff7a7a"); return; }
-      setStatus("poll-status", "Polling…", "#aaa");
+      if (!batchId) { setStatus("poll-status", "Enter a batch UUID.", "error"); return; }
+      setStatus("poll-status", "Polling…", "info");
       try {
         const res = await window.auth.authedFetch(`/api/admin/evaluations/batches/${batchId}`);
         const data = await res.json();
         if (!res.ok) {
-          setStatus("poll-status", JSON.stringify(data, null, 2), "#ff7a7a");
+          setStatus("poll-status", JSON.stringify(data, null, 2), "error");
         } else {
           const b = data.batch;
           let msg = `Status: ${b.status}`;
           if (b.request_counts) msg += `\nCounts: ${JSON.stringify(b.request_counts)}`;
           if (data.outcome)     msg += `\nOutcome: ${JSON.stringify(data.outcome)}`;
           if (b.error_message)  msg += `\nError: ${b.error_message}`;
-          setStatus("poll-status", msg, "#e0e0e0");
+          setStatus("poll-status", msg, "info");
           if (id) document.getElementById("poll-id").value = batchId;
           loadBatches();
         }
       } catch (e) {
-        setStatus("poll-status", "Error: " + e.message, "#ff7a7a");
+        setStatus("poll-status", "Error: " + e.message, "error");
       }
     }
 
@@ -136,11 +198,11 @@
         const res = await window.auth.authedFetch("/api/admin/evaluations/batches");
         const data = await res.json();
         if (!res.ok || !data.ok) {
-          container.innerHTML = `<div style="color:#ff7a7a">${JSON.stringify(data)}</div>`;
+          container.innerHTML = `<div class="table-empty" style="color:var(--danger)">${JSON.stringify(data)}</div>`;
           return;
         }
         if (!data.batches.length) {
-          container.innerHTML = `<div style="color:#888;font-size:0.85rem">No batches yet.</div>`;
+          container.innerHTML = `<div class="table-empty">No batches yet.</div>`;
           return;
         }
         const tbody = document.createElement("tbody");
@@ -169,7 +231,7 @@
         table.appendChild(tbody);
         container.replaceChildren(table);
       } catch (e) {
-        container.innerHTML = `<div style="color:#ff7a7a">Error: ${e.message}</div>`;
+        container.innerHTML = `<div class="table-empty" style="color:var(--danger)">Error: ${e.message}</div>`;
       }
     }
 
@@ -178,9 +240,18 @@
       const session = await window.auth.requireSession();
       const email = session.user?.email ?? "unknown";
       const isAdmin = session.user?.app_metadata?.is_admin;
+
+      // Reveal Admin nav group for consistency with other pages.
+      if (isAdmin === true) {
+        const group = document.getElementById("admin-nav-group");
+        if (group) group.style.display = "";
+      }
+
+      // Admin auth gate — preserve the behavior from the pre-reskin version:
+      // non-admins see an access-denied message and every button is disabled.
       if (!isAdmin) {
         document.getElementById("user-info").innerHTML =
-          '<span style="color:#ff7a7a">Not an admin account. Access denied.</span>';
+          '<span class="access-denied">Not an admin account. Access denied.</span>';
         document.querySelectorAll("button").forEach(b => b.disabled = true);
         return;
       }
@@ -195,6 +266,19 @@
     }
 
     init();
+  </script>
+  <script>
+    // Sidebar toggle for this page
+    (function() {
+      var sidebar = document.getElementById('page-sidebar');
+      var toggle  = document.getElementById('btn-sidebar-toggle');
+      var KEY     = 'sidebar-collapsed';
+      if (localStorage.getItem(KEY) === 'true') sidebar.classList.add('collapsed');
+      toggle.addEventListener('click', function() {
+        var c = sidebar.classList.toggle('collapsed');
+        localStorage.setItem(KEY, c);
+      });
+    })();
   </script>
 </body>
 </html>

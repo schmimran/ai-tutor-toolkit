@@ -1,0 +1,330 @@
+/* admin.css — standalone styles for /admin.html.
+ *
+ * Mirrors the settings.css pattern: warm-red palette, shared layout shell
+ * (.app-header / .app-body / .page-sidebar / .page-content), plus admin-
+ * specific component styles (cards, table, status badges, inputs).
+ *
+ * Note: the :root token block and layout shell rules are duplicated from
+ * settings.css / history.css. A shared layout.css is filed as follow-on
+ * work — intentionally not extracted in this PR.
+ */
+
+:root {
+  --bg:           #fffdf7;
+  --surface:      #ffffff;
+  --surface-alt:  #fffbf7;
+  --card:         #ffffff;
+  --border:       #e2e8f0;
+  --border-bright:#d1d5db;
+  --text:         #1e293b;
+  --text-muted:   #64748b;
+  --accent:       #e8392a;
+  --accent-light: #fee2e2;
+  --accent-dark:  #c42d1e;
+  --accent-hover: #c42d1e;
+  --tutor-accent: #f97316;
+  --header-bg:    #b91c1c;
+  --danger:       #ef4444;
+  --success:      #22c55e;
+  --font-heading: 'Nunito', sans-serif;
+  --font-sans:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── App shell (shared with settings.css / history.css) ── */
+.app-header {
+  height: 64px;
+  background: var(--header-bg);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 14px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.app-header .logo-box {
+  width: 36px; height: 36px; background: #e8392a;
+  border-radius: 10px; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(232,57,42,0.45);
+}
+.app-header .brand-name {
+  font-family: var(--font-heading); font-weight: 900;
+  font-size: 20px; color: #fff; line-height: 1;
+}
+.app-header .brand-sub {
+  font-size: 9px; font-weight: 600; letter-spacing: 2.5px;
+  text-transform: uppercase; color: rgba(255,255,255,0.35);
+}
+.app-header .header-wordmark { display: flex; flex-direction: column; gap: 1px; }
+.app-header .header-divider {
+  width: 1px; height: 28px; background: rgba(255,255,255,0.1);
+}
+.app-header .page-title {
+  font-family: var(--font-heading); font-weight: 700;
+  font-size: 15px; color: rgba(255,255,255,0.7);
+}
+.app-header .header-spacer { flex: 1; }
+
+.app-body {
+  display: flex; flex: 1; min-height: 0;
+  height: calc(100vh - 64px); overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.page-sidebar {
+  width: 220px; flex-shrink: 0;
+  background: #fffbf7; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width .2s ease;
+}
+.page-sidebar.collapsed { width: 60px; }
+.page-sidebar .nav-group { padding: 20px 12px 8px; }
+.page-sidebar .nav-group-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.8px;
+  text-transform: uppercase; color: #94a3b8;
+  padding: 0 8px; margin-bottom: 6px; white-space: nowrap; overflow: hidden;
+}
+.page-sidebar .nav-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 500; color: #475569;
+  cursor: pointer; margin-bottom: 2px; white-space: nowrap;
+  transition: background .12s, color .12s; text-decoration: none;
+}
+.page-sidebar .nav-link:hover { background: #fff5f5; color: #1e293b; }
+.page-sidebar .nav-link.active {
+  background: var(--accent-light); color: var(--accent-dark); font-weight: 700;
+}
+.page-sidebar .nav-link.active .nl-icon { color: var(--accent); }
+.page-sidebar .nav-link.nav-disabled {
+  pointer-events: none; opacity: 0.5;
+}
+.page-sidebar .nl-icon { width: 17px; height: 17px; flex-shrink: 0; color: #94a3b8; }
+.page-sidebar .nl-soon {
+  margin-left: auto; font-size: 10px; color: #cbd5e1; font-style: italic;
+}
+.page-sidebar .sidebar-footer {
+  margin-top: auto; border-top: 1px solid var(--border); padding: 14px 12px;
+}
+.page-sidebar .sidebar-user-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 9px; cursor: pointer;
+}
+.page-sidebar .sidebar-user-row:hover { background: #fff5f5; }
+.page-sidebar .s-avatar {
+  width: 32px; height: 32px; background: #e8392a; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-heading); font-weight: 800; font-size: 12px;
+  color: #fff; flex-shrink: 0;
+}
+.page-sidebar .s-user-info { flex: 1; min-width: 0; }
+.page-sidebar .s-name {
+  font-size: 13px; font-weight: 600; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.page-sidebar .s-grade { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+
+.page-sidebar.collapsed .nav-group-label,
+.page-sidebar.collapsed .nav-link-text,
+.page-sidebar.collapsed .nl-soon,
+.page-sidebar.collapsed .s-user-info { display: none; }
+.page-sidebar.collapsed .nav-link {
+  width: 42px; height: 42px; padding: 0;
+  justify-content: center; border-radius: 10px; margin: 2px auto;
+}
+.page-sidebar.collapsed .nav-group { padding: 12px 9px; }
+
+/* ── Page content area ── */
+.page-content {
+  flex: 1; overflow-y: auto; background: var(--bg);
+}
+
+/* ── Admin-specific layout ── */
+.admin-shell {
+  min-height: 100%;
+  padding: 2rem 2.5rem;
+}
+
+.admin-heading {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  color: var(--text);
+}
+
+#user-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+#user-info span {
+  color: var(--text);
+  font-weight: 600;
+}
+#user-info .access-denied {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ── Cards ── */
+.admin-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.admin-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.85rem 0;
+}
+
+.admin-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-row-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── Inputs ── */
+.admin-card input[type="number"],
+.admin-card input[type="text"] {
+  background: var(--surface-alt);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  font-size: 0.9rem;
+  width: 140px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.admin-card input[type="text"].admin-input-wide { width: 320px; }
+.admin-card input:focus { border-color: var(--accent); }
+
+/* ── Buttons ── */
+.admin-card button {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.admin-card button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.admin-card button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.admin-card button.secondary {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.admin-card button.secondary:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: var(--border-bright);
+}
+
+/* ── Status output ── */
+.admin-status {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-top: 0.85rem;
+  white-space: pre-wrap;
+  min-height: 1.5em;
+}
+.admin-status:empty { display: none; }
+.admin-status.error { color: var(--danger); }
+.admin-status.success { color: var(--success); }
+
+/* ── Badges (status-semantic colors over light surface) ── */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.badge.submitted { background: #dbeafe; color: #1d4ed8; }
+.badge.ended     { background: #f3e8ff; color: #7c3aed; }
+.badge.processed { background: #dcfce7; color: #16a34a; }
+.badge.failed    { background: var(--accent-light); color: var(--accent-dark); }
+
+/* ── Table ── */
+.admin-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.admin-card th {
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+.admin-card td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+.admin-card td.mono {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.admin-card .poll-btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+
+.admin-card .table-empty,
+.admin-card .table-loading {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+}
