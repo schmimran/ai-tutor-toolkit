@@ -199,13 +199,13 @@ You need a domain you own to send from.  Resend can't send from Gmail, Yahoo, or
 2. Give it a name (e.g., `ai-tutor`).
 3. Copy the key.  You won't see it again.
 
-**Step 4: Export the variables**
+**Step 4: Add the variables to `env.sh`**
 
-```bash
-export RESEND_API_KEY=re_...
-export ADMIN_EMAIL=you@yourdomain.com        # where admin transcripts go
-export EMAIL_FROM=tutor@tutor.yourdomain.com # must match your verified domain
-```
+Add these to `env.sh` and re-source it (`source env.sh`):
+
+- `RESEND_API_KEY` — the API key you just generated
+- `ADMIN_EMAIL` — where admin transcripts should go (e.g. `you@yourdomain.com`)
+- `EMAIL_FROM` — must match your verified domain (e.g. `tutor@tutor.yourdomain.com`)
 
 Done?  [Continue to Deploying on Render](#deploying-on-render) or [Behind the scenes](#behind-the-scenes).
 
@@ -309,6 +309,9 @@ ai-tutor-toolkit/
 ├── tests/
 │   ├── README.md                         ← Test harness usage
 │   └── *.md                              ← Student character briefs
+│
+├── scripts/
+│   └── README.md                         ← Operational scripts (e.g. `npm run backfill:evaluations`)
 │
 └── docs/
     ├── methodology.md                    ← Prompt development methodology
