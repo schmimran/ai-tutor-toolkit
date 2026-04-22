@@ -34,12 +34,7 @@ The model ID and extended thinking status are printed at startup.
 
 ## Configuration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `ANTHROPIC_API_KEY` | **yes** | — | Anthropic API key |
-| `MODEL` | no | `claude-sonnet-4-6` | Claude model ID |
-| `EXTENDED_THINKING` | no | `true` | Set `"false"` to disable |
-| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt-v7.md` | Path from repo root |
+This app reads `ANTHROPIC_API_KEY` (required), `MODEL`, `EXTENDED_THINKING`, and `SYSTEM_PROMPT_PATH` from environment variables. For defaults and full descriptions, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
 ## Setup
 
