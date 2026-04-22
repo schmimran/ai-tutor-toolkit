@@ -14,11 +14,13 @@ The CLI provides a minimal interactive session with the tutor.  It uses the bloc
 
 No other npm dependencies.
 
-## Usage
+## Setup
 
 ```bash
 # From the repo root
 export ANTHROPIC_API_KEY=sk-ant-...
+npm install
+npm run build
 npm run cli
 ```
 
@@ -34,20 +36,7 @@ The model ID and extended thinking status are printed at startup.
 
 ## Configuration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `ANTHROPIC_API_KEY` | **yes** | — | Anthropic API key |
-| `MODEL` | no | `claude-sonnet-4-6` | Claude model ID |
-| `EXTENDED_THINKING` | no | `true` | Set `"false"` to disable |
-| `SYSTEM_PROMPT_PATH` | no | `templates/tutor-prompt-v7.md` | Path from repo root |
-
-## Setup
-
-```bash
-npm install        # from repo root
-npm run build      # compile TypeScript
-npm run cli        # start REPL
-```
+For the full list of environment variables and defaults, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
 ## Source structure
 

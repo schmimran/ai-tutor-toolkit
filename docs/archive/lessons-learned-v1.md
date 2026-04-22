@@ -1,4 +1,5 @@
 # Lessons Learned
+> **Archived (v1).** Superseded by [current doc](../lessons-learned.md). Retained for reference only.
 
 These are the non-obvious things we discovered building this toolkit.  Most of them cost us at least one failed test run to learn.
 
