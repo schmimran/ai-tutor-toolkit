@@ -125,7 +125,7 @@ type ClientInfo = { ip?: string; geo?: Record<string, unknown>; userAgent?: stri
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `RESEND_API_KEY` | no | Resend API key. Email is silently skipped if missing. |
-| `ADMIN_EMAIL` | no | Recipient for admin transcripts. Skipped if missing. Renamed from `PARENT_EMAIL`. |
+| `ADMIN_EMAIL` | no | Recipient for admin transcripts. Skipped if missing. |
 | `EMAIL_FROM` | no | Sender address. Must match a verified Resend domain. |
 
 ## Setup
