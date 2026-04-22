@@ -19,7 +19,7 @@ Before you start, make sure you have:
 
 - A GitHub account, with this repo forked or pushed to a repository you control
 - A [Render account](https://render.com) (free to sign up)
-- An Anthropic API key — get one at [console.anthropic.com](https://console.anthropic.com)
+- An Anthropic API key — get one at [platform.claude.com](https://platform.claude.com)
 - A Supabase project with all migrations applied — see the [Supabase setup section](../README.md#setting-up-supabase) in the main README
 - A Resend account with a verified sending domain — see the [email transcripts section](../README.md#optional-email-transcripts) in the main README (optional, but required for email transcripts)
 
@@ -50,12 +50,12 @@ Scroll down to the **Environment Variables** section.  Add each variable below a
 
 | Variable | Required | Where to find the value | Mark as Secret? |
 |----------|----------|-------------------------|-----------------|
-| `ANTHROPIC_API_KEY` | **yes** | [console.anthropic.com](https://console.anthropic.com) → API Keys | **Yes** |
+| `ANTHROPIC_API_KEY` | **yes** | [platform.claude.com](https://platform.claude.com) → API Keys | **Yes** |
 | `SUPABASE_URL` | **yes** | Supabase dashboard → Settings → API → Project URL | No |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes** | Supabase dashboard → Settings → API → service_role key | **Yes** |
 | `SUPABASE_ANON_KEY` | **yes** | Supabase dashboard → Settings → API → anon/public key. Required for the Supabase auth flow that gates the app at `/login.html`. If unset, the auth router is not registered and users cannot log in. | **Yes** |
 | `RESEND_API_KEY` | no | Resend dashboard → API Keys | **Yes** |
-| `ADMIN_EMAIL` | no | Your email address (where admin transcript/evaluation emails are sent). Renamed from `PARENT_EMAIL` — deployments using the old name must rename it. | No |
+| `ADMIN_EMAIL` | no | Your email address (where admin transcript/evaluation emails are sent). | No |
 | `EMAIL_FROM` | no | Your verified sending address (e.g., `tutor@yourdomain.com`) | No |
 | `CONTACT_EMAIL` | no | Contact email shown on the login page and returned by GET /api/config. Defaults to `""` — required before going public. The contact line is hidden when absent. | No |
 | `MODEL` | no | Default: `claude-sonnet-4-6` | No |
@@ -72,7 +72,7 @@ You can skip `RESEND_API_KEY`, `ADMIN_EMAIL`, and `EMAIL_FROM` if you don't want
 
 `PORT` does not need to be set — Render sets it automatically.
 
-For descriptions of each variable, see the [environment variables reference](../README.md#environment-variables--full-reference) in the root README.
+For descriptions of each variable, see the [config/secrets reference](../CLAUDE.md#configsecrets-management) in CLAUDE.md.
 
 ### Step 4: Set the health check path
 
@@ -104,7 +104,7 @@ To confirm the server is healthy, visit `https://your-app-url.onrender.com/api/c
 
 ### Ongoing
 
-- **Auto-deploy:** By default, Render rebuilds and redeploys whenever you push to your **stage** branch.  You can disable this under **Settings → Auto-Deploy**.
+- **Auto-deploy:** By default, Render rebuilds and redeploys whenever you push to your **main** branch (or whichever branch you selected when creating the Web Service). You can change the deploy branch under **Settings → Build & Deploy → Branch**, or disable auto-deploy entirely under **Settings → Auto-Deploy**.
 - **Manual redeploy:** Click **Manual Deploy → Deploy latest commit** from your service's dashboard.
 - **Logs:** Click **Logs** in the left sidebar to see live server output.
 
@@ -128,31 +128,19 @@ cd ai-tutor-toolkit
 npm install
 ```
 
-### Step 2: Export environment variables
+### Step 2: Set up environment variables
 
-Do not create a `.env` file.  Export the variables in your shell session instead:
+Do not create a `.env` file. The repo ships a template you copy and fill in:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# Required for the API server (session history, email transcripts)
-export SUPABASE_URL=https://your-project-ref.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=eyJ...
-
-# Required — enables the /api/auth/* login flow
-export SUPABASE_ANON_KEY=eyJ...
-
-# Optional — emails are silently skipped if absent
-export RESEND_API_KEY=re_...
-export ADMIN_EMAIL=you@yourdomain.com
-export EMAIL_FROM=tutor@tutor.yourdomain.com
-
-# Optional — set to "true" to allow users to switch prompt versions in the UI.
-# Omitting this variable locks the prompt picker (fail-closed).
-export ALLOW_PROMPT_SELECTION=true
+cp env.sh.template env.sh
+# edit env.sh and fill in your values
+source env.sh
 ```
 
-To avoid re-entering these every time you open a terminal, add the export lines to your `~/.zshrc` (Mac) or `~/.bashrc` (Linux).
+`env.sh` is gitignored, so your secrets stay local. `source env.sh` exports the variables into the current shell session — run it once per terminal before `npm run api`.
+
+Required for the API server: `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`. Optional (emails are silently skipped without them): `RESEND_API_KEY`, `ADMIN_EMAIL`, `EMAIL_FROM`. See the [config/secrets reference](../CLAUDE.md#configsecrets-management) in CLAUDE.md for the full list.
 
 ### Step 3: Build and run
 
@@ -194,7 +182,7 @@ There are no automated unit or integration tests in this repo.
 
 ## Supabase dashboard checklist
 
-After running `supabase/migrations/005_auth_redesign.sql`, configure the project via the Supabase dashboard:
+After the auth redesign migration (`005_auth_redesign`) has run, configure the project via the Supabase dashboard:
 
 1. **Authentication → URL Configuration** — add your production and local origins to "Redirect URLs" (e.g. `https://tutor.schmim.com/login.html`, `http://localhost:3000/login.html`). Without this, the signup/recovery email links will bounce.
 2. **Authentication → Email Templates** — verify that the Confirm signup, Magic link, Reset password, and Change email templates point to `/login.html` (or `/settings.html` for the email-change confirmation). Supabase's defaults usually work.
@@ -246,7 +234,7 @@ Understanding how a tutoring session moves through the system:
 
 ### Email transcripts not arriving
 
-- **Missing keys:** Both `RESEND_API_KEY` and `ADMIN_EMAIL` must be set.  If either is absent, emails are silently skipped.  (The variable was previously named `PARENT_EMAIL`.)
+- **Missing keys:** Both `RESEND_API_KEY` and `ADMIN_EMAIL` must be set.  If either is absent, emails are silently skipped.
 - **Domain not verified:** The `EMAIL_FROM` address must match a domain verified in your Resend dashboard.  Check Resend → Domains for verification status.
 - **Session too short:** Emails are only sent when a session has at least one exchange (transcript length > 0).
 
