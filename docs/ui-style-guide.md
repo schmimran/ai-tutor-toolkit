@@ -1,6 +1,6 @@
 # Axiom AI Tutor — UI Style Guide
 
-This is the active style guide for the production frontend.  The Warm Red palette and layout described here are fully implemented in `apps/web/public/styles.css` and `apps/web/public/login.css`.  The "Files to update" section at the bottom is historical — those changes are already done.  Use this document as a reference when adding new UI components or pages.
+This is the active style guide for the production frontend.  The Warm Red palette and layout described here are fully implemented in `apps/web/public/styles.css` and `apps/web/public/login.css`.  Use this document as a reference when adding new UI components or pages.
 
 ---
 
