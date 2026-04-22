@@ -10,13 +10,29 @@ Most AI tools will give your student the answer if they ask for it.  This tutor 
 
 This idea — sometimes called Socratic tutoring — has a solid research base.  The short version: when students explain their reasoning out loud, they either confirm that they understood it, or they catch their own mistake.  A good tutor creates those moments.  An AI that just delivers answers skips them entirely.
 
+The tutor follows six core principles:
+
+1. **See the problem first, then figure out where your student is.**  Before anything else, the tutor asks your student to share the actual problem.  Then it asks how far they got, and where they're stuck.  It doesn't start helping until it understands the situation.
+
+2. **One question at a time.**  If your student has two errors in their work, the tutor addresses the more important one first, waits for them to work through it, and then moves on.  It doesn't pile on.
+
+3. **Ask why, not just what.**  Instead of checking arithmetic, the tutor asks your student to explain their reasoning.  "Why did you use that equation?" gets further than "what did you get?"  The goal is for your student to hear themselves explain it — that's often when the mistake surfaces.
+
+4. **Meet your student where they actually are.**  If your student got earlier parts of a problem right, the tutor doesn't re-quiz them on what they already know.  It works at the actual gap.  If your student is frustrated or overwhelmed, it backs off rather than pushing harder.
+
+5. **When they're stuck in a loop, try a fresh problem.**  Sometimes a student can't spot an error because they're too close to their own work — the same way you miss a typo on your third re-read.  The tutor gives them the same type of problem with different numbers.  They'll do it correctly, and the contrast usually makes the original mistake obvious.
+
+6. **Confirm each step, not just the final answer.**  The tutor checks in as your student walks through their work.  A quick "that step is right" after each correct move keeps them on track and tells them exactly where things went sideways when something's off.
+
 The last step of every problem is always your student's.  The tutor will guide them right up to the edge, but it won't type out the answer.
+
+These principles are a simplified summary for parents.  The tutor prompt implements them through a more detailed structure — see [`templates/tutor-prompt-v7.md`](templates/tutor-prompt-v7.md) for the full specification.
 
 ---
 
 ## Quick start — three options
 
-Before you start any option, you'll need an **Anthropic API key** for Options B and C.  Get one at [platform.claude.com](https://platform.claude.com).  Anthropic charges per use based on the number of tokens (roughly, words) processed.  The extended thinking mode this tutor uses costs more per session than a basic chat.  Check [Anthropic's pricing page](https://claude.com/pricing) so you know what to expect.  Option A (Claude Project) uses your existing Claude subscription instead.
+Before you start any option, you'll need an **Anthropic API key** for Options B and C.  Get one at [console.anthropic.com](https://console.anthropic.com).  Anthropic charges per use based on the number of tokens (roughly, words) processed.  The extended thinking mode this tutor uses costs more per session than a basic chat.  Check [Anthropic's pricing page](https://www.anthropic.com/pricing) so you know what to expect.  Option A (Claude Project) uses your existing Claude subscription instead.
 
 ---
 
@@ -56,10 +72,10 @@ Or download the zip from GitHub and unzip it.
 
 **Step 2: Set up Anthropic**
 
-1. Go to [platform.claude.com](https://platform.claude.com) and create an account.
+1. Go to [console.anthropic.com](https://console.anthropic.com) and create an account.
 2. Click **API Keys → Create Key**.
 3. Copy the key.  You won't see it again.
-4. Check [Anthropic's pricing page](https://claude.com/pricing) so you know what a session will cost.
+4. Check [Anthropic's pricing page](https://www.anthropic.com/pricing) so you know what a session will cost.
 
 **Step 3: Set up Supabase**
 
@@ -72,8 +88,6 @@ Follow the instructions in [Setting up Supabase](#setting-up-supabase) below, th
 In your Supabase project dashboard, go to **Settings → API**.  Copy the **anon/public** key (not the service_role key — you already have that from Step 3).  This key is used server-side for the login flow and is never exposed to the browser.
 
 **Step 5: Export environment variables**
-
-The fastest way is to copy the env template and edit it: `cp env.sh.template env.sh`, fill in the values, then `source env.sh`.  The block below shows what each variable is.
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -112,26 +126,6 @@ Type `export` to print the transcript.  Type `quit` to exit.
 
 ---
 
-## Tutoring approach
-
-The tutor follows six core principles:
-
-1. **See the problem first, then figure out where your student is.**  Before anything else, the tutor asks your student to share the actual problem.  Then it asks how far they got, and where they're stuck.  It doesn't start helping until it understands the situation.
-
-2. **One question at a time.**  If your student has two errors in their work, the tutor addresses the more important one first, waits for them to work through it, and then moves on.  It doesn't pile on.
-
-3. **Ask why, not just what.**  Instead of checking arithmetic, the tutor asks your student to explain their reasoning.  "Why did you use that equation?" gets further than "what did you get?"  The goal is for your student to hear themselves explain it — that's often when the mistake surfaces.
-
-4. **Meet your student where they actually are.**  If your student got earlier parts of a problem right, the tutor doesn't re-quiz them on what they already know.  It works at the actual gap.  If your student is frustrated or overwhelmed, it backs off rather than pushing harder.
-
-5. **When they're stuck in a loop, try a fresh problem.**  Sometimes a student can't spot an error because they're too close to their own work — the same way you miss a typo on your third re-read.  The tutor gives them the same type of problem with different numbers.  They'll do it correctly, and the contrast usually makes the original mistake obvious.
-
-6. **Confirm each step, not just the final answer.**  The tutor checks in as your student walks through their work.  A quick "that step is right" after each correct move keeps them on track and tells them exactly where things went sideways when something's off.
-
-These principles are a simplified summary for parents.  The tutor prompt implements them through a more detailed structure — see [`templates/tutor-prompt-v7.md`](templates/tutor-prompt-v7.md) for the full specification.
-
----
-
 ## Setting up Supabase
 
 Supabase is a free hosted database.  The web app requires it — the server will not start without it.
@@ -151,13 +145,20 @@ Supabase is a free hosted database.  The web app requires it — the server will
 
 **Step 3: Run the schema migrations**
 
-The migrations create the database tables the app needs.  Install the [Supabase CLI](https://supabase.com/docs/guides/cli), then run `supabase link --project-ref <your-ref>` once before running the push.  From the repo root:
+The migrations create the database tables the app needs.  Run them once using the Supabase CLI from the repo root:
 
 ```bash
 supabase db push
 ```
 
 Or, if you prefer the SQL editor: open each file in `supabase/migrations/` in the Supabase SQL Editor in order (by filename) and click **Run** for each.  See [docs/deployment.md](docs/deployment.md) for full step-by-step instructions.
+
+**Step 4: Export the variables**
+
+```bash
+export SUPABASE_URL=https://your-project-ref.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=eyJ...
+```
 
 Done?  [Continue to Step 5: Export environment variables](#option-b-web-app-self-hosted).
 
@@ -238,11 +239,11 @@ See [tests/README.md](tests/README.md) for instructions on how to run a simulate
 
 | Test file | What the student got wrong | Student's state |
 |-----------|---------------------------|-----------------|
-| [kinematics.md](tests/kinematics.md) | Wrong equation | Confused |
-| [projectile-motion.md](tests/projectile-motion.md) | Buried vector error | Puzzled |
-| [friction.md](tests/friction.md) | Forgot a force | Frustrated |
-| [similar-triangles.md](tests/similar-triangles.md) | Wrong side correspondence | Confused |
-| [pendulum.md](tests/pendulum.md) | Unit conversion miss | Overconfident |
+| `kinematics.md` | Wrong equation | Confused |
+| `projectile-motion.md` | Buried vector error | Puzzled |
+| `friction.md` | Forgot a force | Frustrated |
+| `similar-triangles.md` | Wrong side correspondence | Confused |
+| `pendulum.md` | Unit conversion miss | Overconfident |
 
 ---
 
@@ -259,6 +260,8 @@ These emerged from multiple iterations and test runs across distinct scenarios:
 
 ---
 
+---
+
 ## Project structure
 
 Everything runs as a single Node.js service (`apps/api`) that also serves the web frontend as a static file.
@@ -267,42 +270,43 @@ Everything runs as a single Node.js service (`apps/api`) that also serves the we
 ai-tutor-toolkit/
 ├── package.json                          ← Workspace root (npm workspaces)
 ├── tsconfig.base.json                    ← Shared TypeScript config
+├── render.yaml                           ← Render.com deployment config
 ├── CLAUDE.md                             ← Agent context (for AI contributors)
 ├── env.sh.template                       ← Template for local environment variable setup
 │
 ├── packages/                             ← Shared libraries
-│   ├── core/                             ← [@ai-tutor/core](packages/core/README.md) — tutor logic, Anthropic SDK wrapper
-│   ├── db/                               ← [@ai-tutor/db](packages/db/README.md) — Supabase client and CRUD
-│   └── email/                            ← [@ai-tutor/email](packages/email/README.md) — Resend email templates
+│   ├── core/                             ← @ai-tutor/core — tutor logic, Anthropic SDK wrapper
+│   ├── db/                               ← @ai-tutor/db — Supabase client and CRUD
+│   └── email/                            ← @ai-tutor/email — Resend email templates
 │
 ├── apps/                                 ← Applications
-│   ├── api/                              ← [@ai-tutor/api](apps/api/README.md) — Express server + API routes
-│   ├── web/                              ← [@ai-tutor/web](apps/web/README.md) — Static frontend (chat + auth/account surfaces)
-│   ├── cli/                              ← [@ai-tutor/cli](apps/cli/README.md) — Terminal REPL
-│   └── ios/                              ← [@ai-tutor/ios](apps/ios/README.md) — Native iOS client (placeholder)
+│   ├── api/                              ← @ai-tutor/api — Express server + API routes
+│   ├── web/                              ← @ai-tutor/web — Static single-file frontend
+│   └── cli/                              ← @ai-tutor/cli — Terminal REPL
 │
 ├── supabase/
 │   ├── config.toml                       ← Supabase CLI local development config
 │   └── migrations/                       ← Sequential SQL migrations (run via `supabase db push`)
 │
 ├── templates/
-│   ├── tutor-prompt-v7.md                  ← Production tutor prompt (current)
-│   ├── tutor-prompt-v6.md                  ← Previous version (retained as rollback)
-│   ├── system-instructions.md              ← Global protocol instructions appended to every prompt at runtime
-│   ├── evaluation-checklist.md             ← Scoring rubric for test evaluation
-│   └── physics-geometry-9th-grade-v6.md    ← Previous production prompt (retained)
+│   ├── tutor-prompt-v7.md               ← Production tutor prompt (current)
+│   ├── tutor-prompt-v6.md               ← Previous version (retained as rollback)
+│   ├── system-instructions.md           ← Global protocol instructions appended to every prompt at runtime
+│   └── evaluation-checklist.md          ← Scoring rubric for test evaluation
+│
+├── examples/
+│   └── physics-geometry-9th-grade-v6.md ← Previous production prompt (retained)
 │
 ├── tests/
-│   ├── [README.md](tests/README.md)        ← Test harness usage
-│   └── *.md                                ← Student character briefs
+│   ├── README.md                         ← Test harness usage
+│   └── *.md                              ← Student character briefs
 │
 └── docs/
-    ├── [methodology.md](docs/methodology.md)            ← Prompt development methodology
-    ├── [model-selection.md](docs/model-selection.md)    ← Model selection analysis
-    ├── [lessons-learned.md](docs/lessons-learned.md)    ← Key findings
-    ├── [deployment.md](docs/deployment.md)              ← Render and local deployment instructions
-    ├── [ui-style-guide.md](docs/ui-style-guide.md)      ← Frontend palette, typography, component specs
-    └── archive/                                         ← Archived v1 documentation
+    ├── methodology.md                    ← Prompt development methodology
+    ├── model-selection.md               ← Model selection analysis
+    ├── lessons-learned.md               ← Key findings
+    ├── deployment.md                    ← Render and local deployment instructions
+    └── archive/                         ← Archived v1 documentation
 ```
 
 ---
@@ -319,14 +323,6 @@ ai-tutor-toolkit/
 ## Contributing
 
 This started as a one-evening project for one student.  If you adapt it for your own kid, a different subject, or a different grade level, open a PR with your findings.  The methodology docs are where the real value is — the more examples of the iterate-and-test loop, the better.
-
-**Before opening a PR:**
-
-- Read [CLAUDE.md](CLAUDE.md) for architecture decisions, the database schema, and consistency rules.
-- Follow the [Local development](docs/deployment.md#local-development) instructions to get the app running on your machine.
-- Branch from `main` using a descriptive name (`feature/<short-description>` or `fix/<short-description>`).
-- Run `npm run build` and `npm run api` from the repo root before opening a PR — verify the app starts cleanly.
-- There are no automated unit tests.  Verification is via the character briefs in [`tests/`](tests/README.md); run a simulated session before claiming a behavior change works.
 
 ## License
 

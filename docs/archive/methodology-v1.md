@@ -1,5 +1,4 @@
 # Methodology: How to Build an AI Tutor from Scratch
-> **Archived (v1).** Superseded by [current doc](../methodology.md). Retained for reference only.
 
 This documents the process we followed to build a working AI tutor in one evening.  The methodology is transferable to any subject, grade level, or student.
 

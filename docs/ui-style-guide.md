@@ -1,4 +1,4 @@
-# AI Tutor Toolkit — UI Style Guide
+# Axiom AI Tutor — UI Style Guide
 
 This is the active style guide for the production frontend.  The Warm Red palette and layout described here are fully implemented in `apps/web/public/styles.css` and `apps/web/public/login.css`.  The "Files to update" section at the bottom is historical — those changes are already done.  Use this document as a reference when adding new UI components or pages.
 
@@ -21,7 +21,7 @@ These replace the old dark-purple/cyan palette. Define them as CSS custom proper
   --accent-light: #fee2e2;   /* active nav bg, light tints */
 
   /* ── Tutor / secondary accent (amber) ── */
-  --tutor-accent:       #f97316;   /* tutor bubble left-border, typing dots, AI TUTOR label */
+  --tutor-accent:       #f97316;   /* tutor bubble left-border, typing dots, AXIOM label */
   --tutor-accent-light: #fff7ed;   /* tutor bubble bg (optional warm tint) */
 
   /* ── Student bubble ── */
@@ -59,7 +59,7 @@ Load from Google Fonts — add to every page `<head>`:
 
 | Role | Family | Weight | Notes |
 |------|--------|--------|-------|
-| Brand wordmark | Nunito | 900 | "AI Tutor" in header and login panel |
+| Brand wordmark | Nunito | 900 | "Axiom" in header and login panel |
 | Headings / nav group labels | Nunito | 700–800 | Section titles, empty-state headline |
 | Body / UI | Plus Jakarta Sans | 400–600 | All other text |
 | Sub-brand tag ("AI TUTOR") | Plus Jakarta Sans | 600 | 9px, letter-spacing 2.5px, uppercase, 35% opacity |
@@ -122,7 +122,7 @@ Inline SVG lightbulb with a yellow lightning bolt inside. Used in three sizes:
 ## Header
 
 ```
-[☰]  [logo-box + AI Tutor / TOOLKIT]  |  [page title]  ···  [+ New session]  [AC ▾ Alex Chen]
+[☰]  [logo-box + Axiom / AI TUTOR]  |  [page title]  ···  [+ New session]  [AC ▾ Alex Chen]
 ```
 
 - Height: `64px`
@@ -176,7 +176,7 @@ border-radius: 18px 18px 4px 18px;
 font-weight: 500;
 ```
 
-**Tutor (left-aligned):**
+**Tutor / Axiom (left-aligned):**
 ```css
 background: var(--surface);          /* white */
 color: var(--text);
@@ -185,7 +185,7 @@ border-left: 3.5px solid var(--tutor-accent);   /* #f97316 orange */
 box-shadow: 0 2px 12px rgba(0,0,0,0.07);
 ```
 
-**"AI TUTOR" label** above tutor bubble: Nunito 800, 10px, uppercase, 1.2px letter-spacing, `var(--tutor-accent)`.
+**"AXIOM" label** above tutor bubble: Nunito 800, 10px, uppercase, 1.2px letter-spacing, `var(--tutor-accent)`.
 
 **Typing indicator:** same styling as tutor bubble; three 8px dots in `var(--tutor-accent)`, bouncing animation.
 
@@ -207,7 +207,7 @@ Full-page split layout — no floating card, no overlay.
 
 ### Left panel (44% width)
 - Background: `var(--header-bg)` (`#b91c1c`) — same red as app header
-- Centered vertically: large logo box (64px, `border-radius: 18px`) + "AI Tutor" wordmark (Nunito 900, 34px) + "TOOLKIT" sub-label
+- Centered vertically: large logo box (64px, `border-radius: 18px`) + "Axiom" wordmark (Nunito 900, 34px) + "AI TUTOR" sub-label
 - Tagline: 15.5px, `rgba(255,255,255,0.6)`
 - Feature bullets: emoji icon in a `rgba(232,57,42,0.4)` rounded badge, 13.5px, `rgba(255,255,255,0.6)`
 

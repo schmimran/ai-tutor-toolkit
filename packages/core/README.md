@@ -88,16 +88,16 @@ import { evaluateTranscript } from "@ai-tutor/core";
 const result = await evaluateTranscript(session.transcript, { model: "claude-sonnet-4-6" });
 ```
 
-Evaluates a session transcript against a multi-dimensional tutoring quality rubric (v7).  Used for automated session evaluation after a session ends.  The rubric is defined in [src/evaluation-prompt.md](src/evaluation-prompt.md).
+Evaluates a session transcript against a multi-dimensional tutoring quality rubric (v7).  Used for automated session evaluation after a session ends.
 
-Calls the model in `config.model`, defaulting to `claude-haiku-4-5-20251001` (`DEFAULT_EVALUATION_MODEL`).  Extended thinking is not used.  `max_tokens: 2000`.
+Calls `claude-sonnet-4-6` (or the model in `config.model`) without extended thinking.  `max_tokens: 2000`.
 
 **Parameters:**
 
 | Name | Type | Notes |
 |------|------|-------|
 | `transcript` | `Array<{ role: string; text: string }>` | Session transcript entries (e.g., `session.transcript`) |
-| `config` | `{ model?: string }` | Optional. Defaults to `claude-haiku-4-5-20251001` (`DEFAULT_EVALUATION_MODEL`) if omitted. |
+| `config` | `{ model?: string }` | Optional. Defaults to `claude-sonnet-4-6` if omitted. |
 
 **Returns:** `EvaluationResult`
 
