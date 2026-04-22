@@ -334,7 +334,7 @@ End a session.  Sends transcript email if transcript exists and email not yet se
 
 | Param | Value | Notes |
 |-------|-------|-------|
-| discard | `true` | Skip evaluation and email entirely; just remove from memory and set `ended_at`. Used when the user switches model/prompt mid-session and the transcript should be discarded. |
+| discard | `true` | Skip the transcript email entirely; just remove from memory and set `ended_at`. Used when the user switches model/prompt mid-session and the transcript should be discarded. |
 
 **Response**: `application/json`
 
@@ -407,7 +407,7 @@ Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email 
 
 Admin-gated endpoints for the batched evaluation subsystem. All require a valid Bearer token whose JWT `app_metadata.is_admin` claim is true — otherwise they return `403 { ok: false, error: "admin_only" }`. The admin check is enforced by `requireAdmin` middleware in [apps/api/src/middleware/require-admin.ts](apps/api/src/middleware/require-admin.ts).
 
-Results are written to `session_evaluations` and `sessions.evaluated` exactly as the inline flow does. For each succeeded result, `sendTranscript()` delivers the same admin transcript email as today (reused verbatim); a student-facing copy is sent fire-and-forget via `sendUserTranscript()` when the session belongs to a registered user with transcripts enabled. `email_sent` is checked before dispatch to avoid duplicates.
+Results are written to `session_evaluations` and `sessions.evaluated`. For each succeeded result, `sendTranscript()` delivers an admin transcript email; a student-facing copy is sent fire-and-forget via `sendUserTranscript()` when the session belongs to a registered user with transcripts enabled. `email_sent` is checked before dispatch to avoid duplicates.
 
 - `POST /api/admin/evaluations/batches` — body `{ limit?: number }` (default 50, capped at 100). Picks up sessions where `evaluated=false AND ended_at IS NOT NULL` that aren't already claimed by a batch in `submitted`/`ended` state. Builds a request per session via `buildEvaluationRequestParams()`, submits to Anthropic's Messages Batches API, and persists an `evaluation_batches` row with status `submitted`. Returns `{ ok: true, id, anthropicBatchId, sessionCount }` or `{ ok: true, sessionCount: 0 }` if nothing is pending.
 - `GET /api/admin/evaluations/batches` — returns the 50 most recent batch rows (newest first) as `{ ok: true, batches: [...] }`.
