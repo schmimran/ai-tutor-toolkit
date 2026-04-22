@@ -518,6 +518,7 @@ These apply to every Claude Code session in this repo.
 | `docs/model-selection.md` | Model selection analysis — v7 (archived v1 version at `docs/archive/model-selection-v1.md`) |
 | `docs/lessons-learned.md` | Key findings — v7 (archived v1 version at `docs/archive/lessons-learned-v1.md`) |
 | `docs/archive/` | Archived versions of superseded docs |
+| `docs/ui-style-guide.md` | Active UI style guide — Warm Red palette, typography, layout, and component specs implemented in `styles.css` and `login.css`. |
 | `docs/deployment.md` | Render, AWS, and local deployment instructions |
 | `packages/core/src/config.ts` | `loadConfig()` — reads and validates all env vars |
 | `packages/core/src/prompt-loader.ts` | `loadPromptFile()` — loads and strips a prompt file; `loadSystemPrompt()` — wraps `loadPromptFile()` and appends global system instructions |
