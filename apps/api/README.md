@@ -28,37 +28,13 @@ This is the only process that runs in production.  It:
 
 ## API endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/chat` | Stream a tutor response (SSE, multipart/form-data with optional file uploads). Requires auth. |
-| `GET` | `/api/config` | Non-secret runtime config (model, extended thinking, inactivity timeout, supabase URL + anon key) |
-| `GET` | `/api/sessions/:id` | Session metadata from DB. Requires auth + ownership. |
-| `DELETE` | `/api/sessions/:id` | End session; runs evaluation, sends transcript email, sets `ended_at`. Requires auth + ownership. |
-| `GET` | `/api/transcript/:id` | Conversation transcript. Requires auth + ownership. |
-| `POST` | `/api/feedback` | Submit end-of-session feedback. Requires auth + ownership. |
-| `GET` | `/api/history` | List the authenticated user's past ended sessions. |
-| `POST` | `/api/auth/register` | Create a new user account (email verification required) |
-| `POST` | `/api/auth/login` | Sign in with email and password |
-| `POST` | `/api/auth/forgot-password` | Send password-reset email |
-
-All other auth operations (session refresh, logout, change-password, change-email, resend-verification, /me, settings) are handled client-side via `@supabase/supabase-js` — see `apps/web/public/auth.js`.
-
-For full request/response schemas, see the [API endpoint reference](../../CLAUDE.md#api-endpoint-reference) in CLAUDE.md.
+For full endpoint reference (request/response schemas, auth requirements, error codes), see the [API endpoint reference](../../CLAUDE.md#api-endpoint-reference) in CLAUDE.md.
 
 ---
 
 ## Configuration
 
-Required environment variables:
-
-| Variable | Description |
-|----------|-------------|
-| `ANTHROPIC_API_KEY` | Anthropic API key |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
-| `SUPABASE_ANON_KEY` | Supabase anon/public key (required for auth flow) |
-
-For the full table with defaults and optional variables, see the [environment variables reference](../../README.md#environment-variables--full-reference) in the root README.
+For the full environment variable table with defaults and optional variables, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
 ## Setup
 
@@ -92,15 +68,19 @@ apps/api/src/
 │   ├── config.ts           ← GET /api/config
 │   ├── sessions.ts         ← GET/DELETE /api/sessions/:id
 │   ├── transcript.ts       ← GET /api/transcript/:id
+│   ├── transcript-email.ts ← POST /api/transcript/:id/email
 │   ├── feedback.ts         ← POST /api/feedback
-│   ├── history.ts          ← GET  /api/history
+│   ├── history.ts          ← GET /api/history
+│   ├── admin-evaluations.ts ← POST/GET /api/admin/evaluations/batches (admin-gated)
 │   └── auth.ts             ← POST /api/auth/register, /login, /forgot-password (rate-limited proxies only)
 ├── middleware/
 │   ├── cors.ts             ← CORS (origin from CORS_ORIGIN env var)
 │   ├── errors.ts           ← Global error handler
-│   └── require-auth.ts     ← Bearer token verification middleware
+│   ├── require-auth.ts     ← Bearer token verification middleware
+│   └── require-admin.ts    ← Admin-only gating (chains after require-auth)
 └── lib/
-    ├── evaluation.ts       ← runSessionEvaluation(), buildEvaluationPayload()
+    ├── evaluation.ts       ← runSessionEvaluation(), buildEvaluationPayload(), buildTranscriptEmailPayload()
+    ├── batch-evaluation.ts ← findPendingEvaluations(), createEvaluationBatchForPending(), processBatchResults()
     ├── session-store.ts    ← In-memory Map<sessionId, Session>
     ├── stream.ts           ← SSE helpers (initSSE, sendEvent, sendHeartbeat)
     ├── geo.ts              ← extractClientInfo() — IP, geolocation, user-agent

@@ -30,7 +30,10 @@ Reads environment variables and returns a typed config object.
   model: string;             // MODEL env var, default "claude-sonnet-4-6"
   extendedThinking: boolean; // EXTENDED_THINKING env var, default true
   systemPromptPath: string;  // SYSTEM_PROMPT_PATH env var, default "templates/tutor-prompt-v7.md"
+  defaultPromptName: string; // basename of systemPromptPath without extension (e.g. "tutor-prompt-v7")
   port: number;              // PORT env var, default 3000
+  autoEvaluate: boolean;     // AUTO_EVALUATE env var, default true
+  evaluationModel: string;   // EVALUATION_MODEL env var, default "claude-haiku-4-5-20251001"
 }
 ```
 
@@ -163,6 +166,33 @@ Holds all state for one tutoring conversation.
 
 ---
 
+### Batch evaluation helpers
+
+These are used by the admin-gated batched evaluation subsystem in `apps/api`.
+
+```typescript
+import {
+  buildEvaluationRequestParams,
+  parseEvaluationResponse,
+} from "@ai-tutor/core";
+
+import {
+  submitEvaluationBatch,
+  retrieveBatch,
+  iterateBatchEvaluationResults,
+} from "@ai-tutor/core";
+```
+
+| Export | Module | Description |
+|--------|--------|-------------|
+| `buildEvaluationRequestParams(transcript, model)` | `evaluate-transcript` | Builds the `MessageCreateParamsNonStreaming` payload for a single evaluation request (shared between inline and batched paths). |
+| `parseEvaluationResponse(message, model)` | `evaluate-transcript` | Parses an Anthropic `Message` into an `EvaluationResult`. |
+| `submitEvaluationBatch(requests)` | `batch-evaluate` | Submits a batch to the Anthropic Messages Batches API. Returns an `EvaluationBatchSummary`. |
+| `retrieveBatch(anthropicBatchId)` | `batch-evaluate` | Polls the current status of a submitted batch. Returns an `EvaluationBatchSummary`. |
+| `iterateBatchEvaluationResults(anthropicBatchId, evaluationModel)` | `batch-evaluate` | Async generator that yields `EvaluationBatchResultEntry` — each entry has `{ customId, status, evaluation, reason? }`. |
+
+---
+
 ## Exported types
 
 ```typescript
@@ -193,7 +223,7 @@ import type {
 
 ## Configuration
 
-This package reads `ANTHROPIC_API_KEY` (required), `MODEL`, `EXTENDED_THINKING`, `SYSTEM_PROMPT_PATH`, and `PORT` from environment variables.  For the full table with defaults and descriptions, see the [environment variables reference](../../README.md#environment-variables--full-reference) in the root README.
+This package reads `ANTHROPIC_API_KEY` (required), `MODEL`, `EXTENDED_THINKING`, `SYSTEM_PROMPT_PATH`, `PORT`, `AUTO_EVALUATE`, and `EVALUATION_MODEL` from environment variables.  For the full table with defaults and descriptions, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
 ## Setup
 

@@ -11,11 +11,21 @@ The frontend lives in `apps/web/public/` and is served as static files by `apps/
 ```
 apps/web/
 ├── public/
-│   ├── index.html   ← HTML structure and CDN references
-│   ├── styles.css   ← Core layout and component CSS
-│   ├── app.js       ← Chat application logic
-│   ├── gallery.css  ← Gallery pane styles (loaded after styles.css)
-│   └── gallery.js   ← Gallery pane logic (loaded after app.js)
+│   ├── index.html    ← Main chat page (HTML structure and CDN references)
+│   ├── styles.css    ← Core layout and component CSS
+│   ├── app.js        ← Chat application logic
+│   ├── gallery.css   ← Gallery pane styles (loaded after styles.css)
+│   ├── gallery.js    ← Gallery pane logic (loaded after app.js)
+│   ├── auth.js       ← Centralized auth module (window.auth, authedFetch, supabase-js init)
+│   ├── login.html    ← Login / register / forgot-password page
+│   ├── login.css     ← Login page styles
+│   ├── login.js      ← Login page logic (tabs, server-side proxies, hash callbacks)
+│   ├── settings.html ← Account settings page (password, email, preferences)
+│   ├── settings.js   ← Settings page logic (supabase-js direct updates)
+│   ├── history.html  ← Session history page
+│   ├── history.js    ← Session history logic
+│   ├── admin.html    ← Admin panel (evaluation batch management)
+│   └── manifest.json ← PWA web app manifest
 ├── package.json
 └── README.md
 ```

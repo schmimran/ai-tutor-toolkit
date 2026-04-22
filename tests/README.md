@@ -35,7 +35,9 @@ If you want to run many scenarios programmatically, use the Anthropic SDK to sen
 
 ## Evaluation
 
-Use the checklist in `templates/evaluation-checklist.md` as a base, and add scenario-specific items from each test file.
+`templates/evaluation-checklist.md` is the v6-era **manual** scoring rubric — use it as a base for interactive test sessions.
+
+Automated session scoring (used after real sessions end) runs against the rubric in `packages/core/src/evaluation-prompt.md` and covers twelve tutoring dimensions.  Those results are stored in the `session_evaluations` table and included in transcript emails.  The manual checklist and automated rubric are complementary — the automated one covers the same dimensions but operates on complete transcripts without human input.
 
 ## Interpreting results
 
