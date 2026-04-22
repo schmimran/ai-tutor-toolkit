@@ -9,8 +9,7 @@
     "cli": "npm start -w apps/cli",
     "api": "npm start -w apps/api",
     "build": "npm run build --workspaces --if-present",
-    "dev": "npm run dev -w apps/api",
-    "backfill:evaluations": "npx tsx scripts/backfill-evaluations.ts"
+    "dev": "npm run dev -w apps/api"
   },
   "engines": {
     "node": ">=20"

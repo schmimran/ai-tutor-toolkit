@@ -311,7 +311,7 @@ ai-tutor-toolkit/
 │   └── *.md                              ← Student character briefs
 │
 ├── scripts/
-│   └── README.md                         ← Operational scripts (e.g. `npm run backfill:evaluations`)
+│   └── README.md                         ← Operational scripts (currently none)
 │
 └── docs/
     ├── methodology.md                    ← Prompt development methodology

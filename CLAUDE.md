@@ -20,7 +20,6 @@ npm run build              # Compile all TypeScript packages and apps (run from 
 npm run api                # Start the Express API server (default port 3000)
 npm run dev                # Start API with file-watch (development)
 npm run cli                # Launch the terminal REPL
-npm run backfill:evaluations  # Backfill session_evaluations for sessions missing a row
 ```
 
 > Copy `env.sh.template` to `env.sh`, fill in your values, then `source env.sh` before running any command.  `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are required for the API server.  Without `SUPABASE_ANON_KEY` the auth router will not register and the app will be inaccessible.
@@ -334,7 +333,7 @@ End a session.  Sends transcript email if transcript exists and email not yet se
 
 | Param | Value | Notes |
 |-------|-------|-------|
-| discard | `true` | Skip evaluation and email entirely; just remove from memory and set `ended_at`. Used when the user switches model/prompt mid-session and the transcript should be discarded. |
+| discard | `true` | Skip the transcript email entirely; just remove from memory and set `ended_at`. Used when the user switches model/prompt mid-session and the transcript should be discarded. |
 
 **Response**: `application/json`
 
@@ -407,7 +406,7 @@ Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email 
 
 Admin-gated endpoints for the batched evaluation subsystem. All require a valid Bearer token whose JWT `app_metadata.is_admin` claim is true — otherwise they return `403 { ok: false, error: "admin_only" }`. The admin check is enforced by `requireAdmin` middleware in [apps/api/src/middleware/require-admin.ts](apps/api/src/middleware/require-admin.ts).
 
-Results are written to `session_evaluations` and `sessions.evaluated` exactly as the inline flow does. For each succeeded result, `sendTranscript()` delivers the same admin transcript email as today (reused verbatim); a student-facing copy is sent fire-and-forget via `sendUserTranscript()` when the session belongs to a registered user with transcripts enabled. `email_sent` is checked before dispatch to avoid duplicates.
+Results are written to `session_evaluations` and `sessions.evaluated`. For each succeeded result, `sendTranscript()` delivers an admin transcript email; a student-facing copy is sent fire-and-forget via `sendUserTranscript()` when the session belongs to a registered user with transcripts enabled. `email_sent` is checked before dispatch to avoid duplicates.
 
 - `POST /api/admin/evaluations/batches` — body `{ limit?: number }` (default 50, capped at 100). Picks up sessions where `evaluated=false AND ended_at IS NOT NULL` that aren't already claimed by a batch in `submitted`/`ended` state. Builds a request per session via `buildEvaluationRequestParams()`, submits to Anthropic's Messages Batches API, and persists an `evaluation_batches` row with status `submitted`. Returns `{ ok: true, id, anthropicBatchId, sessionCount }` or `{ ok: true, sessionCount: 0 }` if nothing is pending.
 - `GET /api/admin/evaluations/batches` — returns the 50 most recent batch rows (newest first) as `{ ok: true, batches: [...] }`.
@@ -500,7 +499,7 @@ These apply to every Claude Code session in this repo.
 
 | Path | Purpose |
 |------|---------|
-| `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev`, `npm run backfill:evaluations` |
+| `package.json` | Workspace root; defines `npm run build`, `npm run api`, `npm run cli`, `npm run dev` |
 | `tsconfig.base.json` | Shared TypeScript compiler options (strict, ES2022, composite) |
 | `supabase/migrations/20260401015814_consolidated_schema.sql` | Initial database schema (sessions, messages, session_feedback, session_evaluations, and — pre-005 only — disclaimer_acceptances) |
 | `supabase/migrations/20260410140739_001_extended_thinking.sql` | Adds `extended_thinking boolean NOT NULL DEFAULT true` to sessions |
@@ -579,5 +578,4 @@ These apply to every Claude Code session in this repo.
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
 | `supabase/config.toml` | Supabase CLI local development config |
 | `env.sh.template` | Template for local environment variable setup |
-| `scripts/backfill-evaluations.ts` | Backfills session evaluations for sessions without evaluation rows. Run via: `npm run backfill:evaluations` |
-| `scripts/README.md` | Overview of operational scripts in `scripts/` (backfill jobs, etc.) |
+| `scripts/README.md` | Overview of operational scripts in `scripts/` (currently empty) |
