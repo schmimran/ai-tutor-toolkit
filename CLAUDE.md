@@ -582,3 +582,4 @@ These apply to every Claude Code session in this repo.
 | `supabase/config.toml` | Supabase CLI local development config |
 | `env.sh.template` | Template for local environment variable setup |
 | `scripts/backfill-evaluations.ts` | Backfills session evaluations for sessions without evaluation rows. Run via: `npm run backfill:evaluations` |
+| `scripts/README.md` | Overview of operational scripts in `scripts/` (backfill jobs, etc.) |
