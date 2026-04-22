@@ -164,14 +164,15 @@ Your project ref is the subdomain in your `SUPABASE_URL` (e.g., `abcd1234` in `h
 
 Or, if you prefer the SQL editor: open each file in `supabase/migrations/` in the Supabase SQL Editor in order (by filename) and click **Run** for each.  See [docs/deployment.md](docs/deployment.md) for full step-by-step instructions.
 
-**Step 4: Export the variables**
+**Step 4: Note your Supabase values**
 
-```bash
-export SUPABASE_URL=https://your-project-ref.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=eyJ...
-```
+Add these to `env.sh` (or note them down and fill them into `env.sh` in the next step):
 
-Done?  [Continue to Step 5: Export environment variables](#option-b-web-app-self-hosted).
+- `SUPABASE_URL` — your project URL (e.g. `https://your-project-ref.supabase.co`)
+- `SUPABASE_SERVICE_ROLE_KEY` — the service_role key
+- `SUPABASE_ANON_KEY` — the anon/public key
+
+Done?  [Continue to Step 5: Set up environment variables](#option-b-web-app-self-hosted).
 
 ---
 
