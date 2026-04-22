@@ -122,14 +122,10 @@ type ClientInfo = { ip?: string; geo?: Record<string, unknown>; userAgent?: stri
 
 ## Configuration
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `RESEND_API_KEY` | no | Resend API key. Email is silently skipped if missing. |
-| `ADMIN_EMAIL` | no | Recipient for admin transcripts. Skipped if missing. Renamed from `PARENT_EMAIL`. |
-| `EMAIL_FROM` | no | Sender address. Must match a verified Resend domain. |
+This package reads `RESEND_API_KEY`, `ADMIN_EMAIL`, and `EMAIL_FROM` from environment variables. Emails are silently skipped when `RESEND_API_KEY` or `ADMIN_EMAIL` is absent. For defaults and full descriptions, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
 ## Setup
 
-See the Resend setup section in the root README for domain verification and API key generation.
+See [Optional: email transcripts](../../README.md#optional-email-transcripts) in the root README for domain verification and API key generation.
 
 This package is not run directly — it is imported by `apps/api`.
