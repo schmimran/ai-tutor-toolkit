@@ -245,10 +245,7 @@ See the [Database schema reference](../../CLAUDE.md#database-schema-reference) i
 
 ## Configuration
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `SUPABASE_URL` | **yes** | Supabase project URL (**Settings → API → Project URL**) |
-| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | Service role key (**Settings → API → service_role**) |
+This package reads `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` from environment variables. The first two are required; the anon key is used by callers that need to authenticate client-scoped operations. For defaults and full descriptions, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
 ## Setup
 

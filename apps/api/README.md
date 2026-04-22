@@ -34,7 +34,12 @@ For full endpoint reference (request/response schemas, auth requirements, error 
 
 ## Configuration
 
-For the full environment variable table with defaults and optional variables, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
+The API binary reads the following environment variables:
+
+- **Required:** `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`.
+- **Optional:** `RESEND_API_KEY`, `ADMIN_EMAIL`, `EMAIL_FROM`, `CORS_ORIGIN`, `CONTACT_EMAIL`, `ALLOW_PROMPT_SELECTION`, `MODEL`, `EXTENDED_THINKING`, `AUTO_EVALUATE`, `EVALUATION_MODEL`, `SYSTEM_PROMPT_PATH`, `PORT`.
+
+For defaults and full descriptions, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
 
 ## Setup
 

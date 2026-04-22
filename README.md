@@ -32,7 +32,7 @@ These principles are a simplified summary for parents.  The tutor prompt impleme
 
 ## Quick start — three options
 
-Before you start any option, you'll need an **Anthropic API key** for Options B and C.  Get one at [console.anthropic.com](https://console.anthropic.com).  Anthropic charges per use based on the number of tokens (roughly, words) processed.  The extended thinking mode this tutor uses costs more per session than a basic chat.  Check [Anthropic's pricing page](https://www.anthropic.com/pricing) so you know what to expect.  Option A (Claude Project) uses your existing Claude subscription instead.
+Before you start any option, you'll need an **Anthropic API key** for Options B and C.  Get one at [platform.claude.com](https://platform.claude.com).  Anthropic charges per use based on the number of tokens (roughly, words) processed.  The extended thinking mode this tutor uses costs more per session than a basic chat.  Check [Anthropic's pricing page](https://claude.com/pricing) so you know what to expect.  Option A (Claude Project) uses your existing Claude subscription instead.
 
 ---
 
@@ -72,10 +72,10 @@ Or download the zip from GitHub and unzip it.
 
 **Step 2: Set up Anthropic**
 
-1. Go to [console.anthropic.com](https://console.anthropic.com) and create an account.
+1. Go to [platform.claude.com](https://platform.claude.com) and create an account.
 2. Click **API Keys → Create Key**.
 3. Copy the key.  You won't see it again.
-4. Check [Anthropic's pricing page](https://www.anthropic.com/pricing) so you know what a session will cost.
+4. Check [Anthropic's pricing page](https://claude.com/pricing) so you know what a session will cost.
 
 **Step 3: Set up Supabase**
 
@@ -87,14 +87,18 @@ Follow the instructions in [Setting up Supabase](#setting-up-supabase) below, th
 
 In your Supabase project dashboard, go to **Settings → API**.  Copy the **anon/public** key (not the service_role key — you already have that from Step 3).  This key is used server-side for the login flow and is never exposed to the browser.
 
-**Step 5: Export environment variables**
+**Step 5: Set up environment variables**
+
+The repo ships an `env.sh.template`. Copy it, fill in your values, and source it:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-export SUPABASE_URL=https://your-project-ref.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=eyJ...
-export SUPABASE_ANON_KEY=eyJ...
+cp env.sh.template env.sh
+# edit env.sh and fill in ANTHROPIC_API_KEY, SUPABASE_URL,
+# SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_ANON_KEY
+source env.sh
 ```
+
+`env.sh` is gitignored, so your secrets stay local. Run `source env.sh` once per terminal session before starting the server.
 
 **Step 6: Build and start**
 
@@ -103,7 +107,11 @@ npm run build
 npm run api
 ```
 
-**Step 7: Open and verify**
+**Step 7: Finish Supabase configuration in the dashboard**
+
+Before anyone can register, Supabase needs its redirect URLs configured — otherwise signup confirmation emails bounce. Work through the [Supabase dashboard checklist](docs/deployment.md#supabase-dashboard-checklist) in `docs/deployment.md` (redirect URLs, email templates, leaked-password protection, seeding admins).
+
+**Step 8: Open and verify**
 
 Open `http://localhost:3000` in your browser.  You'll see the login page — register an account or sign in.  Your student gets a chat interface.  Your API key stays on your computer — it's never sent to the browser.
 
@@ -145,22 +153,26 @@ Supabase is a free hosted database.  The web app requires it — the server will
 
 **Step 3: Run the schema migrations**
 
-The migrations create the database tables the app needs.  Run them once using the Supabase CLI from the repo root:
+The migrations create the database tables the app needs. Install the [Supabase CLI](https://supabase.com/docs/guides/cli), then link this repo to your project and push the migrations:
 
 ```bash
+supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
+Your project ref is the subdomain in your `SUPABASE_URL` (e.g., `abcd1234` in `https://abcd1234.supabase.co`).
+
 Or, if you prefer the SQL editor: open each file in `supabase/migrations/` in the Supabase SQL Editor in order (by filename) and click **Run** for each.  See [docs/deployment.md](docs/deployment.md) for full step-by-step instructions.
 
-**Step 4: Export the variables**
+**Step 4: Note your Supabase values**
 
-```bash
-export SUPABASE_URL=https://your-project-ref.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=eyJ...
-```
+Add these to `env.sh` (or note them down and fill them into `env.sh` in the next step):
 
-Done?  [Continue to Step 5: Export environment variables](#option-b-web-app-self-hosted).
+- `SUPABASE_URL` — your project URL (e.g. `https://your-project-ref.supabase.co`)
+- `SUPABASE_SERVICE_ROLE_KEY` — the service_role key
+- `SUPABASE_ANON_KEY` — the anon/public key
+
+Done?  [Continue to Step 5: Set up environment variables](#option-b-web-app-self-hosted).
 
 ---
 
@@ -187,13 +199,13 @@ You need a domain you own to send from.  Resend can't send from Gmail, Yahoo, or
 2. Give it a name (e.g., `ai-tutor`).
 3. Copy the key.  You won't see it again.
 
-**Step 4: Export the variables**
+**Step 4: Add the variables to `env.sh`**
 
-```bash
-export RESEND_API_KEY=re_...
-export ADMIN_EMAIL=you@yourdomain.com        # where admin transcripts go
-export EMAIL_FROM=tutor@tutor.yourdomain.com # must match your verified domain
-```
+Add these to `env.sh` and re-source it (`source env.sh`):
+
+- `RESEND_API_KEY` — the API key you just generated
+- `ADMIN_EMAIL` — where admin transcripts should go (e.g. `you@yourdomain.com`)
+- `EMAIL_FROM` — must match your verified domain (e.g. `tutor@tutor.yourdomain.com`)
 
 Done?  [Continue to Deploying on Render](#deploying-on-render) or [Behind the scenes](#behind-the-scenes).
 
@@ -270,7 +282,6 @@ Everything runs as a single Node.js service (`apps/api`) that also serves the we
 ai-tutor-toolkit/
 ├── package.json                          ← Workspace root (npm workspaces)
 ├── tsconfig.base.json                    ← Shared TypeScript config
-├── render.yaml                           ← Render.com deployment config
 ├── CLAUDE.md                             ← Agent context (for AI contributors)
 ├── env.sh.template                       ← Template for local environment variable setup
 │
@@ -292,20 +303,22 @@ ai-tutor-toolkit/
 │   ├── tutor-prompt-v7.md               ← Production tutor prompt (current)
 │   ├── tutor-prompt-v6.md               ← Previous version (retained as rollback)
 │   ├── system-instructions.md           ← Global protocol instructions appended to every prompt at runtime
-│   └── evaluation-checklist.md          ← Scoring rubric for test evaluation
-│
-├── examples/
+│   ├── evaluation-checklist.md          ← Scoring rubric for test evaluation
 │   └── physics-geometry-9th-grade-v6.md ← Previous production prompt (retained)
 │
 ├── tests/
 │   ├── README.md                         ← Test harness usage
 │   └── *.md                              ← Student character briefs
 │
+├── scripts/
+│   └── README.md                         ← Operational scripts (e.g. `npm run backfill:evaluations`)
+│
 └── docs/
     ├── methodology.md                    ← Prompt development methodology
     ├── model-selection.md               ← Model selection analysis
     ├── lessons-learned.md               ← Key findings
-    ├── deployment.md                    ← Render and local deployment instructions
+    ├── ui-style-guide.md                ← Active UI style guide (Warm Red palette)
+    ├── deployment.md                    ← Render.com and local deployment instructions
     └── archive/                         ← Archived v1 documentation
 ```
 
@@ -323,6 +336,15 @@ ai-tutor-toolkit/
 ## Contributing
 
 This started as a one-evening project for one student.  If you adapt it for your own kid, a different subject, or a different grade level, open a PR with your findings.  The methodology docs are where the real value is — the more examples of the iterate-and-test loop, the better.
+
+Before you make changes:
+
+1. Read [CLAUDE.md](CLAUDE.md) for the architecture, config, and package boundary rules.
+2. Set up your environment: `cp env.sh.template env.sh`, fill in values, `source env.sh`.
+3. Build and run locally: `npm install && npm run build && npm run api`.
+4. See [tests/README.md](tests/README.md) for how to run simulated student sessions.
+5. See [docs/deployment.md](docs/deployment.md) for the Render.com and Supabase dashboard steps.
+6. Read the methodology docs ([docs/methodology.md](docs/methodology.md), [docs/model-selection.md](docs/model-selection.md), [docs/lessons-learned.md](docs/lessons-learned.md)) before changing prompts or evaluation logic.
 
 ## License
 

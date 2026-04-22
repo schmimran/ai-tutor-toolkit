@@ -10,7 +10,7 @@ This package abstracts everything that touches the Anthropic API: loading config
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `@anthropic-ai/sdk` | ^0.39.0 | Anthropic API client |
+| `@anthropic-ai/sdk` | ^0.90.0 | Anthropic API client |
 
 ## API reference
 
@@ -65,7 +65,7 @@ Blocking version.  Sends a message and waits for the full response.  Adds both t
 
 Used by the CLI (where streaming is unnecessary).
 
-#### `streamMessage(session, userContent, transcriptText): AsyncGenerator<string, TokenUsage>`
+#### `streamMessage(session, userContent, transcriptText, opts?): AsyncGenerator<string, TokenUsage>`
 
 Streaming version.  Yields text deltas one by one.  Thinking tokens are buffered internally and not yielded.  Adds the full user message and assistant response to the session after streaming completes.  Returns per-call `TokenUsage` as the generator return value.
 
@@ -78,53 +78,29 @@ Used by the API server for SSE responses.
 | `session` | `Session` | Current session (message history appended in place) |
 | `userContent` | `string \| ContentBlockParam[]` | Student's message; can include image/PDF content blocks |
 | `transcriptText` | `string` | Plain-text version for transcript |
+| `opts` | `StreamOptions` | Optional. `{ modelOverride?, systemPromptOverride?, extendedThinkingOverride? }` — per-call overrides. Haiku models always block extended thinking regardless. |
 
 ---
 
-### `evaluateTranscript(transcript, config?)`
+### `evaluateTranscript(transcript, evaluationModel?)`
 
 ```typescript
 import { evaluateTranscript } from "@ai-tutor/core";
-const result = await evaluateTranscript(session.transcript, { model: "claude-sonnet-4-6" });
+const result = await evaluateTranscript(session.transcript);
 ```
 
 Evaluates a session transcript against a multi-dimensional tutoring quality rubric (v7).  Used for automated session evaluation after a session ends.
 
-Calls `claude-sonnet-4-6` (or the model in `config.model`) without extended thinking.  `max_tokens: 2000`.
+Defaults to `claude-haiku-4-5-20251001` (exported as `DEFAULT_EVALUATION_MODEL`) without extended thinking.
 
 **Parameters:**
 
 | Name | Type | Notes |
 |------|------|-------|
 | `transcript` | `Array<{ role: string; text: string }>` | Session transcript entries (e.g., `session.transcript`) |
-| `config` | `{ model?: string }` | Optional. Defaults to `claude-sonnet-4-6` if omitted. |
+| `evaluationModel` | `string` | Optional. Claude model ID. Defaults to `DEFAULT_EVALUATION_MODEL`. |
 
-**Returns:** `EvaluationResult`
-
-```typescript
-{
-  model: string;                         // Model used for evaluation
-  session_mode: string;                  // Detected mode: "problem-solving", "conceptual", "direct", "review"
-  mode_handling: string;                 // Did the tutor correctly identify and follow the session mode?
-  problem_confirmation: string;          // Did the tutor restate the problem before proceeding?
-  never_gave_answer: string;             // NON-NEGOTIABLE — did the tutor withhold the final answer?
-  probe_reasoning: string;               // NON-NEGOTIABLE — did the tutor ask why, not just what?
-  understood_where_student_was: string;  // NON-NEGOTIABLE — did the tutor establish how far the student had gotten?
-  one_question: string;                  // One question at a time?
-  worked_at_edge: string;                // Worked at the student's actual gap?
-  followed_student_lead: string;         // Followed when the student redirected?
-  adaptive_tone: string;                 // Read student state and adjusted?
-  parallel_problems: string;             // Used parallel problems when appropriate?
-  step_feedback: string;                 // Confirmed or redirected at each step?
-  resolution: string;                    // 'resolved' | 'partial' | 'unresolved' | 'abandoned'
-  has_failures: boolean;                 // See below
-  rationale: Record<string, string>;     // Per-dimension rationale keyed by column name
-}
-```
-
-All scored dimensions use `'pass' | 'partial' | 'fail' | 'na'` except `resolution` which uses `'resolved' | 'partial' | 'unresolved' | 'abandoned'`.
-
-`has_failures` is `true` if any of the three non-negotiable dimensions (`never_gave_answer`, `probe_reasoning`, `understood_where_student_was`) scores `'fail'`, or if 3 or more of the remaining dimensions score `'fail'`.
+**Returns:** `Promise<EvaluationResult>`. See the [`session_evaluations` schema in CLAUDE.md](../../CLAUDE.md#session_evaluations) for the full dimension list and the `has_failures` computation rule.
 
 ---
 
@@ -135,34 +111,7 @@ import { Session } from "@ai-tutor/core";
 const session = new Session();
 ```
 
-Holds all state for one tutoring conversation.
-
-**Properties:**
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `messages` | `MessageParam[]` | Full Anthropic message history (includes thinking blocks) |
-| `transcript` | `TranscriptEntry[]` | Plain-text `{ role, text }` pairs |
-| `files` | `FileEntry[]` | Uploaded file buffers |
-| `startedAt` | `Date` | Session creation time |
-| `lastActivityAt` | `Date` | Last message time |
-| `clientInfo` | `ClientInfo` | IP, geolocation, user agent |
-| `emailSent` | `boolean` | Whether transcript email has been sent |
-| `tokenUsage` | `TokenUsage` | Cumulative `{ inputTokens, outputTokens }` for this session |
-
-**Methods:**
-
-| Method | Description |
-|--------|-------------|
-| `addUserMessage(content, transcriptText)` | Appends user message to history |
-| `addAssistantResponse(contentBlocks)` | Extracts text, appends to history with thinking blocks; returns response text |
-| `addFile(filename, mimetype, buffer)` | Stores an uploaded file |
-| `addTokenUsage(input, output)` | Accumulates token counts from an API call |
-| `touchActivity()` | Updates `lastActivityAt` |
-| `setClientInfo(info)` | Stores IP/geo/user-agent |
-| `markEmailSent()` | Sets `emailSent = true` |
-| `getSessionSummary()` | Returns `{ transcript, filesMetadata, clientInfo, startedAt, lastActivityAt, durationMs, tokenUsage }` |
-| `reset()` | Clears message history, transcript, files, and token usage; keeps `clientInfo` |
+Holds all state for one tutoring conversation. See [`packages/core/src/session.ts`](src/session.ts) for the full property/method list; the [CLAUDE.md file-level reference](../../CLAUDE.md#file-level-reference-table) summarizes its role in the runtime.
 
 ---
 

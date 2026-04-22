@@ -92,8 +92,10 @@ ln -sf ../../packages/email node_modules/@ai-tutor/email
 ln -sf ../../apps/api       node_modules/@ai-tutor/api
 ln -sf ../../apps/cli       node_modules/@ai-tutor/cli
 ln -sf ../../apps/web       node_modules/@ai-tutor/web
-# Also link the email package's local node_modules (contains resend):
-ln -sf /Users/imran/GitRepos/ai-tutor-toolkit/packages/email/node_modules packages/email/node_modules
+# Also link the email package's local node_modules (contains resend).
+# The worktree sits at .claude/worktrees/<name>/, five levels below the
+# main repo root from within packages/email/:
+ln -sf ../../../../../packages/email/node_modules packages/email/node_modules
 ```
 
 Without these symlinks, `tsc --build` silently compiles against stale types and produces confusing "property does not exist" errors that don't match the actual source.
@@ -280,11 +282,13 @@ Get non-secret runtime config.
 {
   "model": "claude-sonnet-4-6",
   "extendedThinking": true,
+  "autoEvaluate": true,
   "inactivityMs": 600000,
   "contactEmail": "",
   "availableModels": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-6"],
   "availablePrompts": ["tutor-prompt-v7", "tutor-prompt-v6"],
   "defaultPrompt": "tutor-prompt-v7",
+  "promptSelectionEnabled": false,
   "buildVersion": "abc1234",
   "buildDate": "2026-04-05T12:00:00.000Z",
   "supabaseUrl": "https://xxx.supabase.co",
@@ -316,6 +320,8 @@ Get session metadata.
   "email_sent": false
 }
 ```
+
+Note: all columns from the `sessions` table are returned; the example above shows the most commonly accessed fields.
 
 Returns `404` if not found.
 
@@ -434,7 +440,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | SUPABASE_URL | **yes (API)** | — | db, api | Supabase project URL |
 | SUPABASE_SERVICE_ROLE_KEY | **yes (API)** | — | db, api | Supabase service role (bypasses RLS) |
 | RESEND_API_KEY | no | — | email, api | Resend API key (email skipped if absent) |
-| ADMIN_EMAIL | no | — | api | Recipient address for admin transcript/evaluation emails. Renamed from `PARENT_EMAIL` — existing deployments must update the env var name. |
+| ADMIN_EMAIL | no | — | api | Recipient address for admin transcript/evaluation emails. |
 | EMAIL_FROM | no | tutor@tutor.schmim.com | email, api | Sender address |
 | CORS_ORIGIN | no | false (fail-closed) | api | Allowed CORS origin. When unset, all cross-origin requests are rejected. Set explicitly for all deployments. |
 | MODEL | no | claude-sonnet-4-6 | core | Claude model ID |
@@ -445,7 +451,7 @@ All configuration comes from environment variables.  No `.env` files are committ
 | PORT | no | 3000 | api | HTTP listen port |
 | CONTACT_EMAIL | no | `""` | api | Contact email returned by GET /api/config and shown on the login page. Defaults to empty string — required before going public. The login page hides the contact line when this value is empty. |
 | ALLOW_PROMPT_SELECTION | no | — (locked) | api | Set `"true"` to allow users to switch prompt versions via the header badge; omitting locks the picker (fail-closed). Surfaced as `promptSelectionEnabled` in `GET /api/config`. |
-| SUPABASE_ANON_KEY | **yes (API)** | — | db, api | Supabase anon/public key. Required for the `/api/auth/*` endpoints that back the login flow at `/login.html`. Still held server-side only — never exposed via `/api/config`. When unset, the auth router is not registered and the app will be inaccessible (the login page cannot authenticate). |
+| SUPABASE_ANON_KEY | **yes (API)** | — | db, api | Supabase anon/public key. Required for the `/api/auth/*` endpoints that back the login flow at `/login.html`. Exposed via `GET /api/config` as `supabaseAnonKey` so the frontend can initialize the supabase-js client — the anon key is public by design and carries no elevated privileges. When unset, the auth router is not registered and the app will be inaccessible (the login page cannot authenticate). |
 
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are required for the API server.  If `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is absent, the server will not start.  If `SUPABASE_ANON_KEY` is absent, the auth router is not registered and the app will be inaccessible.  The CLI (`apps/cli`) does not use the database and runs without these variables.  If `RESEND_API_KEY` or `ADMIN_EMAIL` is absent, emails are silently skipped.
 
@@ -455,7 +461,7 @@ The evaluation model defaults to `claude-haiku-4-5-20251001` (exported as `DEFAU
 
 ## Frontend approach
 
-`apps/web/public/` contains the entire frontend — split across `index.html` (structure), `styles.css` (core styles), `app.js` (chat logic), `gallery.css` (gallery pane styles), and `gallery.js` (gallery pane logic).  No bundler.  No framework.  No compilation.
+`apps/web/public/` contains the entire frontend — a set of plain HTML/CSS/JS files (chat, gallery, login, settings, history, admin pages plus `auth.js`, `manifest.json`, and PWA icons). See [apps/web/README.md](apps/web/README.md) for the canonical inventory and per-page CSS/JS convention. No bundler. No framework. No compilation.
 
 CDN libraries loaded at runtime:
 - **KaTeX** — renders LaTeX math (`$...$`, `$$...$$`)
@@ -475,7 +481,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 4. **No new npm dependencies in `apps/web/`.**  It is intentionally dependency-free.  Use CDN if you must add a library.
 5. **Build before testing API changes.**  Run `npm run build` from the root, then `npm run api`.
 6. **Never expose secrets through `/api/config`.**  That route is intentionally public.
-7. **Do not modify** `templates/tutor-prompt-v7.md`, `templates/tutor-prompt-v6.md`, `examples/physics-geometry-9th-grade-v6.md`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  These are source-of-truth documents.
+7. **Do not modify** `templates/tutor-prompt-v7.md`, `templates/tutor-prompt-v6.md`, `templates/physics-geometry-9th-grade-v6.md`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  These are source-of-truth documents.
 8. **Transcript emails must be idempotent.**  The `email_sent` flag and `markEmailSent()` method exist precisely to prevent duplicate emails during the inactivity sweep and explicit session deletion.
 9. **SSE errors must close the connection.**  If you add a new error path in a streaming route, send the error event and then call `res.end()`.
 10. **In-memory session IDs are client-generated UUIDs.**  Never generate them server-side.  The client owns the session ID lifecycle.
@@ -487,7 +493,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 These apply to every Claude Code session in this repo.
 
 1. **Documentation targets.**  When updating docs per the global documentation rule, this includes: CLAUDE.md schema tables, API reference, and file-level reference table; the relevant package or app README; and `docs/deployment.md` if deployment config changed.
-2. **Respect protected files.**  Do not modify `templates/tutor-prompt-v7.md`, `templates/tutor-prompt-v6.md`, `examples/physics-geometry-9th-grade-v6.md`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  This rule is already in the consistency section — it bears repeating because it is the most important guardrail in the repo.
+2. **Respect protected files.**  Do not modify `templates/tutor-prompt-v7.md`, `templates/tutor-prompt-v6.md`, `templates/physics-geometry-9th-grade-v6.md`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  This rule is already in the consistency section — it bears repeating because it is the most important guardrail in the repo.
 3. **No silent additions.**  Do not add new files, directories, or environment variables without stating what you are adding and why.  New env vars must be added to the config table in this CLAUDE.md and to `docs/deployment.md`.
 4. **Test what you changed.**  If you modified a route, show a curl or describe how to verify it.  If you modified the frontend, describe what the user should see.  If you modified a package, show that downstream consumers still build.
 ---
@@ -511,7 +517,7 @@ These apply to every Claude Code session in this repo.
 | `templates/tutor-prompt-v6.md` | Tutor prompt v6 — retained as rollback target |
 | `templates/system-instructions.md` | Global system instructions appended to every tutor prompt at load time (sentinel token, image-ref format) |
 | `templates/evaluation-checklist.md` | Manual scoring rubric for test evaluation (v6-era; automated evaluation now uses `packages/core/src/evaluation-prompt.md`) |
-| `examples/physics-geometry-9th-grade-v6.md` | Physics & geometry example prompt v6 — retained as rollback reference |
+| `templates/physics-geometry-9th-grade-v6.md` | Physics & geometry example prompt v6 — retained as rollback reference |
 | `tests/README.md` | Test harness usage guide |
 | `tests/*.md` | Character briefs for simulating student sessions |
 | `docs/methodology.md` | Prompt development methodology — v7 (archived v1 version at `docs/archive/methodology-v1.md`) |
@@ -519,7 +525,7 @@ These apply to every Claude Code session in this repo.
 | `docs/lessons-learned.md` | Key findings — v7 (archived v1 version at `docs/archive/lessons-learned-v1.md`) |
 | `docs/archive/` | Archived versions of superseded docs |
 | `docs/ui-style-guide.md` | Active UI style guide — Warm Red palette, typography, layout, and component specs implemented in `styles.css` and `login.css`. |
-| `docs/deployment.md` | Render, AWS, and local deployment instructions |
+| `docs/deployment.md` | Render.com and local deployment instructions |
 | `packages/core/src/config.ts` | `loadConfig()` — reads and validates all env vars |
 | `packages/core/src/prompt-loader.ts` | `loadPromptFile()` — loads and strips a prompt file; `loadSystemPrompt()` — wraps `loadPromptFile()` and appends global system instructions |
 | `packages/core/src/tutor-client.ts` | `createTutorClient()` — Anthropic SDK wrapper (streaming + blocking) |
@@ -573,8 +579,7 @@ These apply to every Claude Code session in this repo.
 | `apps/web/public/manifest.json` | PWA web app manifest — standalone display, theme colors, icon references |
 | `apps/web/public/icons/` | PWA app icons (192×192 and 512×512 PNGs) for home-screen and manifest |
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
-| `render.yaml` | Render.com deployment config |
 | `supabase/config.toml` | Supabase CLI local development config |
 | `env.sh.template` | Template for local environment variable setup |
 | `scripts/backfill-evaluations.ts` | Backfills session evaluations for sessions without evaluation rows. Run via: `npm run backfill:evaluations` |
-| `reports/` | Audit reports and analysis artifacts — checked into git; generated ad hoc for analysis, not build artifacts |
+| `scripts/README.md` | Overview of operational scripts in `scripts/` (backfill jobs, etc.) |

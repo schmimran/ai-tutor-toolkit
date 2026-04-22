@@ -11,24 +11,30 @@ The frontend lives in `apps/web/public/` and is served as static files by `apps/
 ```
 apps/web/
 ├── public/
-│   ├── index.html    ← Main chat page (HTML structure and CDN references)
-│   ├── styles.css    ← Core layout and component CSS
-│   ├── app.js        ← Chat application logic
-│   ├── gallery.css   ← Gallery pane styles (loaded after styles.css)
-│   ├── gallery.js    ← Gallery pane logic (loaded after app.js)
-│   ├── auth.js       ← Centralized auth module (window.auth, authedFetch, supabase-js init)
-│   ├── login.html    ← Login / register / forgot-password page
-│   ├── login.css     ← Login page styles
-│   ├── login.js      ← Login page logic (tabs, server-side proxies, hash callbacks)
-│   ├── settings.html ← Account settings page (password, email, preferences)
-│   ├── settings.js   ← Settings page logic (supabase-js direct updates)
-│   ├── history.html  ← Session history page
-│   ├── history.js    ← Session history logic
-│   ├── admin.html    ← Admin panel (evaluation batch management)
-│   └── manifest.json ← PWA web app manifest
+│   ├── index.html     ← Main chat page (HTML structure and CDN references)
+│   ├── styles.css     ← Core layout and component CSS
+│   ├── app.js         ← Chat application logic
+│   ├── gallery.css    ← Gallery pane styles (loaded after styles.css)
+│   ├── gallery.js     ← Gallery pane logic (loaded after app.js)
+│   ├── auth.js        ← Centralized auth module (window.auth, authedFetch, supabase-js init)
+│   ├── login.html     ← Login / register / forgot-password page
+│   ├── login.css      ← Login page styles
+│   ├── login.js       ← Login page logic (tabs, server-side proxies, hash callbacks)
+│   ├── settings.html  ← Account settings page (password, email, preferences)
+│   ├── settings.css   ← Settings page styles
+│   ├── settings.js    ← Settings page logic (supabase-js direct updates)
+│   ├── history.html   ← Session history page
+│   ├── history.css    ← Session history page styles
+│   ├── history.js     ← Session history logic
+│   ├── admin.html     ← Admin panel (evaluation batch management)
+│   ├── mockup.html    ← Static UI reference implementation (docs/ui-style-guide.md)
+│   ├── manifest.json  ← PWA web app manifest
+│   └── icons/         ← PWA app icons (192×192 and 512×512 PNGs)
 ├── package.json
 └── README.md
 ```
+
+Each page has a matching CSS file (`page.html` + `page.css`) and, where needed, a page JS module (`page.js`). `styles.css` and `auth.js` are shared.
 
 ## Usage
 
@@ -59,10 +65,10 @@ Loaded via `<script>` and `<link>` tags in `index.html` — no npm install neede
 | File attachments | Images and PDFs via click or drag-and-drop (up to 5 files, 10 MB each) |
 | Chat bubble thumbnails | Uploaded images shown as 48×48 clickable thumbnails in user message bubbles; PDFs shown as a 📄 pill |
 | Image gallery pane | Collapsible left-side pane showing all uploads for the session; opens on thumbnail click or toggle button |
-| Tutor image references | When the tutor response contains `[IMG:filename.ext]`, it renders as a clickable pill that opens the gallery focused on that file |
+| Tutor image references | When the tutor response contains `[IMG:filename.ext]`, it renders as a clickable pill that opens the gallery focused on that file. Protocol definition: [templates/system-instructions.md](../../templates/system-instructions.md). |
 | Transcript viewer | Modal with copy-to-clipboard |
 | Inactivity timeout | Auto-ends session after 10 minutes idle; triggers transcript email |
-| End-session banner | When the tutor resolves a problem or finishes a question, a green banner suggests ending the session; driven by `[END_SESSION_AVAILABLE]` sentinel in `templates/system-instructions.md` |
+| End-session banner | When the tutor resolves a problem or finishes a question, a green banner suggests ending the session; driven by the `[END_SESSION_AVAILABLE]` sentinel defined in [templates/system-instructions.md](../../templates/system-instructions.md). |
 | Session feedback | Session-level outcome, experience, and comment collected at session end. |
 | New session | One-click reset with automatic prior session cleanup (`DELETE /api/sessions/:id`) |
 | Model indicator | Shows current model and extended thinking status (from `/api/config`) |
@@ -105,12 +111,15 @@ When the tutor model is instructed to reference an uploaded file, it should use 
 
 Clicking the pill calls `focusUpload()` with the upload's ID and opens the gallery.  If the filename doesn't match any upload in `sessionUploads`, the pill renders as muted and non-interactive.
 
+## Configuration
+
+This app has no env vars of its own. It fetches non-secret runtime config from `GET /api/config` on page load (model, available prompts, contact email, Supabase URL + anon key for supabase-js). Secrets live in `apps/api`. For the full config table, see [CLAUDE.md](../../CLAUDE.md#configsecrets-management).
+
 ## Design notes
 
-- Dark color scheme; purple (`#7c6af7`) and cyan (`#22d3ee`) accent colors
-- Flex-row layout: gallery pane (0 width when closed, 320px when open) + chat column (flex: 1)
-- Student messages: dark purple-tinted bubbles; tutor messages: dark teal-tinted bubbles
-- Session ID is a client-generated UUID (`crypto.randomUUID()`), stored in memory (not localStorage)
+- Active design system: [docs/ui-style-guide.md](../../docs/ui-style-guide.md) (Warm Red palette).
+- Flex-row layout: gallery pane (0 width when closed, 320px when open) + chat column (flex: 1).
+- Session ID is a client-generated UUID (`crypto.randomUUID()`), stored in memory (not localStorage).
 
 ## Contributing
 

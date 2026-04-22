@@ -1,10 +1,16 @@
 # @ai-tutor/ios
 
-> **Status: Placeholder.**  No Swift code exists yet.  This directory reserves the `apps/ios` slot in the monorepo.  See the project roadmap in the root README for timeline.
+> **Status: Placeholder.** No Swift code exists yet. This directory reserves the `apps/ios` slot in the monorepo.
 
-Native iOS client for the AI Tutor.  Swift/SwiftUI app that connects to the existing API server -- no AI logic runs on device.
+## Overview
 
-## API calls made by the app (planned)
+Native iOS client for the AI Tutor. Swift/SwiftUI app that connects to the existing API server — no AI logic runs on device.
+
+## Dependencies
+
+_To be determined._
+
+## API calls (planned)
 
 | Endpoint | When |
 |----------|------|
@@ -14,4 +20,10 @@ Native iOS client for the AI Tutor.  Swift/SwiftUI app that connects to the exis
 | `POST /api/feedback` | When rating is submitted |
 | `DELETE /api/sessions/:sessionId` | On "New session" or app backgrounding |
 
-Architecture and implementation decisions will be documented when development begins.
+## Setup
+
+_Not yet implemented._
+
+## Source structure
+
+_No source yet._

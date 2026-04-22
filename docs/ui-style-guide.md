@@ -1,6 +1,6 @@
 # Axiom AI Tutor — UI Style Guide
 
-This is the active style guide for the production frontend.  The Warm Red palette and layout described here are fully implemented in `apps/web/public/styles.css` and `apps/web/public/login.css`.  The "Files to update" section at the bottom is historical — those changes are already done.  Use this document as a reference when adding new UI components or pages.
+This is the active style guide for the production frontend.  The Warm Red palette and layout described here are fully implemented in `apps/web/public/styles.css` and `apps/web/public/login.css`.  Use this document as a reference when adding new UI components or pages.
 
 ---
 
@@ -250,13 +250,6 @@ Full-page split layout — no floating card, no overlay.
 
 ---
 
-## Files to update
+## Reference implementation
 
-| File | What changes |
-|------|-------------|
-| `apps/web/public/styles.css` | All `:root` color tokens; component CSS referencing old palette |
-| `apps/web/public/login.css` | Mirror the same token changes (currently has token drift) |
-| `apps/web/public/index.html` | Logo SVG swap (book → lightbulb); Google Fonts link if not present |
-| `apps/web/public/login.html` | Logo SVG swap; header bg class |
-
-Reference implementation: `apps/web/public/mockup.html` — a fully working static mockup of all three states (sidebar open, sidebar collapsed, login page). Open it at `http://localhost:3000/mockup.html`.
+`apps/web/public/mockup.html` — a fully working static mockup of all three states (sidebar open, sidebar collapsed, login page). Open it at `http://localhost:3000/mockup.html`.

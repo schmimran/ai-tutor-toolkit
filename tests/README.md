@@ -21,7 +21,7 @@ Each test file is a **character brief** — a set of instructions for simulating
 
 ### Option 3: API (for scale)
 
-If you want to run many scenarios programmatically, use the Anthropic SDK to send the student messages and capture the tutor's responses.  See `apps/cli/` for the terminal tutor (`npm run cli` from the repo root) and `apps/web/` for the web interface (`npm run serve`).
+If you want to run many scenarios programmatically, use the Anthropic SDK to send the student messages and capture the tutor's responses.  See [../apps/cli/README.md](../apps/cli/README.md) for the terminal tutor (`npm run cli` from the repo root) and [../apps/web/README.md](../apps/web/README.md) for the web interface (`npm run api`).
 
 ## Test scenarios
 
