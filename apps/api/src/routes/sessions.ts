@@ -4,7 +4,7 @@ import {
   markSessionEnded,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSession, removeSession } from "../lib/session-store.js";
+import { getSession, removeSession, isReaping } from "../lib/session-store.js";
 import { getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "../lib/evaluation.js";
 import { UUID_RE } from "../lib/validation.js";
 import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
@@ -73,15 +73,19 @@ export function createSessionsRouter(
       const session = getSession(sessionId);
 
       try {
-        if (!discard && session && session.transcript.length > 0) {
+        // If the sweep is already tearing down this session, skip the email
+        // here — the sweep will send it. Prevents duplicate student emails.
+        const sweeping = isReaping(sessionId);
+        if (!discard && !sweeping && session && session.transcript.length > 0) {
           // Record a timeout-feedback row for analytics (picked up later by
           // batch eval when the admin transcript is sent).
           await getOrCreateTimeoutFeedback(db, sessionId, "sessions");
 
           // Student-facing transcript is the only email sent at session end.
           // Gated by profiles.email_transcripts_enabled inside the helper.
+          // Fire-and-forget so the response returns without waiting on Resend.
           const summary = session.getSessionSummary();
-          await sendUserTranscriptIfApplicable(
+          void sendUserTranscriptIfApplicable(
             sessionId, summary.transcript, summary.startedAt, summary.durationMs,
             emailConfig.from, db,
           );
