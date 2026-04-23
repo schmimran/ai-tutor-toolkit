@@ -1122,32 +1122,16 @@
     }
   }
 
-  menuSettings.addEventListener('click', () => {
-    closeAccountDropdown();
+  function navigateTo(url) {
     saveResumeIfActive();
-    window.location.href = '/settings.html';
-  });
-  menuHistory.addEventListener('click', () => {
-    closeAccountDropdown();
-    saveResumeIfActive();
-    window.location.href = '/history.html';
-  });
+    window.location.href = url;
+  }
 
-  // Sidebar nav links also need to preserve the session before navigating.
-  if (sidebarSettings) {
-    sidebarSettings.addEventListener('click', e => {
-      e.preventDefault();
-      saveResumeIfActive();
-      window.location.href = '/settings.html';
-    });
-  }
-  if (sidebarHistory) {
-    sidebarHistory.addEventListener('click', e => {
-      e.preventDefault();
-      saveResumeIfActive();
-      window.location.href = '/history.html';
-    });
-  }
+  menuSettings.addEventListener('click', () => { closeAccountDropdown(); navigateTo('/settings.html'); });
+  menuHistory.addEventListener('click',  () => { closeAccountDropdown(); navigateTo('/history.html'); });
+
+  if (sidebarSettings) sidebarSettings.addEventListener('click', e => { e.preventDefault(); navigateTo('/settings.html'); });
+  if (sidebarHistory)  sidebarHistory.addEventListener('click',  e => { e.preventDefault(); navigateTo('/history.html'); });
   menuLogout.addEventListener('click', () => {
     closeAccountDropdown();
     handleLogout();

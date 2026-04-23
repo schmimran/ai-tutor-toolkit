@@ -19,20 +19,21 @@
   let client = null;
   let initPromise = null;
 
-  // ── Idle-session enforcement ──────────────────────────────────────────────
-  // Re-require login if the user has been inactive for more than 60 minutes.
-  // "Activity" is any mouse move, key press, click, or touch. We track it in
-  // localStorage so the clock is shared across tabs.
-  const IDLE_KEY     = 'auth.lastActivityAt';
-  const IDLE_LIMIT   = 60 * 60 * 1000; // 60 minutes
+  // ── Idle-session enforcement — re-login after 60 min of inactivity ──────────
+  const IDLE_KEY   = 'auth.lastActivityAt';
+  const IDLE_LIMIT = 60 * 60 * 1000; // 60 minutes; independent of server inactivity sweep (10 min)
 
+  let lastWrite = 0;
   function touchActivity() {
-    localStorage.setItem(IDLE_KEY, Date.now().toString());
+    const now = Date.now();
+    if (now - lastWrite < 10_000) return; // throttle: write at most once per 10 s
+    lastWrite = now;
+    localStorage.setItem(IDLE_KEY, now);
   }
 
   function isIdleExpired() {
     const raw = localStorage.getItem(IDLE_KEY);
-    if (!raw) return false; // no record → new session, not expired
+    if (!raw) return false; // absent → treat as just-active (first load or cleared storage)
     return (Date.now() - parseInt(raw, 10)) > IDLE_LIMIT;
   }
 
@@ -43,7 +44,7 @@
     ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(evt =>
       document.addEventListener(evt, touchActivity, { passive: true, capture: true })
     );
-    touchActivity(); // record activity on page load
+    touchActivity();
   }
 
   async function loadConfig() {
