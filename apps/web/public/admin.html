@@ -9,6 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/layout.css">
+  <!-- /history.css provides the .transcript-overlay / .transcript-panel /
+       .transcript-close-btn / .transcript-messages classes reused by the
+       admin transcript modal. Loaded before admin.css so admin-specific
+       overrides win on conflict. -->
+  <link rel="stylesheet" href="/history.css">
   <link rel="stylesheet" href="/admin.css">
 </head>
 <body>
@@ -109,7 +114,7 @@
             </div>
             <span class="admin-tile-badge live">Live</span>
           </a>
-          <div class="admin-tile admin-tile-soon">
+          <a href="#stats" class="admin-tile">
             <div class="admin-tile-icon">
               <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
             </div>
@@ -117,9 +122,9 @@
               <div class="admin-tile-title">Session Analytics</div>
               <div class="admin-tile-desc">Usage trends, session durations, and engagement metrics</div>
             </div>
-            <span class="admin-tile-badge">Soon</span>
-          </div>
-          <div class="admin-tile admin-tile-soon">
+            <span class="admin-tile-badge live">Live</span>
+          </a>
+          <a href="#sessions" class="admin-tile">
             <div class="admin-tile-icon">
               <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
             </div>
@@ -127,8 +132,8 @@
               <div class="admin-tile-title">User Management</div>
               <div class="admin-tile-desc">View registered users, manage roles, and admin flags</div>
             </div>
-            <span class="admin-tile-badge">Soon</span>
-          </div>
+            <span class="admin-tile-badge live">Live</span>
+          </a>
           <div class="admin-tile admin-tile-soon">
             <div class="admin-tile-icon">
               <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
@@ -158,6 +163,25 @@
               <div class="admin-tile-desc">Preview and A/B test tutor prompt versions</div>
             </div>
             <span class="admin-tile-badge">Soon</span>
+          </div>
+        </div>
+
+        <!-- ── Usage Stats ─────────────────────────────────────────────── -->
+        <h2 class="admin-section-title admin-section-heading" id="stats">Usage Stats</h2>
+        <div class="admin-stats-grid" id="stats-grid">
+          <div class="admin-stat-card"><div class="admin-stat-value" id="stat-total">—</div><div class="admin-stat-label">Total Sessions</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="stat-users">—</div><div class="admin-stat-label">Registered Users</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="stat-today">—</div><div class="admin-stat-label">Today</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="stat-week">—</div><div class="admin-stat-label">This Week</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="stat-avg">—</div><div class="admin-stat-label">Avg Duration</div></div>
+        </div>
+
+        <!-- ── Recent Sessions ────────────────────────────────────────── -->
+        <h2 class="admin-section-title admin-section-heading" id="sessions">Recent Sessions</h2>
+        <div class="admin-card">
+          <div id="sessions-table"><div class="table-loading">Loading…</div></div>
+          <div id="sessions-load-more" style="display:none; margin-top:0.75rem">
+            <button class="secondary" id="sessions-more-btn">Load more</button>
           </div>
         </div>
 
@@ -192,6 +216,17 @@
     </div>
 
   </div><!-- /.app-body -->
+
+  <!-- ── Transcript modal (admin) — reuses classes from history.css ──── -->
+  <div id="admin-transcript-overlay" class="transcript-overlay" style="display:none">
+    <div class="transcript-panel">
+      <div class="transcript-panel-header">
+        <h2 class="transcript-panel-title" id="admin-transcript-title">Transcript</h2>
+        <button type="button" class="transcript-close-btn" id="admin-transcript-close">Close</button>
+      </div>
+      <div class="transcript-messages" id="admin-transcript-messages"></div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.103.3/dist/umd/supabase.js"></script>
   <script src="/auth.js"></script>
@@ -302,6 +337,140 @@
       }
     }
 
+    // ── Stats ──────────────────────────────────────────────────────────
+    async function loadStats() {
+      try {
+        const res = await window.auth.authedFetch("/api/admin/stats");
+        const data = await res.json();
+        if (!res.ok || !data.ok) return;
+        const s = data.stats;
+        document.getElementById("stat-total").textContent = s.totalSessions.toLocaleString();
+        document.getElementById("stat-users").textContent = s.activeUsers.toLocaleString();
+        document.getElementById("stat-today").textContent = s.sessionsToday.toLocaleString();
+        document.getElementById("stat-week").textContent = s.sessionsThisWeek.toLocaleString();
+        document.getElementById("stat-avg").textContent =
+          s.avgDurationSeconds != null ? Math.round(s.avgDurationSeconds / 60) + " min" : "—";
+      } catch (e) {
+        console.error("[admin] loadStats error:", e);
+      }
+    }
+
+    // ── Sessions table ──────────────────────────────────────────────────
+    var sessionsOffset = 0;
+    var sessionsTotal = 0;
+
+    function fmtDate(iso) {
+      if (!iso) return "—";
+      return new Date(iso).toLocaleString(undefined, {
+        month: "short", day: "numeric", year: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+    }
+    function fmtDuration(start, end) {
+      if (!start || !end) return "—";
+      var mins = Math.round((new Date(end) - new Date(start)) / 60000);
+      return mins < 1 ? "<1 min" : mins + " min";
+    }
+    function fmtExperience(v) {
+      return { positive: "Good", neutral: "Neutral", negative: "Difficult" }[v] || (v || "—");
+    }
+
+    async function loadSessions(offset) {
+      try {
+        const res = await window.auth.authedFetch("/api/admin/sessions?limit=50&offset=" + offset);
+        const data = await res.json();
+        if (!res.ok || !data.ok) return;
+        sessionsTotal = data.total;
+
+        const container = document.getElementById("sessions-table");
+        if (offset === 0) {
+          if (!data.sessions.length) {
+            container.innerHTML = '<div class="table-empty">No ended sessions yet.</div>';
+            return;
+          }
+          const table = document.createElement("table");
+          table.innerHTML = `<thead><tr><th>User</th><th>Date</th><th>Duration</th><th>Model</th><th>Experience</th><th>Eval</th><th></th></tr></thead>`;
+          table.appendChild(document.createElement("tbody"));
+          container.replaceChildren(table);
+        }
+
+        const tbody = container.querySelector("tbody");
+        data.sessions.forEach(function(s) {
+          const evalBadge = s.has_failures === null ? '<span class="badge">—</span>'
+            : s.has_failures ? '<span class="badge failed">Fail</span>'
+            : '<span class="badge processed">Pass</span>';
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="mono"></td>
+            <td></td>
+            <td></td>
+            <td class="mono"></td>
+            <td></td>
+            <td>${evalBadge}</td>
+            <td></td>`;
+          // Populate user-controlled/text fields via textContent to avoid HTML injection.
+          const tds = tr.children;
+          tds[0].textContent = s.user_email || "—";
+          tds[1].textContent = fmtDate(s.started_at);
+          tds[2].textContent = fmtDuration(s.started_at, s.ended_at);
+          tds[3].textContent = (s.model || "—").replace("claude-", "");
+          tds[4].textContent = fmtExperience(s.experience);
+          const viewBtn = document.createElement("button");
+          viewBtn.className = "secondary poll-btn";
+          viewBtn.textContent = "View";
+          viewBtn.addEventListener("click", function() {
+            viewTranscript(s.id, s.user_email, s.started_at);
+          });
+          tds[6].appendChild(viewBtn);
+          tbody.appendChild(tr);
+        });
+
+        sessionsOffset = offset + data.sessions.length;
+        const moreEl = document.getElementById("sessions-load-more");
+        moreEl.style.display = sessionsOffset < sessionsTotal ? "" : "none";
+      } catch (e) {
+        console.error("[admin] loadSessions error:", e);
+      }
+    }
+
+    // ── Transcript modal ───────────────────────────────────────────────
+    async function viewTranscript(sessionId, userEmail, startedAt) {
+      const overlay = document.getElementById("admin-transcript-overlay");
+      const titleEl = document.getElementById("admin-transcript-title");
+      const messagesEl = document.getElementById("admin-transcript-messages");
+      titleEl.textContent = "Transcript — " + (userEmail || sessionId.slice(0, 8)) + " — " + fmtDate(startedAt);
+      messagesEl.innerHTML = '<div class="table-loading">Loading…</div>';
+      overlay.style.display = "";
+      try {
+        const res = await window.auth.authedFetch("/api/transcript/" + sessionId);
+        const data = await res.json();
+        if (!res.ok || !data.transcript) {
+          messagesEl.innerHTML = '<div style="color:var(--danger)">Could not load transcript.</div>';
+          return;
+        }
+        messagesEl.innerHTML = "";
+        data.transcript.forEach(function(msg) {
+          const div = document.createElement("div");
+          div.className = "transcript-message " + (msg.role === "Student" ? "user" : "tutor");
+          const roleEl = document.createElement("strong");
+          roleEl.textContent = msg.role;
+          const textEl = document.createElement("p");
+          textEl.textContent = msg.text;
+          div.appendChild(roleEl);
+          div.appendChild(textEl);
+          messagesEl.appendChild(div);
+        });
+      } catch (e) {
+        messagesEl.innerHTML = "";
+        const err = document.createElement("div");
+        err.style.color = "var(--danger)";
+        err.textContent = "Error: " + e.message;
+        messagesEl.appendChild(err);
+      }
+    }
+
+    // TODO: extract admin inline JS to /admin.js when this block exceeds ~300 lines total.
+
     async function init() {
       await window.auth.init();
       const session = await window.auth.requireSession();
@@ -328,7 +497,15 @@
       document.getElementById("submit-btn").addEventListener("click", submitBatch);
       document.getElementById("poll-btn").addEventListener("click", () => pollBatch());
       document.getElementById("refresh-btn").addEventListener("click", loadBatches);
+      document.getElementById("admin-transcript-close").addEventListener("click", function() {
+        document.getElementById("admin-transcript-overlay").style.display = "none";
+      });
+      document.getElementById("sessions-more-btn").addEventListener("click", function() {
+        loadSessions(sessionsOffset);
+      });
 
+      loadStats();
+      loadSessions(0);
       loadBatches();
     }
 

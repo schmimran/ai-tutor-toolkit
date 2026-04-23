@@ -13,7 +13,8 @@ export function createTranscriptRouter(db: SupabaseClient): Router {
    * GET /api/transcript/:sessionId
    *
    * Returns the session transcript. Requires auth; the session must belong
-   * to the caller.
+   * to the caller, or the caller must be an admin (admins can view any
+   * session's transcript — used by the admin dashboard).
    *
    * Response: { transcript: Array<{ role: string, text: string }> }
    */
@@ -25,9 +26,13 @@ export function createTranscriptRouter(db: SupabaseClient): Router {
         return;
       }
 
-      const callerId = (req as AuthedRequest).userId;
+      const authedReq = req as AuthedRequest;
+      const callerId = authedReq.userId;
       const dbRow = await getDbSession(db, sessionId);
-      if (!dbRow || dbRow.user_id !== callerId) {
+      const isOwner = dbRow?.user_id === callerId;
+      // Admin bypass: admins (is_admin JWT claim) may view any session's
+      // transcript. Non-admins still see 404 for sessions they don't own.
+      if (!dbRow || (!authedReq.isAdmin && !isOwner)) {
         res.status(404).json({ error: "Session not found." });
         return;
       }
