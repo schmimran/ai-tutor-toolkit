@@ -2,13 +2,10 @@ import { Router } from "express";
 import {
   getSession as getDbSession,
   markSessionEnded,
-  getUserInfoForSession,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Config } from "@ai-tutor/core";
 import { getSession, removeSession } from "../lib/session-store.js";
-import { sendTranscript } from "@ai-tutor/email";
-import { buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "../lib/evaluation.js";
+import { getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "../lib/evaluation.js";
 import { UUID_RE } from "../lib/validation.js";
 import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
 
@@ -21,7 +18,6 @@ export interface EmailConfig {
 export function createSessionsRouter(
   db: SupabaseClient,
   emailConfig: EmailConfig,
-  config: Config,
 ): Router {
   const router = Router();
   const requireAuth = createRequireAuth(db);
@@ -53,8 +49,9 @@ export function createSessionsRouter(
   /**
    * DELETE /api/sessions/:sessionId
    *
-   * Normal flow: sends the transcript email (if not already sent), removes the
-   * in-memory session, and marks ended_at in the database.
+   * Normal flow: sends the user's transcript email (if opted in), removes the
+   * in-memory session, and marks ended_at in the database.  No admin email is
+   * sent here — the admin copy is sent later, once batch evaluation runs.
    *
    * With ?discard=true: skips the email entirely — just removes from memory
    * and marks ended_at.  Used when the user switches model/prompt mid-session
@@ -76,31 +73,21 @@ export function createSessionsRouter(
       const session = getSession(sessionId);
 
       try {
-        if (!discard && session && !session.emailSent && session.transcript.length > 0) {
-          const [feedback, userInfo] = await Promise.all([
-            getOrCreateTimeoutFeedback(db, sessionId, "sessions"),
-            getUserInfoForSession(db, sessionId).catch(() => null),
-          ]);
-          const payload = buildTranscriptEmailPayload(session, sessionId, null, feedback,
-            { model: config.model, promptName: config.defaultPromptName, extendedThinking: config.extendedThinking },
-            userInfo);
-          try {
-            await sendTranscript(emailConfig, payload);
-            if (emailConfig.apiKey && emailConfig.to) {
-              await markEmailSentPersisted(session, db, sessionId, "sessions");
-            }
-          } catch (err) {
-            console.error(`[sessions] Failed to send transcript for ${sessionId}:`, err);
-          }
-          // Send a student-facing copy (fire-and-forget).
+        if (!discard && session && session.transcript.length > 0) {
+          // Record a timeout-feedback row for analytics (picked up later by
+          // batch eval when the admin transcript is sent).
+          await getOrCreateTimeoutFeedback(db, sessionId, "sessions");
+
+          // Student-facing transcript is the only email sent at session end.
+          // Gated by profiles.email_transcripts_enabled inside the helper.
           const summary = session.getSessionSummary();
-          void sendUserTranscriptIfApplicable(
+          await sendUserTranscriptIfApplicable(
             sessionId, summary.transcript, summary.startedAt, summary.durationMs,
             emailConfig.from, db,
           );
         }
       } finally {
-        // Always clean up — even if eval or email throws unexpectedly.
+        // Always clean up — even if email throws unexpectedly.
         removeSession(sessionId);
         try {
           await markSessionEnded(db, sessionId);

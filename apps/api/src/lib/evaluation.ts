@@ -1,8 +1,7 @@
-import type { EvaluationResult, Session } from "@ai-tutor/core";
-import type { TranscriptEmailPayload } from "@ai-tutor/email";
+import type { EvaluationResult } from "@ai-tutor/core";
 import { sendUserTranscript } from "@ai-tutor/email";
-import { updateSession, getSessionFeedback, createSessionFeedback, getUserProfileForSession } from "@ai-tutor/db";
-import type { DbSessionFeedback, UserSessionInfo } from "@ai-tutor/db";
+import { getSessionFeedback, createSessionFeedback, getUserProfileForSession } from "@ai-tutor/db";
+import type { DbSessionFeedback } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DIMENSION_LABELS: Record<string, string> = {
@@ -30,37 +29,6 @@ export function buildEvaluationPayload(result: EvaluationResult) {
       rationale: result.rationale[key] ?? "",
     })),
     hasFailures: result.has_failures,
-  };
-}
-
-/**
- * Build the email payload from session data, evaluation, and feedback.
- * Used by both the DELETE handler and the inactivity sweep.
- */
-export function buildTranscriptEmailPayload(
-  session: Session,
-  sessionId: string,
-  evalResult: EvaluationResult | null,
-  feedback: DbSessionFeedback | null,
-  fallbacks?: { model?: string; promptName?: string; extendedThinking?: boolean },
-  userInfo?: UserSessionInfo | null,
-): TranscriptEmailPayload {
-  const summary = session.getSessionSummary();
-  return {
-    transcript: summary.transcript,
-    files: session.files,
-    clientInfo: summary.clientInfo,
-    startedAt: summary.startedAt,
-    lastActivityAt: summary.lastActivityAt,
-    durationMs: summary.durationMs,
-    sessionId,
-    tokenUsage: summary.tokenUsage,
-    evaluation: evalResult ? buildEvaluationPayload(evalResult) : null,
-    studentFeedback: feedback ?? null,
-    model: session.model ?? fallbacks?.model,
-    promptName: session.promptName ?? fallbacks?.promptName,
-    extendedThinking: session.extendedThinking ?? fallbacks?.extendedThinking,
-    userInfo: userInfo ?? null,
   };
 }
 
@@ -93,23 +61,6 @@ export async function getOrCreateTimeoutFeedback(
     }
   }
   return feedback;
-}
-
-/**
- * Mark the session email as sent in both in-memory state and the database.
- * Called after sendTranscript succeeds in both the inactivity sweep and the
- * DELETE handler — extracted here to avoid duplicating the two-step pattern.
- */
-export async function markEmailSentPersisted(
-  session: Session,
-  db: SupabaseClient,
-  sessionId: string,
-  logPrefix: string,
-): Promise<void> {
-  session.markEmailSent();
-  await updateSession(db, sessionId, { email_sent: true }).catch(err =>
-    console.error(`[${logPrefix}] Could not persist email_sent for ${sessionId}:`, err)
-  );
 }
 
 /**

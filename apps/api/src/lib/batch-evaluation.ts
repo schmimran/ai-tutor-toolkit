@@ -23,7 +23,7 @@ import {
   type DbEvaluationBatch,
   type UserSessionProfile,
 } from "@ai-tutor/db";
-import { buildEvaluationPayload, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./evaluation.js";
+import { buildEvaluationPayload, getOrCreateTimeoutFeedback } from "./evaluation.js";
 
 /** Hard cap on sessions per batch — defensive ceiling well below Anthropic's 10k limit. */
 export const MAX_BATCH_SIZE = 100;
@@ -152,8 +152,7 @@ function transcriptFromMessages(messages: DbMessage[]): TranscriptEmailPayload["
 }
 
 /**
- * Assemble the transcript email payload from DB rows, mirroring what
- * `buildTranscriptEmailPayload()` produces from an in-memory `Session`.
+ * Assemble the admin transcript email payload from DB rows.
  * Files are always empty — they're not persisted beyond the live session.
  */
 function buildTranscriptEmailPayloadFromDb(
@@ -282,6 +281,7 @@ export async function processBatchResults(
 
       if (opts.emailConfig.apiKey && opts.emailConfig.to) {
         try {
+          // Admin-only: student already got their transcript at session end.
           await sendTranscript(opts.emailConfig, payload);
           await updateSession(db, sessionId, { email_sent: true });
           outcome.emailsSent += 1;
@@ -291,16 +291,6 @@ export async function processBatchResults(
       } else {
         outcome.skipped += 1;
       }
-
-      // Fire-and-forget student copy. Never throws.
-      void sendUserTranscriptIfApplicable(
-        sessionId,
-        payload.transcript,
-        payload.startedAt,
-        payload.durationMs,
-        opts.emailConfig.from,
-        db,
-      );
     }
 
     const processed = await updateEvaluationBatch(db, batch.id, {
