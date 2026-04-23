@@ -119,13 +119,9 @@
   border-color: #bbf7d0;
 }
 
+/* Modifier for .admin-section-title: page-level section separator with a rule above */
 .admin-section-heading {
   font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 0 0 0.85rem 0;
   border-top: 1px solid var(--border);
   padding-top: 1.25rem;
 }
