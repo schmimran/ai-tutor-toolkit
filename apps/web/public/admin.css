@@ -278,9 +278,60 @@
   padding: 0.5rem 0;
 }
 
+/* ── Stat cards grid (admin dashboard) ── */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.admin-stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+
+.admin-stat-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── Transcript modal (admin) — overlay/panel styles come from history.css.
+ * These rules style the message bubbles rendered by viewTranscript() using
+ * class="transcript-message" (distinct from history.css's .transcript-msg). */
+.transcript-message {
+  margin-bottom: 1rem;
+}
+.transcript-message strong {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.transcript-message p {
+  margin: 0.2rem 0 0;
+  white-space: pre-wrap;
+}
+
 /* ── Mobile ── */
 @media (max-width: 768px) {
   .admin-shell {
     padding: 1.25rem 1rem;
+  }
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

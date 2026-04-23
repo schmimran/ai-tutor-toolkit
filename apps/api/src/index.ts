@@ -24,6 +24,7 @@ import { createConfigRouter } from "./routes/config.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { createHistoryRouter } from "./routes/history.js";
 import { createAdminEvaluationsRouter } from "./routes/admin-evaluations.js";
+import { createAdminStatsRouter } from "./routes/admin-stats.js";
 import { getAllSessions, removeSession, markReaping, unmarkReaping, isReaping } from "./lib/session-store.js";
 import { getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
 
@@ -128,6 +129,7 @@ app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
 app.use("/api/admin/evaluations", createAdminEvaluationsRouter(db, config, emailConfig));
+app.use("/api/admin", createAdminStatsRouter(db));
 app.use("/api/history", createHistoryRouter(db));
 if (anonDb) {
   app.use("/api/auth", createAuthRouter(db, anonDb));

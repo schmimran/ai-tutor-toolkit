@@ -190,6 +190,139 @@ export async function getFeedbackForSessions(
   return map;
 }
 
+export interface AdminStats {
+  totalSessions: number;
+  registeredUsers: number;
+  sessionsToday: number;
+  sessionsThisWeek: number;
+  avgDurationSeconds: number | null;
+}
+
+export async function getAdminStats(
+  client: SupabaseClient,
+): Promise<AdminStats> {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [total, today, week, avgRows, users] = await Promise.all([
+    client.from("sessions").select("*", { count: "exact", head: true }),
+    client.from("sessions").select("*", { count: "exact", head: true })
+      .gte("started_at", todayStart.toISOString()),
+    client.from("sessions").select("*", { count: "exact", head: true })
+      .gte("started_at", weekStart.toISOString()),
+    client.from("sessions").select("started_at, ended_at")
+      .not("ended_at", "is", null)
+      .limit(500),
+    // Registered-user count via the admin API. perPage:1 returns the total
+    // via the `total` field without fetching user rows.
+    client.auth.admin.listUsers({ perPage: 1 }),
+  ]);
+
+  let avgDurationSeconds: number | null = null;
+  const rows = (avgRows.data ?? []) as Array<{
+    started_at: string;
+    ended_at: string;
+  }>;
+  if (rows.length > 0) {
+    const totalMs = rows.reduce(
+      (sum, r) =>
+        sum + (new Date(r.ended_at).getTime() - new Date(r.started_at).getTime()),
+      0,
+    );
+    avgDurationSeconds = Math.round(totalMs / rows.length / 1000);
+  }
+
+  const registeredUsers =
+    (users.data as { total?: number } | null)?.total ?? users.data?.users?.length ?? 0;
+
+  return {
+    totalSessions: total.count ?? 0,
+    registeredUsers,
+    sessionsToday: today.count ?? 0,
+    sessionsThisWeek: week.count ?? 0,
+    avgDurationSeconds,
+  };
+}
+
+/**
+ * Row shape returned by GET /api/admin/sessions. Combines `sessions` columns
+ * with embedded feedback + evaluation fields and a resolved user email.
+ */
+export interface AdminSessionRow {
+  id: string;
+  started_at: string;
+  ended_at: string | null;
+  user_id: string;
+  user_email: string | null;
+  model: string | null;
+  prompt_name: string | null;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  outcome: string | null;
+  experience: string | null;
+  has_failures: boolean | null;
+}
+
+export async function getAdminSessionList(
+  client: SupabaseClient,
+  opts: { limit?: number; offset?: number } = {},
+): Promise<{ sessions: AdminSessionRow[]; total: number }> {
+  const limit = Math.min(Math.max(opts.limit ?? 50, 1), 100);
+  const offset = Math.max(opts.offset ?? 0, 0);
+
+  const { data, error, count } = await client
+    .from("sessions")
+    .select(
+      "id, started_at, ended_at, user_id, model, prompt_name, total_input_tokens, total_output_tokens, session_feedback(outcome, experience), session_evaluations(has_failures)",
+      { count: "exact" },
+    )
+    .not("ended_at", "is", null)
+    .order("started_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw new Error(`getAdminSessionList: ${error.message}`);
+
+  const emailMap = new Map<string, string>();
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  const userIds = [...new Set(
+    rows.map((r) => r.user_id as string | null | undefined).filter((u): u is string => Boolean(u)),
+  )];
+  if (userIds.length > 0) {
+    const userResults = await Promise.all(
+      userIds.map((id) => client.auth.admin.getUserById(id)),
+    );
+    for (const { data: u } of userResults) {
+      if (u?.user?.email) emailMap.set(u.user.id, u.user.email);
+    }
+  }
+
+  // Supabase JS does not emit typed inference for embedded selects, so the
+  // mapping step uses `any` for the embedded arrays only.
+  const sessions: AdminSessionRow[] = rows.map((r) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row = r as any;
+    const feedback = Array.isArray(row.session_feedback) ? row.session_feedback[0] : row.session_feedback;
+    const evalRow = Array.isArray(row.session_evaluations) ? row.session_evaluations[0] : row.session_evaluations;
+    return {
+      id: row.id,
+      started_at: row.started_at,
+      ended_at: row.ended_at ?? null,
+      user_id: row.user_id,
+      user_email: emailMap.get(row.user_id) ?? null,
+      model: row.model ?? null,
+      prompt_name: row.prompt_name ?? null,
+      total_input_tokens: row.total_input_tokens ?? 0,
+      total_output_tokens: row.total_output_tokens ?? 0,
+      outcome: feedback?.outcome ?? null,
+      experience: feedback?.experience ?? null,
+      has_failures: evalRow?.has_failures ?? null,
+    };
+  });
+
+  return { sessions, total: count ?? 0 };
+}
+
 /**
  * Mark a session as ended by setting ended_at to now.
  * Session data (messages, feedback) is retained for analysis.

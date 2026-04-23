@@ -10,8 +10,15 @@ export {
   getUserInfoForSession,
   getUserProfileForSession,
   getFeedbackForSessions,
+  getAdminStats,
+  getAdminSessionList,
 } from "./sessions.js";
-export type { UserSessionInfo, UserSessionProfile } from "./sessions.js";
+export type {
+  UserSessionInfo,
+  UserSessionProfile,
+  AdminStats,
+  AdminSessionRow,
+} from "./sessions.js";
 
 export {
   createMessage,
