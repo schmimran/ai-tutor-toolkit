@@ -125,10 +125,10 @@ Inline SVG lightbulb with a yellow lightning bolt inside. Used in three sizes:
 [☰]  [logo-box + Axiom / AI TUTOR]  |  [page title]  ···  [+ New session]  [AC ▾ Alex Chen]
 ```
 
-- Height: `64px`
+- Height: `64px` (desktop) / `56px` (mobile, ≤768px for `.app-header`; ≤600px for the chat page `header`)
 - Background: `var(--header-bg)` (`#b91c1c`)
 - All text white; muted elements at 35–70% opacity
-- Hamburger: 3 lines, `rgba(255,255,255,0.6)`, hover → full white
+- Hamburger: 3 lines, `rgba(255,255,255,0.6)`, hover → full white. Use `<button class="menu-btn">` with three empty `<span>` children — no inline styles. The `.menu-btn` rule is defined in **both** `styles.css` (for the chat page) and `layout.css` (for admin/settings/history); keep the two definitions in sync.
 - Page title: Nunito 700, 15px, `rgba(255,255,255,0.7)`, separated by a 1px white/10% divider
 - **+ New session button**: `var(--accent)` bg, white text, `border-radius: 8px`, subtle red shadow
 - **User chip**: `rgba(255,255,255,0.07)` bg, 1px `rgba(255,255,255,0.1)` border, `border-radius: 10px`

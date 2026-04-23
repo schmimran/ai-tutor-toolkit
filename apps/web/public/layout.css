@@ -75,6 +75,24 @@ html, body {
 }
 .app-header .header-spacer { flex: 1; }
 
+/* ── Hamburger menu button ──
+ * Mirrors the `.menu-btn` rule in styles.css so admin, settings, and history
+ * pages can use `<button class="menu-btn">` without inline styles.  Keep these
+ * two definitions in sync — see docs/ui-style-guide.md. */
+.menu-btn {
+  width: 36px; height: 36px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px; cursor: pointer; flex-shrink: 0;
+  border-radius: 8px; border: none; background: transparent; padding: 0;
+}
+.menu-btn span {
+  display: block; width: 20px; height: 2px;
+  background: rgba(255,255,255,0.6); border-radius: 2px;
+  transition: background .2s;
+}
+.menu-btn:hover span { background: #fff; }
+
 /* ── App body ── */
 .app-body {
   display: flex; flex: 1; min-height: 0;
@@ -152,17 +170,18 @@ html, body {
 
 /* ── Mobile breakpoints ── */
 @media (max-width: 768px) {
+  .app-header { height: 56px; }
   .app-body {
     flex-direction: column;
     height: auto;
-    min-height: calc(100vh - 64px);
+    min-height: calc(100vh - 56px);
     overflow-y: auto;
   }
   .page-sidebar {
     display: none;
   }
   .page-content {
-    min-height: calc(100vh - 64px);
+    min-height: calc(100vh - 56px);
     overflow-y: visible;
   }
 }
