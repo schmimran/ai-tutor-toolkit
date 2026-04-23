@@ -19,6 +19,33 @@
   let client = null;
   let initPromise = null;
 
+  // ── Idle-session enforcement ──────────────────────────────────────────────
+  // Re-require login if the user has been inactive for more than 60 minutes.
+  // "Activity" is any mouse move, key press, click, or touch. We track it in
+  // localStorage so the clock is shared across tabs.
+  const IDLE_KEY     = 'auth.lastActivityAt';
+  const IDLE_LIMIT   = 60 * 60 * 1000; // 60 minutes
+
+  function touchActivity() {
+    localStorage.setItem(IDLE_KEY, Date.now().toString());
+  }
+
+  function isIdleExpired() {
+    const raw = localStorage.getItem(IDLE_KEY);
+    if (!raw) return false; // no record → new session, not expired
+    return (Date.now() - parseInt(raw, 10)) > IDLE_LIMIT;
+  }
+
+  let trackingStarted = false;
+  function startActivityTracking() {
+    if (trackingStarted) return;
+    trackingStarted = true;
+    ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(evt =>
+      document.addEventListener(evt, touchActivity, { passive: true, capture: true })
+    );
+    touchActivity(); // record activity on page load
+  }
+
   async function loadConfig() {
     const res = await fetch("/api/config", { cache: "no-store" });
     if (!res.ok) throw new Error("config fetch failed: " + res.status);
@@ -67,6 +94,13 @@
       window.location.href = "/login.html";
       throw new Error("not_authenticated");
     }
+    if (isIdleExpired()) {
+      try { await client.auth.signOut(); } catch (_) { /* ignore */ }
+      localStorage.removeItem(IDLE_KEY);
+      window.location.href = "/login.html?reason=session_expired";
+      throw new Error("idle_timeout");
+    }
+    startActivityTracking();
     return session;
   }
 
@@ -100,6 +134,7 @@
 
   async function signOut() {
     await init();
+    localStorage.removeItem(IDLE_KEY);
     try { await client.auth.signOut(); } catch (e) { /* ignore */ }
     window.location.href = "/login.html";
   }

@@ -100,6 +100,8 @@
   const sidebarDisplayName = $('sidebar-display-name');
   const sidebarAvatarInitials = $('sidebar-avatar-initials');
   const sidebarGrade       = $('sidebar-grade');
+  const sidebarSettings    = $('sidebar-settings');
+  const sidebarHistory     = $('sidebar-history');
 
   // ── Config ────────────────────────────────────────────────────────────────
   async function fetchConfig() {
@@ -1130,6 +1132,22 @@
     saveResumeIfActive();
     window.location.href = '/history.html';
   });
+
+  // Sidebar nav links also need to preserve the session before navigating.
+  if (sidebarSettings) {
+    sidebarSettings.addEventListener('click', e => {
+      e.preventDefault();
+      saveResumeIfActive();
+      window.location.href = '/settings.html';
+    });
+  }
+  if (sidebarHistory) {
+    sidebarHistory.addEventListener('click', e => {
+      e.preventDefault();
+      saveResumeIfActive();
+      window.location.href = '/history.html';
+    });
+  }
   menuLogout.addEventListener('click', () => {
     closeAccountDropdown();
     handleLogout();
