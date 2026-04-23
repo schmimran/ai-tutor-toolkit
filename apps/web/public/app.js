@@ -100,8 +100,6 @@
   const sidebarDisplayName = $('sidebar-display-name');
   const sidebarAvatarInitials = $('sidebar-avatar-initials');
   const sidebarGrade       = $('sidebar-grade');
-  const sidebarSettings    = $('sidebar-settings');
-  const sidebarHistory     = $('sidebar-history');
 
   // ── Config ────────────────────────────────────────────────────────────────
   async function fetchConfig() {
@@ -1122,16 +1120,23 @@
     }
   }
 
-  function navigateTo(url) {
+  // Preserve the active tutor session on any internal navigation.
+  // Delegated on document so it covers every <a href="/…"> — sidebar, dropdown,
+  // and any future internal link added to the tutor page.
+  document.addEventListener('click', e => {
+    // Respect modifier/middle clicks so cmd/ctrl-click still opens new tabs.
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    const href = a.getAttribute('href');
+    if (!href || !href.startsWith('/') || href.startsWith('//')) return;
     saveResumeIfActive();
-    window.location.href = url;
-  }
+    // Let the browser navigate normally — no preventDefault.
+  });
 
-  menuSettings.addEventListener('click', () => { closeAccountDropdown(); navigateTo('/settings.html'); });
-  menuHistory.addEventListener('click',  () => { closeAccountDropdown(); navigateTo('/history.html'); });
-
-  if (sidebarSettings) sidebarSettings.addEventListener('click', e => { e.preventDefault(); navigateTo('/settings.html'); });
-  if (sidebarHistory)  sidebarHistory.addEventListener('click',  e => { e.preventDefault(); navigateTo('/history.html'); });
+  // Dropdown menu items are <button>s, not <a>, so they need explicit handlers.
+  menuSettings.addEventListener('click', () => { closeAccountDropdown(); saveResumeIfActive(); window.location.href = '/settings.html'; });
+  menuHistory.addEventListener('click',  () => { closeAccountDropdown(); saveResumeIfActive(); window.location.href = '/history.html'; });
   menuLogout.addEventListener('click', () => {
     closeAccountDropdown();
     handleLogout();

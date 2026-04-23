@@ -70,11 +70,6 @@
     // accepts updateUser({ password }) because the session itself was just
     // issued by the recovery flow.
     if (currentPasswordField) currentPasswordField.style.display = "none";
-    var backLinkEl = document.getElementById("btn-back-link");
-    if (backLinkEl) {
-      backLinkEl.textContent = "Cancel — go to login";
-      backLinkEl.href = "/login.html";
-    }
     if (newPasswordEl) newPasswordEl.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
