@@ -177,6 +177,7 @@ export function createChatRouter(
             console.error("[chat] Could not create DB session row:", err);
           }
         } else if (session.ownerId !== null && session.ownerId !== userId) {
+          // ownerId null = session predates this guard; allow through for migration safety.
           res.status(403).json({ error: "Forbidden." });
           return;
         }

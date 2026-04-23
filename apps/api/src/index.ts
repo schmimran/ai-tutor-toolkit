@@ -25,7 +25,7 @@ import { createConfigRouter } from "./routes/config.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { createHistoryRouter } from "./routes/history.js";
 import { createAdminEvaluationsRouter } from "./routes/admin-evaluations.js";
-import { getAllSessions, removeSession, markReaping, unmarkReaping } from "./lib/session-store.js";
+import { getAllSessions, removeSession, markReaping, unmarkReaping, isReaping } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
 
@@ -141,6 +141,8 @@ setInterval(() => {
   const now = Date.now();
   for (const [sessionId, session] of getAllSessions()) {
     if (now - session.lastActivityAt.getTime() > INACTIVITY_MS) {
+      if (isReaping(sessionId)) continue; // teardown already in progress
+
       // Mark as reaping to prevent the next sweep tick from re-processing and
       // to block concurrent chat requests on this session during async teardown.
       // The session stays in the store until finishReap removes it, so no
