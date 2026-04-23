@@ -25,7 +25,7 @@ import { createConfigRouter } from "./routes/config.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { createHistoryRouter } from "./routes/history.js";
 import { createAdminEvaluationsRouter } from "./routes/admin-evaluations.js";
-import { getAllSessions, removeSession } from "./lib/session-store.js";
+import { getAllSessions, removeSession, markReaping, unmarkReaping } from "./lib/session-store.js";
 import { sendTranscript } from "@ai-tutor/email";
 import { buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
 
@@ -130,9 +130,9 @@ app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
 app.use("/api/admin/evaluations", createAdminEvaluationsRouter(db, config, emailConfig));
+app.use("/api/history", createHistoryRouter(db));
 if (anonDb) {
   app.use("/api/auth", createAuthRouter(db, anonDb));
-  app.use("/api/history", createHistoryRouter(db));
 }
 
 app.use(errorHandler);
@@ -141,19 +141,24 @@ setInterval(() => {
   const now = Date.now();
   for (const [sessionId, session] of getAllSessions()) {
     if (now - session.lastActivityAt.getTime() > INACTIVITY_MS) {
-      // Remove from memory first to prevent the next sweep tick from re-processing.
-      removeSession(sessionId);
+      // Mark as reaping to prevent the next sweep tick from re-processing and
+      // to block concurrent chat requests on this session during async teardown.
+      // The session stays in the store until finishReap removes it, so no
+      // concurrent chat request can silently resurrect an empty ghost session.
+      markReaping(sessionId);
 
-      // Shared teardown: mark ended_at in DB and log. Called both from the async
-      // email path (in finally, after the transcript email completes) and from
-      // the no-email path (immediately).
+      // Shared teardown: mark ended_at in DB, then remove from memory. Called
+      // both from the async email path (in finally) and the no-email path.
       const finishReap = async () => {
         try {
           await markSessionEnded(db, sessionId);
         } catch (err) {
           console.error(`[sweep] Could not mark session ${sessionId} as ended:`, err);
+        } finally {
+          removeSession(sessionId);
+          unmarkReaping(sessionId);
+          console.log(`[sweep] Reaped idle session ${sessionId}.`);
         }
-        console.log(`[sweep] Reaped idle session ${sessionId}.`);
       };
 
       if (!session.emailSent && session.transcript.length > 0) {

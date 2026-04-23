@@ -13,6 +13,11 @@ import { Session } from "@ai-tutor/core";
  */
 const store = new Map<string, Session>();
 
+// Sessions currently being torn down by the inactivity sweep. Kept in the
+// store until teardown finishes to prevent chat requests from re-creating them
+// as empty sessions against a DB row that is about to be marked ended.
+const reapingSet = new Set<string>();
+
 export function getOrCreateSession(id: string): Session {
   if (!store.has(id)) {
     store.set(id, new Session());
@@ -30,4 +35,16 @@ export function removeSession(id: string): void {
 
 export function getAllSessions(): IterableIterator<[string, Session]> {
   return store.entries();
+}
+
+export function markReaping(id: string): void {
+  reapingSet.add(id);
+}
+
+export function unmarkReaping(id: string): void {
+  reapingSet.delete(id);
+}
+
+export function isReaping(id: string): boolean {
+  return reapingSet.has(id);
 }

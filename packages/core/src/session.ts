@@ -79,6 +79,8 @@ export class Session {
   promptName: string | null = null;
   /** Whether extended thinking is enabled for this session. Null until set on the first message. */
   extendedThinking: boolean | null = null;
+  /** Authenticated user ID that owns this session. Set on the first message; subsequent callers must match. */
+  ownerId: string | null = null;
 
   /**
    * Record a user message.
@@ -173,5 +175,6 @@ export class Session {
     this.model = null;
     this.promptName = null;
     this.extendedThinking = null;
+    this.ownerId = null;
   }
 }
