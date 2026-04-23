@@ -479,7 +479,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 5. **Build before testing API changes.**  Run `npm run build` from the root, then `npm run api`.
 6. **Never expose secrets through `/api/config`.**  That route is intentionally public.
 7. **Do not modify** `templates/tutor-prompt-v7.md`, `templates/tutor-prompt-v6.md`, `templates/physics-geometry-9th-grade-v6.md`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  These are source-of-truth documents.
-8. **Transcript emails must be idempotent.**  The `email_sent` flag and `markEmailSent()` method exist precisely to prevent duplicate emails during the inactivity sweep and explicit session deletion.
+8. **Transcript emails must be idempotent.**  The in-memory `reapingSet` (`markReaping`/`isReaping`/`unmarkReaping` in `apps/api/src/lib/session-store.ts`) is the bidirectional guard that keeps the inactivity sweep and the explicit `DELETE /api/sessions/:id` handler from dispatching a second student transcript email. The DB `sessions.email_sent` column is the admin-side guard: it's checked in `processBatchResults()` before the admin transcript is sent and set to `true` on success.
 9. **SSE errors must close the connection.**  If you add a new error path in a streaming route, send the error event and then call `res.end()`.
 10. **In-memory session IDs are client-generated UUIDs.**  Never generate them server-side.  The client owns the session ID lifecycle.
 

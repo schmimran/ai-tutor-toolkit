@@ -279,7 +279,13 @@ export async function processBatchResults(
         userProfile,
       );
 
-      if (opts.emailConfig.apiKey && opts.emailConfig.to) {
+      if (!opts.emailConfig.apiKey || !opts.emailConfig.to) {
+        outcome.skipped += 1;
+      } else if (dbSession.email_sent) {
+        // Already sent for this session (e.g., a retry after a partial run).
+        // email_sent is the DB-level idempotency guard for the admin copy.
+        outcome.skipped += 1;
+      } else {
         try {
           // Admin-only: student already got their transcript at session end.
           await sendTranscript(opts.emailConfig, payload);
@@ -288,8 +294,6 @@ export async function processBatchResults(
         } catch (err) {
           console.error(`[batch-eval] Failed to send admin transcript for ${sessionId}:`, err);
         }
-      } else {
-        outcome.skipped += 1;
       }
     }
 

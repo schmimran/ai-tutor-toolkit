@@ -4,7 +4,7 @@ import {
   markSessionEnded,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSession, removeSession, isReaping } from "../lib/session-store.js";
+import { getSession, removeSession, isReaping, markReaping, unmarkReaping } from "../lib/session-store.js";
 import { getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "../lib/evaluation.js";
 import { UUID_RE } from "../lib/validation.js";
 import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
@@ -72,10 +72,13 @@ export function createSessionsRouter(
       const discard = req.query["discard"] === "true";
       const session = getSession(sessionId);
 
+      // Claim the teardown slot so the sweep skips this session. Bidirectional
+      // guard: prevents duplicate student emails when DELETE and the sweep
+      // would otherwise both dispatch one.
+      const sweeping = isReaping(sessionId);
+      if (!sweeping) markReaping(sessionId);
+
       try {
-        // If the sweep is already tearing down this session, skip the email
-        // here — the sweep will send it. Prevents duplicate student emails.
-        const sweeping = isReaping(sessionId);
         if (!discard && !sweeping && session && session.transcript.length > 0) {
           // Record a timeout-feedback row for analytics (picked up later by
           // batch eval when the admin transcript is sent).
@@ -98,6 +101,7 @@ export function createSessionsRouter(
         } catch (err) {
           console.error("[sessions] Could not mark DB session as ended:", err);
         }
+        if (!sweeping) unmarkReaping(sessionId);
       }
 
       res.json({ ok: true });
