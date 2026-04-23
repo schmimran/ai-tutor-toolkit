@@ -27,6 +27,8 @@ apps/web/
 │   ├── history.css    ← Session history page styles
 │   ├── history.js     ← Session history logic
 │   ├── admin.html     ← Admin panel (evaluation batch management)
+│   ├── admin.css      ← Admin page styles (page-specific; layout.css loaded first)
+│   ├── layout.css     ← Shared tokens and app-shell layout (loaded by admin, settings, history)
 │   ├── mockup.html    ← Static UI reference implementation (docs/ui-style-guide.md)
 │   ├── manifest.json  ← PWA web app manifest
 │   └── icons/         ← PWA app icons (192×192 and 512×512 PNGs)
@@ -34,7 +36,7 @@ apps/web/
 └── README.md
 ```
 
-Each page has a matching CSS file (`page.html` + `page.css`) and, where needed, a page JS module (`page.js`). `styles.css` and `auth.js` are shared.
+Each page has a matching CSS file (`page.html` + `page.css`) and, where needed, a page JS module (`page.js`). `styles.css` and `auth.js` are shared across the main chat page. `layout.css` is shared across the admin, settings, and history pages, which all load it before their own per-page stylesheet.
 
 ## Usage
 

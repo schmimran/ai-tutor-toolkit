@@ -569,10 +569,13 @@ These apply to every Claude Code session in this repo.
 | `apps/web/public/login.html` | Login/register/forgot-password page. Unauthenticated users are redirected here. |
 | `apps/web/public/login.css` | Styles for `login.html`. Self-contained dark theme mirroring `styles.css` palette. |
 | `apps/web/public/login.js` | Tabbed login/register/forgot panels. Calls the three server-side proxy endpoints for rate-limited operations; delegates hash callbacks (signup, recovery) to supabase-js's `detectSessionInUrl`. Listens for `PASSWORD_RECOVERY` to redirect into the settings page. |
-| `apps/web/public/settings.html` | Settings page — account info, preferences, email change, password change. Loads supabase-js + auth.js. |
+| `apps/web/public/layout.css` | Shared design tokens (`:root` variables), base resets, app-shell layout (`.app-header`, `.app-body`, `.page-sidebar`, `.page-content`), and mobile breakpoints (≤768px). Loaded before per-page stylesheets by admin.html, settings.html, and history.html. |
+| `apps/web/public/settings.html` | Settings page — account info, preferences, email change, password change. Loads layout.css, settings.css, supabase-js, auth.js. |
 | `apps/web/public/settings.js` | Uses supabase-js directly: `auth.updateUser` for password/email changes (with `currentPassword` verification when not in recovery), and direct `profiles` upsert under RLS for transcript preferences. Email-change flow passes `emailRedirectTo: window.location.origin + "/settings.html"` and listens for `USER_UPDATED`/`EMAIL_CHANGE` events on `onAuthStateChange` to refresh the displayed email after confirmation. |
-| `apps/web/public/history.html` | Session history page. Loads supabase-js + auth.js. |
+| `apps/web/public/history.html` | Session history page. Loads layout.css, history.css, supabase-js, auth.js. |
 | `apps/web/public/history.js` | Uses `authedFetch` to call `/api/history` and `/api/transcript/:id`. |
+| `apps/web/public/admin.html` | Admin panel (evaluation batch management). Loads layout.css, admin.css, supabase-js, auth.js. |
+| `apps/web/public/admin.css` | Admin-specific styles — cards, table, status badges, inputs, buttons. Page-specific only; shared tokens and shell live in layout.css. |
 | `apps/web/public/manifest.json` | PWA web app manifest — standalone display, theme colors, icon references |
 | `apps/web/public/icons/` | PWA app icons (192×192 and 512×512 PNGs) for home-screen and manifest |
 | `apps/cli/src/index.ts` | Terminal REPL — readline loop, `sendMessage()`, transcript export |
