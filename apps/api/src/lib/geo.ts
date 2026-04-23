@@ -8,10 +8,7 @@ import type { ClientInfo } from "@ai-tutor/core";
  * raw socket address.  Runs a geoip lookup and returns a ClientInfo object.
  */
 export function extractClientInfo(req: Request): ClientInfo {
-  const ip =
-    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
-    req.socket.remoteAddress ??
-    "";
+  const ip = req.ip ?? req.socket.remoteAddress ?? "";
   const geo = geoip.lookup(ip);
   return {
     ip,

@@ -7,7 +7,7 @@ import {
   updateSession,
 } from "@ai-tutor/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getOrCreateSession } from "../lib/session-store.js";
+import { getOrCreateSession, isReaping } from "../lib/session-store.js";
 import { initSSE, sendEvent } from "../lib/stream.js";
 import { extractClientInfo } from "../lib/geo.js";
 import { createRequireAuth, type AuthedRequest } from "../middleware/require-auth.js";
@@ -126,10 +126,18 @@ export function createChatRouter(
         }
 
         const files = (req.files as Express.Multer.File[]) ?? [];
-        const session = getOrCreateSession(sessionId);
 
-        // Capture client info and model/prompt on the first message of the session.
-        if (session.transcript.length === 0) {
+        if (isReaping(sessionId)) {
+          res.status(409).json({ error: "Session is ending. Please start a new session." });
+          return;
+        }
+
+        const session = getOrCreateSession(sessionId);
+        const isFirstMessage = session.transcript.length === 0;
+
+        if (isFirstMessage) {
+          // Bind this session to the calling user and capture client metadata.
+          session.ownerId = userId;
           session.setClientInfo(extractClientInfo(req));
 
           // Validate and set model for this session.
@@ -168,6 +176,10 @@ export function createChatRouter(
           } catch (err) {
             console.error("[chat] Could not create DB session row:", err);
           }
+        } else if (session.ownerId !== null && session.ownerId !== userId) {
+          // ownerId null = session predates this guard; allow through for migration safety.
+          res.status(403).json({ error: "Forbidden." });
+          return;
         }
 
         // Store uploaded files on the session for later email attachment.
