@@ -345,7 +345,7 @@
         if (!res.ok || !data.ok) return;
         const s = data.stats;
         document.getElementById("stat-total").textContent = s.totalSessions.toLocaleString();
-        document.getElementById("stat-users").textContent = s.activeUsers.toLocaleString();
+        document.getElementById("stat-users").textContent = s.registeredUsers.toLocaleString();
         document.getElementById("stat-today").textContent = s.sessionsToday.toLocaleString();
         document.getElementById("stat-week").textContent = s.sessionsThisWeek.toLocaleString();
         document.getElementById("stat-avg").textContent =
@@ -356,8 +356,8 @@
     }
 
     // ── Sessions table ──────────────────────────────────────────────────
-    var sessionsOffset = 0;
-    var sessionsTotal = 0;
+    let sessionsOffset = 0;
+    let sessionsTotal = 0;
 
     function fmtDate(iso) {
       if (!iso) return "—";
@@ -368,11 +368,11 @@
     }
     function fmtDuration(start, end) {
       if (!start || !end) return "—";
-      var mins = Math.round((new Date(end) - new Date(start)) / 60000);
+      const mins = Math.round((new Date(end) - new Date(start)) / 60000);
       return mins < 1 ? "<1 min" : mins + " min";
     }
     function fmtExperience(v) {
-      return { positive: "Good", neutral: "Neutral", negative: "Difficult" }[v] || (v || "—");
+      return { positive: "Good", neutral: "Neutral", negative: "Difficult" }[v] || "—";
     }
 
     async function loadSessions(offset) {
@@ -416,7 +416,7 @@
           tds[3].textContent = (s.model || "—").replace("claude-", "");
           tds[4].textContent = fmtExperience(s.experience);
           const viewBtn = document.createElement("button");
-          viewBtn.className = "secondary poll-btn";
+          viewBtn.className = "secondary";
           viewBtn.textContent = "View";
           viewBtn.addEventListener("click", function() {
             viewTranscript(s.id, s.user_email, s.started_at);

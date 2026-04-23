@@ -129,7 +129,6 @@ app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
 app.use("/api/config", createConfigRouter(config, INACTIVITY_MS, promptMap, defaultPromptName));
 app.use("/api/admin/evaluations", createAdminEvaluationsRouter(db, config, emailConfig));
-// Service-role `db` client is required — getAdminSessionList calls auth.admin.listUsers().
 app.use("/api/admin", createAdminStatsRouter(db));
 app.use("/api/history", createHistoryRouter(db));
 if (anonDb) {

@@ -190,29 +190,14 @@ export async function getFeedbackForSessions(
   return map;
 }
 
-/**
- * Aggregate usage stats returned by GET /api/admin/stats.
- *
- * `activeUsers` is a misnomer carried over from the launchpad tile name —
- * it is the count of registered users (from `auth.admin.listUsers`), not a
- * count of distinct session users. The admin UI labels this "Registered
- * Users" so the number is not misleading.
- */
 export interface AdminStats {
   totalSessions: number;
-  activeUsers: number;
+  registeredUsers: number;
   sessionsToday: number;
   sessionsThisWeek: number;
   avgDurationSeconds: number | null;
 }
 
-/**
- * Compute aggregate stats for the admin dashboard.
- *
- * Must be called with the service-role client — bypasses RLS and calls
- * `auth.admin.listUsers`. The avg-duration sample is capped at 500 ended
- * sessions which is fine for an early-stage product.
- */
 export async function getAdminStats(
   client: SupabaseClient,
 ): Promise<AdminStats> {
@@ -248,12 +233,12 @@ export async function getAdminStats(
     avgDurationSeconds = Math.round(totalMs / rows.length / 1000);
   }
 
-  const userTotal =
+  const registeredUsers =
     (users.data as { total?: number } | null)?.total ?? users.data?.users?.length ?? 0;
 
   return {
     totalSessions: total.count ?? 0,
-    activeUsers: userTotal,
+    registeredUsers,
     sessionsToday: today.count ?? 0,
     sessionsThisWeek: week.count ?? 0,
     avgDurationSeconds,
@@ -279,11 +264,6 @@ export interface AdminSessionRow {
   has_failures: boolean | null;
 }
 
-/**
- * Paginated list of ended sessions across all users with feedback and
- * evaluation fields embedded. Used by the admin dashboard recent-sessions
- * table. Must be called with the service-role client.
- */
 export async function getAdminSessionList(
   client: SupabaseClient,
   opts: { limit?: number; offset?: number } = {},
@@ -303,19 +283,17 @@ export async function getAdminSessionList(
 
   if (error) throw new Error(`getAdminSessionList: ${error.message}`);
 
-  // Batch user-email lookup to avoid N+1 queries. listUsers paginates at
-  // 1000 per page by default; fine for an early-stage product.
-  // TODO: pagination cap at 1000 users — implement multi-page fetch if the
-  // registered-user count exceeds 1000.
   const emailMap = new Map<string, string>();
   const rows = (data ?? []) as Array<Record<string, unknown>>;
   const userIds = [...new Set(
     rows.map((r) => r.user_id as string | null | undefined).filter((u): u is string => Boolean(u)),
   )];
   if (userIds.length > 0) {
-    const { data: usersData } = await client.auth.admin.listUsers({ perPage: 1000 });
-    for (const u of usersData?.users ?? []) {
-      if (u.email) emailMap.set(u.id, u.email);
+    const userResults = await Promise.all(
+      userIds.map((id) => client.auth.admin.getUserById(id)),
+    );
+    for (const { data: u } of userResults) {
+      if (u?.user?.email) emailMap.set(u.user.id, u.user.email);
     }
   }
 
