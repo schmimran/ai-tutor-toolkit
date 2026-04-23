@@ -71,7 +71,6 @@ export class Session {
   startedAt: Date = new Date();
   lastActivityAt: Date = new Date();
   clientInfo: ClientInfo = {};
-  emailSent = false;
   tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
   /** Claude model ID used for this session. Set on first message. */
   model: string | null = null;
@@ -141,11 +140,6 @@ export class Session {
     this.tokenUsage.outputTokens += output;
   }
 
-  /** Prevent double-send of the session email. */
-  markEmailSent(): void {
-    this.emailSent = true;
-  }
-
   /** Returns a plain object summarizing the session, suitable for email. */
   getSessionSummary(): SessionSummary {
     return {
@@ -170,7 +164,6 @@ export class Session {
     this.files.length = 0;
     this.startedAt = new Date();
     this.lastActivityAt = new Date();
-    this.emailSent = false;
     this.tokenUsage = { inputTokens: 0, outputTokens: 0 };
     this.model = null;
     this.promptName = null;

@@ -12,7 +12,6 @@ import {
   createSupabaseClient,
   createSupabaseAnonClient,
   markSessionEnded,
-  getUserInfoForSession,
 } from "@ai-tutor/db";
 import { corsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/errors.js";
@@ -26,8 +25,7 @@ import { createAuthRouter } from "./routes/auth.js";
 import { createHistoryRouter } from "./routes/history.js";
 import { createAdminEvaluationsRouter } from "./routes/admin-evaluations.js";
 import { getAllSessions, removeSession, markReaping, unmarkReaping, isReaping } from "./lib/session-store.js";
-import { sendTranscript } from "@ai-tutor/email";
-import { buildTranscriptEmailPayload, markEmailSentPersisted, getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
+import { getOrCreateTimeoutFeedback, sendUserTranscriptIfApplicable } from "./lib/evaluation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -124,7 +122,7 @@ app.use(express.static(path.join(__dirname, "../../web/public")));
 
 // Routes
 app.use("/api/chat", createChatRouter(tutorClient, db, promptMap, defaultPromptName, config.model, config.extendedThinking));
-app.use("/api/sessions", createSessionsRouter(db, emailConfig, config));
+app.use("/api/sessions", createSessionsRouter(db, emailConfig));
 app.use("/api/transcript", createTranscriptEmailRouter(db, { apiKey: emailConfig.apiKey, from: emailConfig.from }));
 app.use("/api/transcript", createTranscriptRouter(db));
 app.use("/api/feedback", createFeedbackRouter(db));
@@ -163,33 +161,23 @@ setInterval(() => {
         }
       };
 
-      if (!session.emailSent && session.transcript.length > 0) {
+      if (session.transcript.length > 0) {
         void (async () => {
           try {
-            const [feedback, userInfo] = await Promise.all([
-              getOrCreateTimeoutFeedback(db, sessionId, "sweep"),
-              getUserInfoForSession(db, sessionId).catch(() => null),
-            ]);
+            // Record a timeout-feedback row for analytics (picked up later by
+            // batch eval when the admin transcript is sent).
+            await getOrCreateTimeoutFeedback(db, sessionId, "sweep");
 
-            const payload = buildTranscriptEmailPayload(
-              session, sessionId, null, feedback,
-              { model: config.model, promptName: defaultPromptName, extendedThinking: config.extendedThinking },
-              userInfo,
-            );
-            await sendTranscript(emailConfig, payload);
-            if (emailConfig.apiKey && emailConfig.to) {
-              await markEmailSentPersisted(session, db, sessionId, "sweep");
-            }
-            // Send a student-facing copy (fire-and-forget).
+            // Student-facing transcript is the only email sent at session end.
+            // Gated by profiles.email_transcripts_enabled inside the helper.
             const summary = session.getSessionSummary();
-            void sendUserTranscriptIfApplicable(
+            await sendUserTranscriptIfApplicable(
               sessionId, summary.transcript, summary.startedAt, summary.durationMs,
               emailConfig.from, db,
             );
           } catch (err) {
             console.error(`[sweep] Failed to process session ${sessionId}:`, err);
           } finally {
-            // Mark ended_at only after the email has completed (or failed).
             await finishReap();
           }
         })();

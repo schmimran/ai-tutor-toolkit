@@ -63,7 +63,7 @@ The model appends `[END_SESSION_AVAILABLE]` on its own line when a conversation 
 
 ### In-memory session store + database
 
-Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — recording a `source: 'timeout'` feedback row if none exists, sending an email transcript (including feedback), and marking the session ended in the DB.  When a session is explicitly ended via `DELETE /api/sessions/:id`, the same feedback fetch happens before the transcript email is sent.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.  Transcript evaluation runs out-of-band via the admin-gated batch evaluator (see `apps/api/src/routes/admin-evaluations.ts`).
+Sessions live in memory (`apps/api/src/lib/session-store.ts`) during an active conversation.  After each turn, messages are also persisted to Supabase so nothing is lost if the server restarts.  The inactivity sweep runs every 60 seconds and reaps sessions idle longer than 10 minutes — recording a `source: 'timeout'` feedback row if none exists, sending a **student-only** transcript email (gated by `profiles.email_transcripts_enabled`), and marking the session ended in the DB.  When a session is explicitly ended via `DELETE /api/sessions/:id`, the same student-only email flow runs.  No admin email is sent at session end; the admin copy with evaluation data is sent later by the batch evaluator.  Session rows, messages, and feedback are **not deleted** — they are retained for analysis.  `ended_at` is set on the session row to mark completion.  Transcript evaluation runs out-of-band via the admin-gated batch evaluator (see `apps/api/src/routes/admin-evaluations.ts`).
 
 The inactivity timeout (`INACTIVITY_MS`) is defined as a constant in `apps/api/src/index.ts` and served via `GET /api/config` as `inactivityMs` so the frontend stays in sync with the server-side sweep.  The frontend uses the same value to trigger its own auto-end flow after the same duration of client-side inactivity.
 
@@ -327,7 +327,7 @@ Returns `404` if not found.
 
 ### DELETE /api/sessions/:sessionId
 
-End a session.  Sends transcript email if transcript exists and email not yet sent.  Removes the in-memory session and sets `ended_at` on the DB row.  Session data (messages, feedback) is **retained** for analysis.
+End a session.  Sends the student's transcript email (gated by `profiles.email_transcripts_enabled`) if a transcript exists.  Removes the in-memory session and sets `ended_at` on the DB row.  Session data (messages, feedback) is **retained** for analysis.  No admin email is sent at this point — the admin copy is sent later when batch evaluation completes.
 
 **Query parameters**
 
@@ -406,11 +406,11 @@ Submit end-of-session feedback.  Saves one row to `session_feedback`.  No email 
 
 Admin-gated endpoints for the batched evaluation subsystem. All require a valid Bearer token whose JWT `app_metadata.is_admin` claim is true — otherwise they return `403 { ok: false, error: "admin_only" }`. The admin check is enforced by `requireAdmin` middleware in [apps/api/src/middleware/require-admin.ts](apps/api/src/middleware/require-admin.ts).
 
-Results are written to `session_evaluations` and `sessions.evaluated`. For each succeeded result, `sendTranscript()` delivers an admin transcript email; a student-facing copy is sent fire-and-forget via `sendUserTranscript()` when the session belongs to a registered user with transcripts enabled. `email_sent` is checked before dispatch to avoid duplicates.
+Results are written to `session_evaluations` and `sessions.evaluated`. For each succeeded result, `sendTranscript()` delivers an **admin-only** transcript email (the student already received their copy at session end). `email_sent` is set to prevent a later re-send for the same session.
 
 - `POST /api/admin/evaluations/batches` — body `{ limit?: number }` (default 50, capped at 100). Picks up sessions where `evaluated=false AND ended_at IS NOT NULL` that aren't already claimed by a batch in `submitted`/`ended` state. Builds a request per session via `buildEvaluationRequestParams()`, submits to Anthropic's Messages Batches API, and persists an `evaluation_batches` row with status `submitted`. Returns `{ ok: true, id, anthropicBatchId, sessionCount }` or `{ ok: true, sessionCount: 0 }` if nothing is pending.
 - `GET /api/admin/evaluations/batches` — returns the 50 most recent batch rows (newest first) as `{ ok: true, batches: [...] }`.
-- `GET /api/admin/evaluations/batches/:id` — idempotent status-then-finalize. Loads the batch row (404 if missing); if `status=submitted`, polls Anthropic and updates `request_counts` (+ flips to `ended` when complete); if `status=ended`, downloads results and runs `processBatchResults()` — writes evaluations, flips `sessions.evaluated=true`, sends admin + user transcript emails, and marks the batch `processed`. Returns the final batch row plus an `outcome` summary `{ succeeded, errored, skipped, emailsSent }`.
+- `GET /api/admin/evaluations/batches/:id` — idempotent status-then-finalize. Loads the batch row (404 if missing); if `status=submitted`, polls Anthropic and updates `request_counts` (+ flips to `ended` when complete); if `status=ended`, downloads results and runs `processBatchResults()` — writes evaluations, flips `sessions.evaluated=true`, sends **admin-only** transcript emails with evaluations, and marks the batch `processed`. Returns the final batch row plus an `outcome` summary `{ succeeded, errored, skipped, emailsSent }`.
 
 ---
 
@@ -479,7 +479,7 @@ Do not add a build step to this package.  Do not introduce a framework.  If comp
 5. **Build before testing API changes.**  Run `npm run build` from the root, then `npm run api`.
 6. **Never expose secrets through `/api/config`.**  That route is intentionally public.
 7. **Do not modify** `templates/tutor-prompt-v7.md`, `templates/tutor-prompt-v6.md`, `templates/physics-geometry-9th-grade-v6.md`, `tests/`, `docs/methodology.md`, `docs/model-selection.md`, or `docs/lessons-learned.md` without explicit instruction.  These are source-of-truth documents.
-8. **Transcript emails must be idempotent.**  The `email_sent` flag and `markEmailSent()` method exist precisely to prevent duplicate emails during the inactivity sweep and explicit session deletion.
+8. **Transcript emails must be idempotent.**  The in-memory `reapingSet` (`markReaping`/`isReaping`/`unmarkReaping` in `apps/api/src/lib/session-store.ts`) is the bidirectional guard that keeps the inactivity sweep and the explicit `DELETE /api/sessions/:id` handler from dispatching a second student transcript email. The DB `sessions.email_sent` column is the admin-side guard: it's checked in `processBatchResults()` before the admin transcript is sent and set to `true` on success.
 9. **SSE errors must close the connection.**  If you add a new error path in a streaming route, send the error event and then call `res.end()`.
 10. **In-memory session IDs are client-generated UUIDs.**  Never generate them server-side.  The client owns the session ID lifecycle.
 
@@ -553,7 +553,7 @@ These apply to every Claude Code session in this repo.
 | `apps/api/scripts/gen-build-info.js` | Generates `build-info.json` (commit SHA + timestamp) at build time; called by the API `build` script |
 | `apps/api/build-info.json` | Generated build metadata (gitignored); read at startup by the config route |
 | `apps/api/src/routes/config.ts` | `GET /api/config` |
-| `apps/api/src/lib/evaluation.ts` | `buildEvaluationPayload()` — maps result to email shape; `buildTranscriptEmailPayload()` — assembles full email payload from session data; helpers for timeout-feedback, marking emails sent, and student-facing transcript dispatch |
+| `apps/api/src/lib/evaluation.ts` | `buildEvaluationPayload()` — maps result to email shape; `getOrCreateTimeoutFeedback()` — records a source:'timeout' feedback row on session end for analytics; `sendUserTranscriptIfApplicable()` — student-facing transcript dispatch respecting `profiles.email_transcripts_enabled` |
 | `apps/api/src/lib/session-store.ts` | In-memory session cache (`Map<id, Session>`) |
 | `apps/api/src/lib/stream.ts` | SSE helpers (`initSSE`, `sendEvent`, `sendHeartbeat`) |
 | `apps/api/src/lib/geo.ts` | `extractClientInfo()` — IP, geolocation, user-agent extraction |

@@ -84,7 +84,7 @@ apps/api/src/
 │   ├── require-auth.ts     ← Bearer token verification middleware
 │   └── require-admin.ts    ← Admin-only gating (chains after require-auth)
 └── lib/
-    ├── evaluation.ts       ← buildEvaluationPayload(), buildTranscriptEmailPayload(), timeout-feedback + email helpers
+    ├── evaluation.ts       ← buildEvaluationPayload(), getOrCreateTimeoutFeedback(), sendUserTranscriptIfApplicable()
     ├── batch-evaluation.ts ← findPendingEvaluations(), createEvaluationBatchForPending(), processBatchResults()
     ├── session-store.ts    ← In-memory Map<sessionId, Session>
     ├── stream.ts           ← SSE helpers (initSSE, sendEvent, sendHeartbeat)
