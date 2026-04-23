@@ -521,7 +521,7 @@ These apply to every Claude Code session in this repo.
 | `docs/model-selection.md` | Model selection analysis — v7 (archived v1 version at `docs/archive/model-selection-v1.md`) |
 | `docs/lessons-learned.md` | Key findings — v7 (archived v1 version at `docs/archive/lessons-learned-v1.md`) |
 | `docs/archive/` | Archived versions of superseded docs |
-| `docs/ui-style-guide.md` | Active UI style guide — Warm Red palette, typography, layout, and component specs implemented in `styles.css` and `login.css`. |
+| `docs/ui-style-guide.md` | Active UI style guide — Warm Red palette, typography, layout, and component specs implemented in `styles.css` (chat page) and `layout.css` (admin/settings/history pages); login page styles in `login.css`. |
 | `docs/deployment.md` | Render.com and local deployment instructions |
 | `packages/core/src/config.ts` | `loadConfig()` — reads and validates all env vars |
 | `packages/core/src/prompt-loader.ts` | `loadPromptFile()` — loads and strips a prompt file; `loadSystemPrompt()` — wraps `loadPromptFile()` and appends global system instructions |
@@ -569,7 +569,7 @@ These apply to every Claude Code session in this repo.
 | `apps/web/public/login.html` | Login/register/forgot-password page. Unauthenticated users are redirected here. |
 | `apps/web/public/login.css` | Styles for `login.html`. Self-contained dark theme mirroring `styles.css` palette. |
 | `apps/web/public/login.js` | Tabbed login/register/forgot panels. Calls the three server-side proxy endpoints for rate-limited operations; delegates hash callbacks (signup, recovery) to supabase-js's `detectSessionInUrl`. Listens for `PASSWORD_RECOVERY` to redirect into the settings page. |
-| `apps/web/public/layout.css` | Shared design tokens (`:root` variables), base resets, app-shell layout (`.app-header`, `.app-body`, `.page-sidebar`, `.page-content`), and mobile breakpoints (≤768px). Loaded before per-page stylesheets by admin.html, settings.html, and history.html. |
+| `apps/web/public/layout.css` | Shared design tokens (`:root` variables), base resets, app-shell layout (`.app-header`, `.app-body`, `.page-sidebar`, `.page-content`), shared component CSS (`.menu-btn` hamburger), and mobile breakpoints (≤768px). Loaded before per-page stylesheets by admin.html, settings.html, and history.html. |
 | `apps/web/public/settings.html` | Settings page — account info, preferences, email change, password change. Loads layout.css, settings.css, supabase-js, auth.js. |
 | `apps/web/public/settings.js` | Uses supabase-js directly: `auth.updateUser` for password/email changes (with `currentPassword` verification when not in recovery), and direct `profiles` upsert under RLS for transcript preferences. Email-change flow passes `emailRedirectTo: window.location.origin + "/settings.html"` and listens for `USER_UPDATED`/`EMAIL_CHANGE` events on `onAuthStateChange` to refresh the displayed email after confirmation. |
 | `apps/web/public/history.html` | Session history page. Loads layout.css, history.css, supabase-js, auth.js. |
