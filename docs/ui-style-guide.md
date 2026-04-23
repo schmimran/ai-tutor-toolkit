@@ -1,12 +1,12 @@
 # Axiom AI Tutor — UI Style Guide
 
-This is the active style guide for the production frontend.  The Warm Red palette and layout described here are fully implemented in `apps/web/public/styles.css` and `apps/web/public/login.css`.  Use this document as a reference when adding new UI components or pages.
+This is the active style guide for the production frontend.  The Warm Red palette and layout described here are implemented across three stylesheets: `apps/web/public/styles.css` (main chat page), `apps/web/public/login.css` (login page), and `apps/web/public/layout.css` (shared shell for admin, settings, and history pages).  Use this document as a reference when adding new UI components or pages.
 
 ---
 
 ## Color Tokens
 
-These replace the old dark-purple/cyan palette. Define them as CSS custom properties in `:root` inside `styles.css` and mirror them in `login.css`.
+These replace the old dark-purple/cyan palette. The canonical `:root` block lives in `styles.css` (for the main chat page), `login.css` (for the login page), and `layout.css` (shared across admin, settings, and history pages). When adding a new page that uses the shared shell, load `layout.css` rather than copying the token block.
 
 ```css
 :root {
